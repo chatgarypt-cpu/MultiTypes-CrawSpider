@@ -98,7 +98,11 @@ def site_row(d):
             "updated": (cur.get("updated") or "")[:19], "mb": round(chars / 1e6, 2),
             "pages_n": kind_count("pages")["n"], "media_n": kind_count("media")["n"],
             "channel": cfg.get("channel", ""), "needs_config": bool(cfg.get("channel") == "html" and not cfg.get("list_url")),
-            "kinds": {"posts": {"n": n, "page": cur.get("next_page", 0), "pages": cur.get("total_pages"), "updated": (cur.get("updated") or "")[:19]},
+            "kinds": {"posts": {"n": n, "page": cur.get("next_page", 0), "pages": cur.get("total_pages"),
+                                # done/status 必须带上：前端"不完整"判定依赖每类的 done，
+                                # 之前 posts 缺 done 导致 30 个已完成的非 WP 站被误判为不完整
+                                "done": cur.get("done", False), "status": cur.get("status", ""),
+                                "updated": (cur.get("updated") or "")[:19]},
                       "pages": kind_count("pages"), "media": kind_count("media")}}
 
 _last = {"total": None, "at": 0.0, "rate": 0.0}
@@ -118,8 +122,13 @@ def all_domains():
         doms = [s["domain"] for s in sites]
     except Exception:
         doms = []
-    on_disk = frozenset(os.path.basename(d) for d in glob.glob(os.path.join(DATA, "*"))
-                        if os.path.isdir(d) and not os.path.islink(d))
+    # 只算"像站点"的数据目录（jobs/recon 之类运行目录、测试站 blog.python.org 不算）
+    site_files = ("cursor.json", "urls.txt", "articles.jsonl", "pages.cursor.json", "media.cursor.json")
+    on_disk = frozenset(
+        os.path.basename(d) for d in glob.glob(os.path.join(DATA, "*"))
+        if os.path.isdir(d) and not os.path.islink(d)
+        and os.path.basename(d) not in {"blog.python.org"}
+        and any(os.path.exists(os.path.join(d, f)) for f in site_files))
     return sorted(set(doms) | set(on_disk))
 
 def build_status():
