@@ -1,0 +1,1072 @@
+{
+  "format": "rea-scenario",
+  "evidence_id": "ev_0c10560ceabee781751f9e38caec29a67fb69c69cfd6edec07d1157bc2679e5a",
+  "completeness": {
+    "status": "complete",
+    "equality_eligible": true,
+    "missing_sections": [],
+    "truncated_sections": []
+  },
+  "limitations": [
+    "Event sequence records provider receipt order; simultaneous browser causality is not inferred.",
+    "Network content is retained only when selected; response bytes are browser-decoded, not compressed wire bytes.",
+    "Request bytes are limited to what Playwright exposes; not_exposed does not establish body absence or multipart file coverage.",
+    "Network content reads settle within 5 seconds each and never wait for unfinished responses or refetch them.",
+    "Playwright scenario events do not expose request initiator stacks; receipt order does not prove causality.",
+    "Storage values are hashed only after declared-secret redaction."
+  ],
+  "selected_records": 104,
+  "omissions": {
+    "outside_origins": 5,
+    "missing_response_status": 0
+  },
+  "pairing": "synthetic adapter keys, not original CDP request IDs",
+  "headers": "Only Content-Type is propagated; authentication requirements are unknown.",
+  "origins": [
+    "https://dimenc.gouv.nc"
+  ],
+  "records": [
+    {
+      "adapter_pair_id": "adapted-000000",
+      "transaction_id": "request-1",
+      "request_sequence": 1,
+      "response_sequence": 2,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000001",
+      "transaction_id": "request-2",
+      "request_sequence": 3,
+      "response_sequence": 94,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000002",
+      "transaction_id": "request-3",
+      "request_sequence": 4,
+      "response_sequence": 96,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000003",
+      "transaction_id": "request-4",
+      "request_sequence": 5,
+      "response_sequence": 84,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000004",
+      "transaction_id": "request-5",
+      "request_sequence": 6,
+      "response_sequence": 88,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000005",
+      "transaction_id": "request-6",
+      "request_sequence": 7,
+      "response_sequence": 90,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000006",
+      "transaction_id": "request-7",
+      "request_sequence": 8,
+      "response_sequence": 124,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000007",
+      "transaction_id": "request-8",
+      "request_sequence": 9,
+      "response_sequence": 120,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000008",
+      "transaction_id": "request-9",
+      "request_sequence": 10,
+      "response_sequence": 86,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000009",
+      "transaction_id": "request-10",
+      "request_sequence": 11,
+      "response_sequence": 117,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000010",
+      "transaction_id": "request-11",
+      "request_sequence": 12,
+      "response_sequence": 116,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000011",
+      "transaction_id": "request-12",
+      "request_sequence": 13,
+      "response_sequence": 176,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000012",
+      "transaction_id": "request-13",
+      "request_sequence": 14,
+      "response_sequence": 177,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000013",
+      "transaction_id": "request-14",
+      "request_sequence": 15,
+      "response_sequence": 92,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000014",
+      "transaction_id": "request-15",
+      "request_sequence": 16,
+      "response_sequence": 106,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000015",
+      "transaction_id": "request-16",
+      "request_sequence": 17,
+      "response_sequence": 122,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000016",
+      "transaction_id": "request-17",
+      "request_sequence": 18,
+      "response_sequence": 98,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000017",
+      "transaction_id": "request-18",
+      "request_sequence": 19,
+      "response_sequence": 115,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000018",
+      "transaction_id": "request-19",
+      "request_sequence": 20,
+      "response_sequence": 103,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000019",
+      "transaction_id": "request-20",
+      "request_sequence": 21,
+      "response_sequence": 119,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000020",
+      "transaction_id": "request-21",
+      "request_sequence": 22,
+      "response_sequence": 175,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000021",
+      "transaction_id": "request-22",
+      "request_sequence": 23,
+      "response_sequence": 123,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000022",
+      "transaction_id": "request-23",
+      "request_sequence": 24,
+      "response_sequence": 107,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000023",
+      "transaction_id": "request-24",
+      "request_sequence": 25,
+      "response_sequence": 173,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000024",
+      "transaction_id": "request-25",
+      "request_sequence": 26,
+      "response_sequence": 111,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000025",
+      "transaction_id": "request-26",
+      "request_sequence": 27,
+      "response_sequence": 186,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000026",
+      "transaction_id": "request-27",
+      "request_sequence": 28,
+      "response_sequence": 121,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000027",
+      "transaction_id": "request-28",
+      "request_sequence": 29,
+      "response_sequence": 182,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000028",
+      "transaction_id": "request-29",
+      "request_sequence": 30,
+      "response_sequence": 118,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000029",
+      "transaction_id": "request-30",
+      "request_sequence": 31,
+      "response_sequence": 100,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000030",
+      "transaction_id": "request-31",
+      "request_sequence": 32,
+      "response_sequence": 125,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000031",
+      "transaction_id": "request-32",
+      "request_sequence": 33,
+      "response_sequence": 179,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000032",
+      "transaction_id": "request-33",
+      "request_sequence": 34,
+      "response_sequence": 108,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000033",
+      "transaction_id": "request-34",
+      "request_sequence": 35,
+      "response_sequence": 178,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000034",
+      "transaction_id": "request-35",
+      "request_sequence": 36,
+      "response_sequence": 105,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000035",
+      "transaction_id": "request-36",
+      "request_sequence": 37,
+      "response_sequence": 174,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000036",
+      "transaction_id": "request-37",
+      "request_sequence": 38,
+      "response_sequence": 189,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000037",
+      "transaction_id": "request-38",
+      "request_sequence": 39,
+      "response_sequence": 113,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000038",
+      "transaction_id": "request-39",
+      "request_sequence": 40,
+      "response_sequence": 191,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000039",
+      "transaction_id": "request-40",
+      "request_sequence": 41,
+      "response_sequence": 199,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000040",
+      "transaction_id": "request-41",
+      "request_sequence": 42,
+      "response_sequence": 201,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000041",
+      "transaction_id": "request-42",
+      "request_sequence": 43,
+      "response_sequence": 101,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000042",
+      "transaction_id": "request-43",
+      "request_sequence": 44,
+      "response_sequence": 203,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000043",
+      "transaction_id": "request-44",
+      "request_sequence": 45,
+      "response_sequence": 193,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000044",
+      "transaction_id": "request-45",
+      "request_sequence": 46,
+      "response_sequence": 205,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000045",
+      "transaction_id": "request-46",
+      "request_sequence": 47,
+      "response_sequence": 238,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000046",
+      "transaction_id": "request-47",
+      "request_sequence": 48,
+      "response_sequence": 135,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000047",
+      "transaction_id": "request-48",
+      "request_sequence": 49,
+      "response_sequence": 137,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000048",
+      "transaction_id": "request-49",
+      "request_sequence": 50,
+      "response_sequence": 139,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000049",
+      "transaction_id": "request-50",
+      "request_sequence": 51,
+      "response_sequence": 141,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000050",
+      "transaction_id": "request-51",
+      "request_sequence": 52,
+      "response_sequence": 207,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000051",
+      "transaction_id": "request-52",
+      "request_sequence": 53,
+      "response_sequence": 195,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000052",
+      "transaction_id": "request-53",
+      "request_sequence": 54,
+      "response_sequence": 143,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000053",
+      "transaction_id": "request-54",
+      "request_sequence": 55,
+      "response_sequence": 209,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000054",
+      "transaction_id": "request-55",
+      "request_sequence": 56,
+      "response_sequence": 197,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000055",
+      "transaction_id": "request-56",
+      "request_sequence": 57,
+      "response_sequence": 145,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000056",
+      "transaction_id": "request-57",
+      "request_sequence": 58,
+      "response_sequence": 147,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000057",
+      "transaction_id": "request-58",
+      "request_sequence": 59,
+      "response_sequence": 213,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000058",
+      "transaction_id": "request-59",
+      "request_sequence": 60,
+      "response_sequence": 211,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000059",
+      "transaction_id": "request-60",
+      "request_sequence": 61,
+      "response_sequence": 149,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000060",
+      "transaction_id": "request-61",
+      "request_sequence": 62,
+      "response_sequence": 151,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000061",
+      "transaction_id": "request-62",
+      "request_sequence": 63,
+      "response_sequence": 155,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000062",
+      "transaction_id": "request-63",
+      "request_sequence": 64,
+      "response_sequence": 215,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000063",
+      "transaction_id": "request-64",
+      "request_sequence": 65,
+      "response_sequence": 157,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000064",
+      "transaction_id": "request-65",
+      "request_sequence": 66,
+      "response_sequence": 153,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000065",
+      "transaction_id": "request-66",
+      "request_sequence": 67,
+      "response_sequence": 217,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000066",
+      "transaction_id": "request-67",
+      "request_sequence": 68,
+      "response_sequence": 219,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000067",
+      "transaction_id": "request-68",
+      "request_sequence": 69,
+      "response_sequence": 221,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000068",
+      "transaction_id": "request-69",
+      "request_sequence": 70,
+      "response_sequence": 161,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000069",
+      "transaction_id": "request-70",
+      "request_sequence": 71,
+      "response_sequence": 224,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000070",
+      "transaction_id": "request-71",
+      "request_sequence": 72,
+      "response_sequence": 226,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000071",
+      "transaction_id": "request-72",
+      "request_sequence": 73,
+      "response_sequence": 159,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000072",
+      "transaction_id": "request-73",
+      "request_sequence": 74,
+      "response_sequence": 163,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000073",
+      "transaction_id": "request-74",
+      "request_sequence": 75,
+      "response_sequence": 228,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000074",
+      "transaction_id": "request-75",
+      "request_sequence": 76,
+      "response_sequence": 165,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000075",
+      "transaction_id": "request-76",
+      "request_sequence": 77,
+      "response_sequence": 167,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000076",
+      "transaction_id": "request-77",
+      "request_sequence": 78,
+      "response_sequence": 232,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000077",
+      "transaction_id": "request-78",
+      "request_sequence": 79,
+      "response_sequence": 243,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000078",
+      "transaction_id": "request-79",
+      "request_sequence": 80,
+      "response_sequence": 169,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000079",
+      "transaction_id": "request-80",
+      "request_sequence": 81,
+      "response_sequence": 230,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000080",
+      "transaction_id": "request-81",
+      "request_sequence": 82,
+      "response_sequence": 171,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000081",
+      "transaction_id": "request-83",
+      "request_sequence": 247,
+      "response_sequence": 280,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000082",
+      "transaction_id": "request-84",
+      "request_sequence": 248,
+      "response_sequence": 278,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000083",
+      "transaction_id": "request-85",
+      "request_sequence": 249,
+      "response_sequence": 284,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000084",
+      "transaction_id": "request-86",
+      "request_sequence": 250,
+      "response_sequence": 282,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000085",
+      "transaction_id": "request-87",
+      "request_sequence": 251,
+      "response_sequence": 310,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000086",
+      "transaction_id": "request-90",
+      "request_sequence": 254,
+      "response_sequence": 297,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000087",
+      "transaction_id": "request-91",
+      "request_sequence": 255,
+      "response_sequence": 319,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000088",
+      "transaction_id": "request-92",
+      "request_sequence": 256,
+      "response_sequence": 286,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000089",
+      "transaction_id": "request-93",
+      "request_sequence": 257,
+      "response_sequence": 299,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000090",
+      "transaction_id": "request-94",
+      "request_sequence": 258,
+      "response_sequence": 288,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000091",
+      "transaction_id": "request-95",
+      "request_sequence": 259,
+      "response_sequence": 306,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000092",
+      "transaction_id": "request-96",
+      "request_sequence": 260,
+      "response_sequence": 321,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000093",
+      "transaction_id": "request-97",
+      "request_sequence": 261,
+      "response_sequence": 315,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000094",
+      "transaction_id": "request-98",
+      "request_sequence": 262,
+      "response_sequence": 292,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000095",
+      "transaction_id": "request-99",
+      "request_sequence": 263,
+      "response_sequence": 312,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000096",
+      "transaction_id": "request-100",
+      "request_sequence": 264,
+      "response_sequence": 296,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000097",
+      "transaction_id": "request-101",
+      "request_sequence": 265,
+      "response_sequence": 294,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000098",
+      "transaction_id": "request-102",
+      "request_sequence": 266,
+      "response_sequence": 290,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000099",
+      "transaction_id": "request-103",
+      "request_sequence": 267,
+      "response_sequence": 317,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000100",
+      "transaction_id": "request-104",
+      "request_sequence": 268,
+      "response_sequence": 300,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000101",
+      "transaction_id": "request-105",
+      "request_sequence": 269,
+      "response_sequence": 272,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000102",
+      "transaction_id": "request-106",
+      "request_sequence": 270,
+      "response_sequence": 304,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    },
+    {
+      "adapter_pair_id": "adapted-000103",
+      "transaction_id": "request-107",
+      "request_sequence": 271,
+      "response_sequence": 308,
+      "request_body_state": "not_recorded",
+      "response_body_state": "not_recorded",
+      "request_text_joined": false,
+      "response_text_joined": false
+    }
+  ],
+  "source_file": "/Users/gary/项目开发/REA_CrawlSpider/collector/data/rea/dimenc.gouv.nc.json",
+  "source_sha256": "58692cbb2fe756bb15a9fe527e0f64953358a30cd09fef77b48414666e399dda"
+}

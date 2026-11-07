@@ -1,0 +1,13 @@
+{
+  "endpoint": "GET https://www.vmgd.gov.vu/",
+  "request": {
+    "status": null,
+    "headers": {},
+    "body": null
+  },
+  "response": {
+    "status": null,
+    "headers": {},
+    "body": null
+  }
+}

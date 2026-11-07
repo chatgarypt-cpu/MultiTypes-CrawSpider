@@ -1,0 +1,25 @@
+# REA_CrawlSpider 定时任务示例 —— 安装：crontab -e 后粘贴（按需删注释）
+#
+# 时区说明：cron 使用系统本地时区（Asia/Singapore）；日志写 data/cron-*.log。
+# 守护进程（collectorctl run / launchd）负责常驻补采；这里的 cron 只做增量/校验/清理。
+# 与 launchd KeepAlive 可共存，但不要再用 cron 调 `collectorctl run`，否则会双跑。
+
+SHELL=/bin/bash
+REPO=/Users/gary/项目开发/REA_CrawlSpider
+PY=/Users/gary/项目开发/REA_CrawlSpider/演练场（ignore)/.venv/bin/python
+
+# ---------- 每日增量 03:10 ----------
+# 1) 队列对账：urls.txt 里已有但队列还是 unprocessed 的行标 done（避免重复抓取）
+# 2) 队列补采：按 sources.yaml 断点续跑
+10 3 * * * cd "$REPO" && "$PY" collector/cli.py reconcile >> data/cron-reconcile.log 2>&1 && "$PY" collector/run_queue.py >> data/cron-daily.log 2>&1
+
+# ---------- 每周日 04:30：覆盖率核对 + 交付 ----------
+# verify 写 data/coverage-<date>.json；deliverables 生成 output/csv + output/delivery/<date>/
+30 4 * * 0 cd "$REPO" && "$PY" collector/cli.py verify >> data/cron-verify.log 2>&1 && "$PY" collector/cli.py deliverables >> data/cron-deliver.log 2>&1
+
+# ---------- 每月 1 日 05:00：去重 ----------
+# 先 dry-run 记一笔，再实际去重（重复行来源：事故/多进程重扫）
+0 5 1 * * cd "$REPO" && "$PY" collector/cli.py dedupe --all --dry-run >> data/cron-dedupe.log 2>&1 && "$PY" collector/cli.py dedupe --all >> data/cron-dedupe.log 2>&1
+
+# ---------- 可选：每小时健康快照（守护未运行时兜底） ----------
+# 0 * * * * cd "$REPO" && "$PY" collector/health.py >> data/cron-health.log 2>&1
