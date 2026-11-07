@@ -1,0 +1,4991 @@
+[
+ {
+  "domain": "dailypost.vu",
+  "name": "",
+  "country": "Vanuatu, Republic of",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.dailypost.vu/",
+  "home_ms": 23071,
+  "server": "",
+  "err": "",
+  "size": 14066,
+  "https_ok": true,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.dailypost.vu",
+  "wp": {
+   "ok": false,
+   "status": 403,
+   "ct": ""
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.dailypost.vu/sitemap.xml",
+    "https://www.dailypost.vu/tncms/sitemap/editorial.xml",
+    "https://www.dailypost.vu/tncms/sitemap/editorial.xml?year=2009"
+   ],
+   "disallow": [
+    "/",
+    "/",
+    "/",
+    "/",
+    "/",
+    "/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 5
+   }
+  ],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "dcrm.gov.mp",
+  "name": "",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "政府网站",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://dcrm.gov.mp/",
+  "home_ms": 11223,
+  "server": "Apache",
+  "err": "",
+  "size": 86770,
+  "https_ok": true,
+  "generator": "",
+  "title": "Division of Coastal Resources Management",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://dcrm.gov.mp",
+  "wp": {
+   "ok": true,
+   "total": 0,
+   "pages": 0,
+   "latest": "",
+   "api": "https://dcrm.gov.mp/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 0,
+    "latest": "",
+    "title": "Division of Coastal Resources Management",
+    "link_sample": "https://dcrm.gov.mp"
+   },
+   {
+    "path": "/feed/",
+    "items": 0,
+    "latest": "",
+    "title": "Division of Coastal Resources Management",
+    "link_sample": "https://dcrm.gov.mp"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://dcrm.gov.mp/wp-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-admin/",
+    "/about-dcrm/event-calendar/",
+    "/datalayer/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 7
+   }
+  ],
+  "article": {
+   "url": "https://dcrm.gov.mp",
+   "status": 200,
+   "text_len": 17,
+   "paras": 3,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "dimenc.gouv.nc",
+  "name": "",
+  "country": "Nouvelle-Calédonie",
+  "type": "智库",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://dimenc.gouv.nc/",
+  "home_ms": 1946,
+  "server": "cloudflare",
+  "err": "",
+  "size": 187678,
+  "https_ok": true,
+  "generator": "Drupal 10 (https://www.drupal.org)",
+  "title": "STENC | Dimenc",
+  "wp_hint": false,
+  "cf": true,
+  "base": "https://dimenc.gouv.nc",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=UTF-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/core/",
+    "/profiles/",
+    "/README.md",
+    "/composer/Metapackage/README.txt",
+    "/composer/Plugin/ProjectMessage/README.md",
+    "/composer/Plugin/Scaffold/README.md"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "emtv.com.pg",
+  "name": "",
+  "country": "Papua New Guinea",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://emtv.com.pg/",
+  "home_ms": 21174,
+  "server": "nginx",
+  "err": "",
+  "size": 235698,
+  "https_ok": true,
+  "generator": "Site Kit by Google 1.190.0",
+  "title": "Home &mdash; EMTV ONLINE",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://emtv.com.pg",
+  "wp": {
+   "ok": true,
+   "total": 21030,
+   "pages": 21030,
+   "latest": "2026-10-27T12:30:32",
+   "api": "https://emtv.com.pg/wp-json/wp/v2/posts"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://emtv.com.pg/sitemap.xml"
+   ],
+   "disallow": [
+    "Sitemap:"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "urlset",
+    "urls": 1
+   }
+  ],
+  "article": {
+   "url": "https://emtv.com.pg/dataco-pebbles-crowned-2026-media-pool-competition-champions/",
+   "status": 200,
+   "text_len": 1787,
+   "paras": 10,
+   "og_image": true,
+   "date": "2026-10-27T12:07:22+10:00",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "fela.org.fj",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.fela.org.fj/",
+  "home_ms": 4925,
+  "server": "LiteSpeed",
+  "err": "",
+  "size": 78815,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Fiji Environmental Law Association &#8211; Promoting Sustainable Resource Management and the Protection of Fiji&#039;s E",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://www.fela.org.fj",
+  "wp": {
+   "ok": true,
+   "total": 5,
+   "pages": 5,
+   "latest": "2026-07-19T02:34:22",
+   "api": "https://www.fela.org.fj/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 5,
+    "latest": "Sun, 19 Jul 2026 02:34:22 +0000",
+    "title": "Fiji Environmental Law Association",
+    "link_sample": "https://www.fela.org.fj"
+   },
+   {
+    "path": "/feed/",
+    "items": 5,
+    "latest": "Sun, 19 Jul 2026 02:34:22 +0000",
+    "title": "Fiji Environmental Law Association",
+    "link_sample": "https://www.fela.org.fj"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.fela.org.fj/wp-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 5
+   }
+  ],
+  "article": {
+   "url": "https://www.fela.org.fj",
+   "status": 200,
+   "text_len": 70,
+   "paras": 1,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "fijisun.com.fj",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://fijisun.com.fj/",
+  "home_ms": 5346,
+  "server": "",
+  "err": "",
+  "size": 498827,
+  "https_ok": true,
+  "generator": "",
+  "title": "Fiji Sun | Latest News, Business, Sports, and Entertainment from Fiji",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://fijisun.com.fj",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=UTF-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://fijisun.com.fj/sitemap.xml",
+    "https://fijisun.com.fj/news-sitemap.xml"
+   ],
+   "disallow": [
+    "/api/",
+    "/admin",
+    "/todays-paper/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 98
+   }
+  ],
+  "article": {
+   "url": "https://fijisun.com.fj/news/nation",
+   "status": 200,
+   "text_len": 2325,
+   "paras": 42,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "islandtimes.org",
+  "name": "",
+  "country": "Palau, Republic of",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 403,
+  "home_final": "https://islandtimes.org/",
+  "home_ms": 591,
+  "server": "nginx",
+  "err": "http",
+  "size": 1762,
+  "https_ok": false,
+  "generator": "",
+  "title": "Checking your browser...",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://islandtimes.org",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 403,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "la1ere.francetvinfo.fr",
+  "name": "",
+  "country": "French Polynesia",
+  "type": "新闻",
+  "lang_listed": "法语",
+  "home_status": 200,
+  "home_final": "https://la1ere.franceinfo.fr/",
+  "home_ms": 3959,
+  "server": "Microsoft IIS 4.0",
+  "err": "",
+  "size": 591882,
+  "https_ok": true,
+  "generator": "",
+  "title": "Outre-mer La 1ère : toute l’actualité des Outre-mer en direct - Outre-mer La 1ère",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://la1ere.franceinfo.fr",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=UTF-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://la1ere.franceinfo.fr/sitemap_news_index.xml",
+    "https://la1ere.franceinfo.fr/ftv_sitemap.xml"
+   ],
+   "disallow": [
+    "/bandeau-api/",
+    "/api/menu/franceinfo",
+    "/*/diffusion/",
+    "/*.html?marketing=",
+    "/*.html?fbclid=",
+    "/*.html?gclid="
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://la1ere.franceinfo.fr/sport/voile/route-du-rhum-2026/route-du-rhum-decouvrez-cinq-mesaventures-meconnues-de-la-ce",
+   "status": 200,
+   "text_len": 6431,
+   "paras": 21,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "la1ere.francetvinfo.fr",
+  "name": "",
+  "country": "Nouvelle-Calédonie",
+  "type": "新闻",
+  "lang_listed": "法语",
+  "home_status": 200,
+  "home_final": "https://la1ere.franceinfo.fr/",
+  "home_ms": 1174,
+  "server": "Microsoft IIS 4.0",
+  "err": "",
+  "size": 592123,
+  "https_ok": true,
+  "generator": "",
+  "title": "Outre-mer La 1ère : toute l’actualité des Outre-mer en direct - Outre-mer La 1ère",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://la1ere.franceinfo.fr",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=UTF-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://la1ere.franceinfo.fr/sitemap_news_index.xml",
+    "https://la1ere.franceinfo.fr/ftv_sitemap.xml"
+   ],
+   "disallow": [
+    "/bandeau-api/",
+    "/api/menu/franceinfo",
+    "/*/diffusion/",
+    "/*.html?marketing=",
+    "/*.html?fbclid=",
+    "/*.html?gclid="
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://la1ere.franceinfo.fr/sport/voile/route-du-rhum-2026/route-du-rhum-decouvrez-cinq-mesaventures-meconnues-de-la-ce",
+   "status": 200,
+   "text_len": 6431,
+   "paras": 21,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "matangitonga.to",
+  "name": "",
+  "country": "Tonga, Kingdom of",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://matangitonga.to/",
+  "home_ms": 2057,
+  "server": "cloudflare",
+  "err": "",
+  "size": 78744,
+  "https_ok": true,
+  "generator": "Drupal 7 (https://www.drupal.org)",
+  "title": "Matangi Tonga | Tonga's Leading News Website",
+  "wp_hint": false,
+  "cf": true,
+  "base": "https://matangitonga.to",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=utf-8"
+  },
+  "feeds": [
+   {
+    "path": "/rss.xml",
+    "items": 9,
+    "latest": "Mon, 26 Oct 2026 20:25:21 +0000",
+    "title": "Matangi Tonga",
+    "link_sample": "https://matangitonga.to"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/",
+    "/",
+    "/",
+    "/",
+    "/",
+    "/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 2
+   }
+  ],
+  "article": {
+   "url": "https://matangitonga.to",
+   "status": 200,
+   "text_len": 4663,
+   "paras": 2,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "minapacific.org",
+  "name": "",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "智库",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://minapacific.org/",
+  "home_ms": 3034,
+  "server": "Microsoft-IIS/10.0",
+  "err": "",
+  "size": 10120,
+  "https_ok": true,
+  "generator": "",
+  "title": "Mariana Islands Nature Alliance",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://minapacific.org",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 404,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "naurugov.nr",
+  "name": "",
+  "country": "Nauru, Republic of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 403,
+  "home_final": "https://naurugov.nr/",
+  "home_ms": 1717,
+  "server": "Apache",
+  "err": "http",
+  "size": 239,
+  "https_ok": false,
+  "generator": "",
+  "title": "403 Forbidden",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://naurugov.nr",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 403,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "pacificclimateaction.net",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://pacificclimateaction.net/",
+  "home_ms": 4830,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://pacificclimateaction.net",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "pina.com.fj",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://pina.com.fj/",
+  "home_ms": 5939,
+  "server": "LiteSpeed",
+  "err": "",
+  "size": 369035,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "PINA | Pacific Islands News Association",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://pina.com.fj",
+  "wp": {
+   "ok": true,
+   "total": 13524,
+   "pages": 13524,
+   "latest": "2026-10-27T14:06:04",
+   "api": "https://pina.com.fj/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 1,
+    "latest": "Tue, 27 Oct 2026 08:02:55 +0000",
+    "title": "PINA",
+    "link_sample": "https://pina.com.fj"
+   },
+   {
+    "path": "/feed/",
+    "items": 1,
+    "latest": "Tue, 27 Oct 2026 08:02:55 +0000",
+    "title": "PINA",
+    "link_sample": "https://pina.com.fj"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://pina.com.fj/wp-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 19
+   }
+  ],
+  "article": {
+   "url": "https://pina.com.fj",
+   "status": 200,
+   "text_len": 0,
+   "paras": 0,
+   "og_image": false,
+   "date": "2026-10-27T14:06:04+12:00",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "radiosamoa.ws",
+  "name": "",
+  "country": "Samoa, Independent State of",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://cms.radiosamoa.co.nz/",
+  "home_ms": 11548,
+  "server": "cloudflare",
+  "err": "",
+  "size": 816915,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Radio Samoa &#8211; Connects the community with Programmes, news, entertainment and information",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://cms.radiosamoa.co.nz",
+  "wp": {
+   "ok": true,
+   "total": 18773,
+   "pages": 18773,
+   "latest": "2026-10-27T14:04:45",
+   "api": "https://cms.radiosamoa.co.nz/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed/",
+    "items": 90,
+    "latest": "Tue, 27 Oct 2026 01:04:45 +0000",
+    "title": "Radio Samoa",
+    "link_sample": "https://cms.radiosamoa.co.nz"
+   },
+   {
+    "path": "/rss",
+    "items": 90,
+    "latest": "Tue, 27 Oct 2026 01:04:45 +0000",
+    "title": "Radio Samoa",
+    "link_sample": "https://cms.radiosamoa.co.nz"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://cms.radiosamoa.co.nz/wp-sitemap.xml"
+   ],
+   "disallow": [
+    "/",
+    "/",
+    "/",
+    "/",
+    "/",
+    "/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/wp-sitemap.xml",
+    "type": "index",
+    "urls": 18
+   }
+  ],
+  "article": {
+   "url": "https://cms.radiosamoa.co.nz",
+   "status": 200,
+   "text_len": 0,
+   "paras": 0,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.abc7chamorro.com",
+  "name": "",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 502,
+  "home_final": "http://www.abc7chamorro.com/",
+  "home_ms": 221,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.abc7chamorro.com",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.adck.nc",
+  "name": "",
+  "country": "Nouvelle-Calédonie",
+  "type": "政府网站",
+  "lang_listed": "法语",
+  "home_status": 200,
+  "home_final": "https://centretjibaou.nc/",
+  "home_ms": 5348,
+  "server": "pien",
+  "err": "",
+  "size": 104348,
+  "https_ok": true,
+  "generator": "Drupal 11 (https://www.drupal.org)",
+  "title": "HOME | ADCK",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://centretjibaou.nc",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=UTF-8"
+  },
+  "feeds": [
+   {
+    "path": "/rss.xml",
+    "items": 10,
+    "latest": "Thu, 22 Oct 2026 03:55:05 +0000",
+    "title": "ADCK",
+    "link_sample": "https://centretjibaou.nc/"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/core/",
+    "/profiles/",
+    "/README.md",
+    "/composer/Metapackage/README.txt",
+    "/composer/Plugin/ProjectMessage/README.md",
+    "/composer/Plugin/Scaffold/README.md"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://centretjibaou.nc/",
+   "status": 200,
+   "text_len": 8628,
+   "paras": 75,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.belaunationalmuseum.net",
+  "name": "",
+  "country": "Palau, Republic of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.belaunationalmuseum.net/cgi-sys/suspendedpage.cgi",
+  "home_ms": 9680,
+  "server": "Apache",
+  "err": "",
+  "size": 7640,
+  "https_ok": true,
+  "generator": "",
+  "title": "Account Suspended",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.belaunationalmuseum.net",
+  "wp": {
+   "ok": false,
+   "status": 0,
+   "ct": ""
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.cmi.edu",
+  "name": "",
+  "country": "Marshall Island, Republic of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.cmi.edu/",
+  "home_ms": 1951,
+  "server": "cloudflare",
+  "err": "",
+  "size": 465476,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Home Page &#187; College of the Marshall Islands",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://www.cmi.edu",
+  "wp": {
+   "ok": false,
+   "status": 403,
+   "ct": "text/html; charset=UTF-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.cmi.edu/templates/sitemap.xml"
+   ],
+   "disallow": [
+    "/",
+    "/",
+    "/",
+    "/",
+    "/",
+    "/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 12
+   }
+  ],
+  "article": {
+   "url": "https://www.cmi.edu/news/",
+   "status": 200,
+   "text_len": 155,
+   "paras": 1,
+   "og_image": true,
+   "date": "April 2, 2026",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.comfsm.fm",
+  "name": "",
+  "country": "Micronesia, Federated States of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.comfsm.edu.fm/",
+  "home_ms": 16215,
+  "server": "Apache/2.4.62 (Rocky Linux) OpenSSL/3.2.",
+  "err": "",
+  "size": 123071,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "College of Micronesia-FSM &#8211; We provide quality education today for a successful tomorrow",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://www.comfsm.edu.fm",
+  "wp": {
+   "ok": true,
+   "total": 10,
+   "pages": 10,
+   "latest": "2026-06-29T11:54:00",
+   "api": "https://www.comfsm.edu.fm/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Mon, 29 Jun 2026 00:54:00 +0000",
+    "title": "College of Micronesia-FSM",
+    "link_sample": "https://www.comfsm.edu.fm"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Mon, 29 Jun 2026 00:54:00 +0000",
+    "title": "College of Micronesia-FSM",
+    "link_sample": "https://www.comfsm.edu.fm"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.comfsm.edu.fm/wp-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 6
+   }
+  ],
+  "article": {
+   "url": "https://www.comfsm.edu.fm",
+   "status": 200,
+   "text_len": 4081,
+   "paras": 11,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.cookislands.gov.ck",
+  "name": "",
+  "country": "Cook Islands",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 303,
+  "home_final": "https://www.cookislands.gov.ck/",
+  "home_ms": 20194,
+  "server": "Apache",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.cookislands.gov.ck",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 0,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.cookislandsnews.com",
+  "name": "",
+  "country": "Cook Islands",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.cookislandsnews.com/",
+  "home_ms": 1779,
+  "server": "cloudflare",
+  "err": "",
+  "size": 109541,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Cook Islands News - Breaking news, latest news &amp; world news online - Cook Islands News",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://www.cookislandsnews.com",
+  "wp": {
+   "ok": true,
+   "total": 0,
+   "pages": 0,
+   "latest": "2026-10-24T11:04:54",
+   "api": "https://www.cookislandsnews.com/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Sat, 24 Oct 2026 21:04:54 +0000",
+    "title": "Cook Islands News",
+    "link_sample": "https://www.cookislandsnews.com/"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Sat, 24 Oct 2026 21:04:54 +0000",
+    "title": "Cook Islands News",
+    "link_sample": "https://www.cookislandsnews.com/"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "/sitemap.xml"
+   ],
+   "disallow": [
+    "/",
+    "/",
+    "/",
+    "/",
+    "/",
+    "/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 89
+   }
+  ],
+  "article": {
+   "url": "https://www.cookislandsnews.com/",
+   "status": 200,
+   "text_len": 7447,
+   "paras": 94,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.coralgardeners.org",
+  "name": "",
+  "country": "French Polynesia",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 0,
+  "home_final": "http://www.coralgardeners.org/",
+  "home_ms": 2561,
+  "server": "",
+  "err": "URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)>",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.coralgardeners.org",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 0,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "urlset",
+    "urls": 36
+   }
+  ],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.criobe.pf",
+  "name": "",
+  "country": "French Polynesia",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.criobe.pf/en/home/",
+  "home_ms": 7510,
+  "server": "Apache",
+  "err": "",
+  "size": 190245,
+  "https_ok": true,
+  "generator": "WordPress 7.1.2",
+  "title": "Home - CRIOBE - UAR3278",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://www.criobe.pf",
+  "wp": {
+   "ok": true,
+   "total": 112,
+   "pages": 112,
+   "latest": "2026-07-24T15:46:07",
+   "api": "https://www.criobe.pf/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Fri, 24 Jul 2026 13:46:07 +0000",
+    "title": "CRIOBE &#8211; UAR3278",
+    "link_sample": "https://www.criobe.pf/"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Fri, 24 Jul 2026 13:46:07 +0000",
+    "title": "CRIOBE &#8211; UAR3278",
+    "link_sample": "https://www.criobe.pf/"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.criobe.pf/sitemap_index.xml"
+   ],
+   "disallow": [
+    "Sitemap:"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 7
+   }
+  ],
+  "article": {
+   "url": "https://www.criobe.pf/",
+   "status": 200,
+   "text_len": 915,
+   "paras": 6,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.croix-rouge.fr",
+  "name": "",
+  "country": "Wallis and Futuna",
+  "type": "智库",
+  "lang_listed": "法语",
+  "home_status": 200,
+  "home_final": "https://www.croix-rouge.fr/",
+  "home_ms": 2013,
+  "server": "",
+  "err": "",
+  "size": 196785,
+  "https_ok": true,
+  "generator": "",
+  "title": "Croix-Rouge française : engagez vous à nos côtés",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.croix-rouge.fr",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": ""
+  },
+  "feeds": [],
+  "robots": {
+   "status": 0,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 33
+   }
+  ],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.croix-rouge.fr",
+  "name": "",
+  "country": "Nouvelle-Calédonie",
+  "type": "智库",
+  "lang_listed": "法语",
+  "home_status": 200,
+  "home_final": "https://www.croix-rouge.fr/",
+  "home_ms": 2979,
+  "server": "",
+  "err": "",
+  "size": 196782,
+  "https_ok": true,
+  "generator": "",
+  "title": "Croix-Rouge française : engagez vous à nos côtés",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.croix-rouge.fr",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": ""
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.croix-rouge.fr/sitemap_index.xml"
+   ],
+   "disallow": [
+    "/campagnes/",
+    "/je-recherche-un-proche",
+    "/resultats-selection-en-formation",
+    "/*search=*",
+    "/*sort=*",
+    "/*filters=*"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 33
+   }
+  ],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.dca.gov.mp",
+  "name": "",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "政府网站",
+  "lang_listed": "英语",
+  "home_status": 502,
+  "home_final": "http://www.dca.gov.mp/",
+  "home_ms": 219,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.dca.gov.mp",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.environnement.gouv.nc",
+  "name": "",
+  "country": "Nouvelle-Calédonie",
+  "type": "政府网站",
+  "lang_listed": "法语",
+  "home_status": 502,
+  "home_final": "http://www.environnement.gouv.nc/",
+  "home_ms": 201,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.environnement.gouv.nc",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.fbc.com.fj",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.fbc.com.fj/",
+  "home_ms": 1276,
+  "server": "cloudflare",
+  "err": "",
+  "size": 3725,
+  "https_ok": true,
+  "generator": "",
+  "title": "Fijian Broadcasting Corporation",
+  "wp_hint": false,
+  "cf": true,
+  "base": "https://www.fbc.com.fj",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/plain; charset=utf-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 404,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.fenuaenvironnement.pf",
+  "name": "",
+  "country": "French Polynesia",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.fenuaenvironnement.pf/",
+  "home_ms": 2661,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.fenuaenvironnement.pf",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.fijione.tv",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.fijione.tv/",
+  "home_ms": 513,
+  "server": "",
+  "err": "",
+  "size": 114,
+  "https_ok": true,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.fijione.tv",
+  "wp": {
+   "ok": false,
+   "status": 200,
+   "ct": "text/html"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "/sitemap.xml"
+   ],
+   "disallow": []
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "urlset",
+    "urls": 1
+   }
+  ],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.fijitimes.com",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.fijitimes.com.fj/",
+  "home_ms": 5479,
+  "server": "Apache/2.4.69 (Amazon Linux) OpenSSL/3.5",
+  "err": "",
+  "size": 128477,
+  "https_ok": true,
+  "generator": "",
+  "title": "The Fiji Times - Latest Fiji News, Sports and Weather",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://www.fijitimes.com.fj",
+  "wp": {
+   "ok": false,
+   "status": 0,
+   "ct": ""
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.fijitimes.com.fj/sitemap_index.xml"
+   ],
+   "disallow": [
+    "Sitemap:"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 8
+   }
+  ],
+  "article": {
+   "url": "https://www.fijitimes.com.fj/category/news/",
+   "status": 200,
+   "text_len": 0,
+   "paras": 0,
+   "og_image": true,
+   "date": "",
+   "author_meta": "ANISH CHAND",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.fisheries.gov.sb",
+  "name": "",
+  "country": "Solomon islands",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.fisheries.gov.sb/",
+  "home_ms": 5255,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.fisheries.gov.sb",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.fisheries.gov.to",
+  "name": "",
+  "country": "Tonga, Kingdom of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://fisheries.gov.to/",
+  "home_ms": 5033,
+  "server": "nginx/1.29.8",
+  "err": "",
+  "size": 72681,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Ministry of Fisheries | Potungaue Toutai",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://fisheries.gov.to",
+  "wp": {
+   "ok": true,
+   "total": 4,
+   "pages": 4,
+   "latest": "2026-09-15T19:11:45",
+   "api": "https://fisheries.gov.to/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 4,
+    "latest": "Tue, 15 Sep 2026 06:11:45 +0000",
+    "title": "Ministry of Fisheries | Potungaue Toutai",
+    "link_sample": "https://fisheries.gov.to"
+   },
+   {
+    "path": "/?feed=rss2",
+    "items": 4,
+    "latest": "Tue, 15 Sep 2026 06:11:45 +0000",
+    "title": "Ministry of Fisheries | Potungaue Toutai",
+    "link_sample": "https://fisheries.gov.to"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://fisheries.gov.to/wp-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 4
+   }
+  ],
+  "article": {
+   "url": "https://fisheries.gov.to",
+   "status": 200,
+   "text_len": 143,
+   "paras": 1,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.fisheries.noaa.gov",
+  "name": "",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "政府网站",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.fisheries.noaa.gov/",
+  "home_ms": 1438,
+  "server": "nginx",
+  "err": "",
+  "size": 183592,
+  "https_ok": true,
+  "generator": "Drupal 11 (https://www.drupal.org)",
+  "title": "Welcome to NOAA | NOAA Fisheries",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.fisheries.noaa.gov",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=utf-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.fisheries.noaa.gov/sitemap.xml"
+   ],
+   "disallow": [
+    "/core/",
+    "/profiles/",
+    "/README.md",
+    "/composer/Metapackage/README.txt",
+    "/composer/Plugin/ProjectMessage/README.md",
+    "/composer/Plugin/Scaffold/README.md"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 3
+   }
+  ],
+  "article": {
+   "url": "https://www.fisheries.noaa.gov/action/nominations-iccat-advisory-committee-due-october-31-2026",
+   "status": 200,
+   "text_len": 1172,
+   "paras": 8,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.fnu.ac.fj",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "智库",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.fnu.ac.fj/",
+  "home_ms": 18448,
+  "server": "Apache/2.4.6 (Red Hat Enterprise Linux) ",
+  "err": "",
+  "size": 153822,
+  "https_ok": true,
+  "generator": "WordPress 5.5.23",
+  "title": "Fiji National University",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://www.fnu.ac.fj",
+  "wp": {
+   "ok": true,
+   "total": 160,
+   "pages": 160,
+   "latest": "2026-07-28T11:35:30",
+   "api": "https://www.fnu.ac.fj/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Mon, 27 Jul 2026 23:35:30 +0000",
+    "title": "Fiji National University",
+    "link_sample": "https://www.fnu.ac.fj"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Mon, 27 Jul 2026 23:35:30 +0000",
+    "title": "Fiji National University",
+    "link_sample": "https://www.fnu.ac.fj"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/wp-admin/",
+    "/wp-includes/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 9
+   }
+  ],
+  "article": {
+   "url": "https://www.fnu.ac.fj",
+   "status": 200,
+   "text_len": 749,
+   "paras": 20,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.fsmepa.fm",
+  "name": "",
+  "country": "Micronesia, Federated States of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.fsmepa.fm/",
+  "home_ms": 211,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.fsmepa.fm",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.fsmgov.org",
+  "name": "",
+  "country": "Micronesia, Federated States of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.fsmgov.org/",
+  "home_ms": 3845,
+  "server": "nginx/1.29.8",
+  "err": "",
+  "size": 222,
+  "https_ok": true,
+  "generator": "",
+  "title": "FSM Government redirect",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.fsmgov.org",
+  "wp": {
+   "ok": true,
+   "total": 1,
+   "pages": 1,
+   "latest": "2018-11-05T19:58:42",
+   "api": "https://www.fsmgov.org/wp-json/wp/v2/posts"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.fsmmarine.fm",
+  "name": "",
+  "country": "Micronesia, Federated States of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.fsmmarine.fm/",
+  "home_ms": 1525,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.fsmmarine.fm",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.fwrm.org.fj",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.fwrm.org.fj/",
+  "home_ms": 4995,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.fwrm.org.fj",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/administrator/",
+    "/api/",
+    "/bin/",
+    "/cache/",
+    "/cli/",
+    "/components/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.gov.nu",
+  "name": "",
+  "country": "Niue",
+  "type": "政府网站",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.gov.nu/",
+  "home_ms": 1053,
+  "server": "nginx",
+  "err": "",
+  "size": 38182,
+  "https_ok": true,
+  "generator": "",
+  "title": "The Government of Niue | Home",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.gov.nu",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=UTF-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 404,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://www.gov.nu/media-releases/tau-fakamailoga-2026",
+   "status": 200,
+   "text_len": 6852,
+   "paras": 20,
+   "og_image": true,
+   "date": "",
+   "author_meta": "The Government of Niue",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.gov.to",
+  "name": "",
+  "country": "Tonga, Kingdom of",
+  "type": "政府网站",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.gov.to/",
+  "home_ms": 22439,
+  "server": "nginx",
+  "err": "",
+  "size": 236298,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Tonga National Portal",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://www.gov.to",
+  "wp": {
+   "ok": false,
+   "status": 0,
+   "ct": ""
+  },
+  "feeds": [
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Tue, 28 Jul 2026 21:17:48 +0000",
+    "title": "Tonga National Portal",
+    "link_sample": "https://www.gov.to"
+   },
+   {
+    "path": "/rss",
+    "items": 10,
+    "latest": "Tue, 28 Jul 2026 21:17:48 +0000",
+    "title": "Tonga National Portal",
+    "link_sample": "https://www.gov.to"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://www.gov.to",
+   "status": 200,
+   "text_len": 13,
+   "paras": 1,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.gov.tv",
+  "name": "",
+  "country": "Tuvalu",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.gov.tv/",
+  "home_ms": 1531,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.gov.tv",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.gov.vu",
+  "name": "",
+  "country": "Vanuatu, Republic of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.gov.vu/",
+  "home_ms": 5685,
+  "server": "Apache",
+  "err": "",
+  "size": 50131,
+  "https_ok": true,
+  "generator": "Joomla! - Open Source Content Management",
+  "title": "Government of Vanuatu",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.gov.vu",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=iso-8859-1"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/administrator/",
+    "/bin/",
+    "/cache/",
+    "/cli/",
+    "/components/",
+    "/includes/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://www.gov.vu/index.php/resources/vanuatu-2030",
+   "status": 200,
+   "text_len": 1509,
+   "paras": 5,
+   "og_image": false,
+   "date": "",
+   "author_meta": "Super User",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.government.pn",
+  "name": "",
+  "country": "Pitcairn Islands",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.government.pn/",
+  "home_ms": 1832,
+  "server": "Squarespace",
+  "err": "",
+  "size": 283834,
+  "https_ok": true,
+  "generator": "",
+  "title": "The Official Website of the Government of the Pitcairn Islands",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.government.pn",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html;charset=utf-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.government.pn/sitemap.xml"
+   ],
+   "disallow": [
+    "/config",
+    "/search",
+    "/account$",
+    "/account/",
+    "/commerce/digital-download/",
+    "/api/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "urlset",
+    "urls": 19
+   }
+  ],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.ilm.pf",
+  "name": "",
+  "country": "French Polynesia",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.ilm.pf/",
+  "home_ms": 3330,
+  "server": "nginx",
+  "err": "",
+  "size": 24258,
+  "https_ok": true,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.ilm.pf",
+  "wp": {
+   "ok": false,
+   "status": 200,
+   "ct": "text/html"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.islandsun.com.sb",
+  "name": "",
+  "country": "Solomon islands",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.islandsun.com.sb/",
+  "home_ms": 209,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.islandsun.com.sb",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.kiribati.gov.ki",
+  "name": "",
+  "country": "Kiribati, Republic of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 403,
+  "home_final": "http://www.kiribati.gov.ki/",
+  "home_ms": 235,
+  "server": "LiteSpeed",
+  "err": "http",
+  "size": 787,
+  "https_ok": false,
+  "generator": "",
+  "title": "403 Forbidden",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.kiribati.gov.ki",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/includes/",
+    "/misc/",
+    "/modules/",
+    "/profiles/",
+    "/scripts/",
+    "/themes/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.kpress.info",
+  "name": "",
+  "country": "Micronesia, Federated States of",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "http://www.kpress.info/",
+  "home_ms": 797,
+  "server": "nginx/1.30.4",
+  "err": "",
+  "size": 9009,
+  "https_ok": false,
+  "generator": "",
+  "title": "KPress | Commercial Property Records Field Manual",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.kpress.info",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=utf-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://kpress.info/sitemap.xml"
+   ],
+   "disallow": [
+    "/design/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "urlset",
+    "urls": 3237
+   }
+  ],
+  "article": {
+   "url": "https://www2.census.gov/programs-surveys/popest/datasets/2020-2025/counties/totals/co-est2025-alldata.csv",
+   "status": 200,
+   "text_len": 0,
+   "paras": 0,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.ladepeche.pf",
+  "name": "",
+  "country": "French Polynesia",
+  "type": "新闻",
+  "lang_listed": "法语",
+  "home_status": 502,
+  "home_final": "http://www.ladepeche.pf/",
+  "home_ms": 209,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.ladepeche.pf",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.lefigaro.fr",
+  "name": "",
+  "country": "Wallis and Futuna",
+  "type": "新闻",
+  "lang_listed": "法语",
+  "home_status": 403,
+  "home_final": "https://www.lefigaro.fr/",
+  "home_ms": 621,
+  "server": "",
+  "err": "http",
+  "size": 369,
+  "https_ok": false,
+  "generator": "",
+  "title": "Access Denied",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.lefigaro.fr",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 403,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.lnc.nc",
+  "name": "",
+  "country": "Nouvelle-Calédonie",
+  "type": "新闻",
+  "lang_listed": "法语",
+  "home_status": 200,
+  "home_final": "https://www.lnc.nc/",
+  "home_ms": 1979,
+  "server": "Apache",
+  "err": "",
+  "size": 175809,
+  "https_ok": true,
+  "generator": "",
+  "title": "Les Nouvelles Calédoniennes",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.lnc.nc",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=utf-8"
+  },
+  "feeds": [
+   {
+    "path": "/rss.xml",
+    "items": 50,
+    "latest": "Tue, 27 Oct 2026 07:00:00 +0000",
+    "title": "Les Nouvelles Calédoniennes",
+    "link_sample": "https://www.lnc.nc"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/includes/",
+    "/misc/",
+    "/modules/",
+    "/profiles/",
+    "/scripts/",
+    "/themes/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 9
+   }
+  ],
+  "article": {
+   "url": "https://www.lnc.nc",
+   "status": 200,
+   "text_len": 4302,
+   "paras": 5,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.maisondelaculture.pf",
+  "name": "",
+  "country": "French Polynesia",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.maisondelaculture.pf/",
+  "home_ms": 5703,
+  "server": "cloudflare",
+  "err": "",
+  "size": 202700,
+  "https_ok": true,
+  "generator": "Redux 4.5.7",
+  "title": "Maison de la Culture de Tahiti &#8211; Te Fare Tauhiti Nui | Site officiel",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://www.maisondelaculture.pf",
+  "wp": {
+   "ok": true,
+   "total": 0,
+   "pages": 0,
+   "latest": "2025-10-07T14:22:55",
+   "api": "https://www.maisondelaculture.pf/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 30,
+    "latest": "Wed, 08 Oct 2025 00:22:55 +0000",
+    "title": "Maison de la Culture de Tahiti &#8211; Te Fare Tauhiti Nui",
+    "link_sample": "https://www.maisondelaculture.pf"
+   },
+   {
+    "path": "/feed/",
+    "items": 30,
+    "latest": "Wed, 08 Oct 2025 00:22:55 +0000",
+    "title": "Maison de la Culture de Tahiti &#8211; Te Fare Tauhiti Nui",
+    "link_sample": "https://www.maisondelaculture.pf"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "urlset",
+    "urls": 1404
+   }
+  ],
+  "article": {
+   "url": "https://www.maisondelaculture.pf",
+   "status": 200,
+   "text_len": 964,
+   "paras": 6,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.marianas.edu",
+  "name": "",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "智库",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.marianas.edu/",
+  "home_ms": 2100,
+  "server": "cloudflare",
+  "err": "",
+  "size": 187697,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Northern Marianas College",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://www.marianas.edu",
+  "wp": {
+   "ok": false,
+   "status": 403,
+   "ct": "text/html; charset=UTF-8"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Sun, 18 Oct 2026 06:31:05 +0000",
+    "title": "Northern Marianas College",
+    "link_sample": "https://www.marianas.edu"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Sun, 18 Oct 2026 06:31:05 +0000",
+    "title": "Northern Marianas College",
+    "link_sample": "https://www.marianas.edu"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://www.marianas.edu",
+   "status": 200,
+   "text_len": 5573,
+   "paras": 48,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.marine.gov.pf",
+  "name": "",
+  "country": "French Polynesia",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.marine.gov.pf/",
+  "home_ms": 1210,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.marine.gov.pf",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.mecdm.gov.sb",
+  "name": "",
+  "country": "Solomon islands",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.mecdm.gov.sb/",
+  "home_ms": 5217,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.mecdm.gov.sb",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/administrator/",
+    "/bin/",
+    "/cache/",
+    "/cli/",
+    "/components/",
+    "/includes/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "urlset",
+    "urls": 527
+   }
+  ],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.meidecc.gov.to",
+  "name": "",
+  "country": "Tonga, Kingdom of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.meidecc.gov.to/",
+  "home_ms": 202,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.meidecc.gov.to",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.melad.gov.ki",
+  "name": "",
+  "country": "Kiribati, Republic of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.melad.gov.ki/",
+  "home_ms": 4719,
+  "server": "nginx/1.31.8",
+  "err": "",
+  "size": 85206,
+  "https_ok": true,
+  "generator": "",
+  "title": "MELAD | Home",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.melad.gov.ki",
+  "wp": {
+   "ok": false,
+   "status": 0,
+   "ct": ""
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/administrator/",
+    "/bin/",
+    "/cache/",
+    "/cli/",
+    "/components/",
+    "/includes/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.meteorology.gov.ws",
+  "name": "",
+  "country": "Samoa, Independent State of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.meteorology.gov.ws/",
+  "home_ms": 222,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.meteorology.gov.ws",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.mia.gov.to",
+  "name": "",
+  "country": "Tonga, Kingdom of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 403,
+  "home_final": "https://www.mia.gov.to/",
+  "home_ms": 2056,
+  "server": "nginx",
+  "err": "http",
+  "size": 107,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.mia.gov.to",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 0,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.mmr.gov.ck",
+  "name": "",
+  "country": "Cook Islands",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://mmr.gov.ck/",
+  "home_ms": 7176,
+  "server": "nginx/1.29.8",
+  "err": "",
+  "size": 157671,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Ministry of Marine Resources &#8211; Cook Islands &#8211; Ministry of Marine Resources &#8211; Cook Islands",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://mmr.gov.ck",
+  "wp": {
+   "ok": true,
+   "total": 0,
+   "pages": 0,
+   "latest": "",
+   "api": "https://mmr.gov.ck/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 0,
+    "latest": "",
+    "title": "Ministry of Marine Resources &#8211; Cook Islands",
+    "link_sample": "https://mmr.gov.ck"
+   },
+   {
+    "path": "/feed/",
+    "items": 0,
+    "latest": "",
+    "title": "Ministry of Marine Resources &#8211; Cook Islands",
+    "link_sample": "https://mmr.gov.ck"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://mmr.gov.ck/wp-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 1
+   }
+  ],
+  "article": {
+   "url": "https://mmr.gov.ck",
+   "status": 200,
+   "text_len": 315,
+   "paras": 5,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.mnre.gov.ws",
+  "name": "",
+  "country": "Samoa, Independent State of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.mnre.gov.ws/",
+  "home_ms": 4729,
+  "server": "Apache/2.4.66 (Ubuntu)",
+  "err": "",
+  "size": 202997,
+  "https_ok": true,
+  "generator": "",
+  "title": "Home - MNRE- Ministry of Natural Resources and Environment",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://www.mnre.gov.ws",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=iso-8859-1"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 404,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://www.mnre.gov.ws/?page_id=2006",
+   "status": 200,
+   "text_len": 3100,
+   "paras": 18,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.mvariety.com",
+  "name": "",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.mvariety.com/",
+  "home_ms": 11074,
+  "server": "",
+  "err": "",
+  "size": 695963,
+  "https_ok": true,
+  "generator": "",
+  "title": "mvariety.com",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.mvariety.com",
+  "wp": {
+   "ok": false,
+   "status": 403,
+   "ct": ""
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.mvariety.com/sitemap.xml",
+    "https://www.mvariety.com/tncms/sitemap/editorial.xml",
+    "https://www.mvariety.com/tncms/sitemap/editorial.xml?year=2002"
+   ],
+   "disallow": [
+    "/",
+    "/",
+    "/",
+    "/",
+    "/",
+    "/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 4
+   }
+  ],
+  "article": {
+   "url": "https://www.mvariety.com/news/local/",
+   "status": 200,
+   "text_len": 298,
+   "paras": 1,
+   "og_image": false,
+   "date": "2026-10-27T14:44:19+11:00",
+   "author_meta": "Marianas Variety",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.nbc.com.pg",
+  "name": "",
+  "country": "Papua New Guinea",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.nbc.com.pg/",
+  "home_ms": 2050,
+  "server": "cloudflare",
+  "err": "",
+  "size": 66550,
+  "https_ok": true,
+  "generator": "",
+  "title": "News - NBC PNG",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://www.nbc.com.pg",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://www.nbc.com.pg/post/41820/nbc-western-back-on-air-after-seven-years",
+   "status": 200,
+   "text_len": 3516,
+   "paras": 19,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.norfolkisland.gov.nf",
+  "name": "",
+  "country": "Norfolk Island",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 403,
+  "home_final": "https://www.norfolkisland.gov.nf/",
+  "home_ms": 3222,
+  "server": "",
+  "err": "http",
+  "size": 371,
+  "https_ok": false,
+  "generator": "",
+  "title": "Access Denied",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.norfolkisland.gov.nf",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 404,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.nuclearclaimstribunal.com",
+  "name": "",
+  "country": "Marshall Island, Republic of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.nuclearclaimstribunal.com/",
+  "home_ms": 601,
+  "server": "",
+  "err": "",
+  "size": 114,
+  "https_ok": true,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.nuclearclaimstribunal.com",
+  "wp": {
+   "ok": false,
+   "status": 200,
+   "ct": "text/html"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "/sitemap.xml"
+   ],
+   "disallow": []
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "urlset",
+    "urls": 1
+   }
+  ],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.nus.edu.ws",
+  "name": "",
+  "country": "Samoa, Independent State of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://nus.edu.ws/",
+  "home_ms": 7400,
+  "server": "nginx",
+  "err": "",
+  "size": 280049,
+  "https_ok": true,
+  "generator": "Elementor 4.3.5; features: additional_custom_breakpoints; se",
+  "title": "National University of Samoa &#8211; National University of Samoa",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://nus.edu.ws",
+  "wp": {
+   "ok": true,
+   "total": 136,
+   "pages": 136,
+   "latest": "2026-08-04T17:29:48",
+   "api": "https://nus.edu.ws/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed/",
+    "items": 4,
+    "latest": "Tue, 04 Aug 2026 04:29:48 +0000",
+    "title": "National University of Samoa",
+    "link_sample": "https://nus.edu.ws"
+   },
+   {
+    "path": "/rss",
+    "items": 4,
+    "latest": "Tue, 04 Aug 2026 04:29:48 +0000",
+    "title": "National University of Samoa",
+    "link_sample": "https://nus.edu.ws"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 12
+   }
+  ],
+  "article": {
+   "url": "https://nus.edu.ws",
+   "status": 200,
+   "text_len": 243,
+   "paras": 3,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.palau.edu",
+  "name": "",
+  "country": "Palau, Republic of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "http://www.palau.edu/",
+  "home_ms": 411,
+  "server": "Apache/2.4.58 (Ubuntu)",
+  "err": "",
+  "size": 454,
+  "https_ok": false,
+  "generator": "Namo WebEditor v5.0",
+  "title": "to Palau Community College Website",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.palau.edu",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=iso-8859-1"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 404,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.palauconservation.org",
+  "name": "",
+  "country": "Palau, Republic of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.palauconservation.org/",
+  "home_ms": 570,
+  "server": "nginx",
+  "err": "",
+  "size": 111474,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Palau Conservation Society &#8211; Palau Conservation Society",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://www.palauconservation.org",
+  "wp": {
+   "ok": false,
+   "status": 0,
+   "ct": ""
+  },
+  "feeds": [
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Tue, 03 Oct 2023 04:15:45 +0000",
+    "title": "Palau Conservation Society",
+    "link_sample": "https://www.palauconservation.org"
+   },
+   {
+    "path": "/rss",
+    "items": 10,
+    "latest": "Tue, 03 Oct 2023 04:15:45 +0000",
+    "title": "Palau Conservation Society",
+    "link_sample": "https://www.palauconservation.org"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.palauconservation.org/wp-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 14
+   }
+  ],
+  "article": {
+   "url": "https://www.palauconservation.org",
+   "status": 200,
+   "text_len": 2472,
+   "paras": 26,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.palaugov.pw",
+  "name": "",
+  "country": "Palau, Republic of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.palaugov.pw/",
+  "home_ms": 1718,
+  "server": "nginx",
+  "err": "",
+  "size": 256497,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "PalauGov.pw &#8211; Your guide to finding and using Palau National Government services",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://www.palaugov.pw",
+  "wp": {
+   "ok": true,
+   "total": 266,
+   "pages": 266,
+   "latest": "2024-09-19T13:23:45",
+   "api": "https://www.palaugov.pw/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Thu, 19 Sep 2024 04:23:45 +0000",
+    "title": "PalauGov.pw",
+    "link_sample": "https://www.palaugov.pw"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Thu, 19 Sep 2024 04:23:45 +0000",
+    "title": "PalauGov.pw",
+    "link_sample": "https://www.palaugov.pw"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.palaugov.pw/wp-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 6
+   }
+  ],
+  "article": {
+   "url": "https://www.palaugov.pw",
+   "status": 200,
+   "text_len": 2195,
+   "paras": 26,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.palaunet.com",
+  "name": "",
+  "country": "Palau, Republic of",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 0,
+  "home_final": "http://www.palaunet.com/",
+  "home_ms": 1016,
+  "server": "",
+  "err": "URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)>",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.palaunet.com",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 0,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.picrc.org",
+  "name": "",
+  "country": "Palau, Republic of",
+  "type": "智库",
+  "lang_listed": "英语",
+  "home_status": 403,
+  "home_final": "https://www.picrc.org/",
+  "home_ms": 1320,
+  "server": "cloudflare",
+  "err": "http",
+  "size": 3340,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": true,
+  "base": "https://www.picrc.org",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 403,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.pngcepa.org.pg",
+  "name": "",
+  "country": "Papua New Guinea",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.pngcepa.org.pg/",
+  "home_ms": 239,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.pngcepa.org.pg",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.pngchamberminpet.com.pg",
+  "name": "",
+  "country": "Papua New Guinea",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.pngchamberminpet.com.pg/",
+  "home_ms": 5215,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.pngchamberminpet.com.pg",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.pngimr.org.pg",
+  "name": "",
+  "country": "Papua New Guinea",
+  "type": "智库",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.pngimr.org.pg/",
+  "home_ms": 3434,
+  "server": "cloudflare",
+  "err": "",
+  "size": 124009,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "PNG Institute of Medical Research &#8211; Save tambuim sik",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://www.pngimr.org.pg",
+  "wp": {
+   "ok": true,
+   "total": 0,
+   "pages": 0,
+   "latest": "2025-10-03T12:57:09",
+   "api": "https://www.pngimr.org.pg/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Fri, 03 Oct 2025 02:57:09 +0000",
+    "title": "PNG Institute of Medical Research",
+    "link_sample": "https://www.pngimr.org.pg"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Fri, 03 Oct 2025 02:57:09 +0000",
+    "title": "PNG Institute of Medical Research",
+    "link_sample": "https://www.pngimr.org.pg"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.pngimr.org.pg/sitemap.xml",
+    "https://www.pngimr.org.pg/news-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 3
+   }
+  ],
+  "article": {
+   "url": "https://www.pngimr.org.pg",
+   "status": 200,
+   "text_len": 1781,
+   "paras": 10,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.pngnri.org",
+  "name": "",
+  "country": "Papua New Guinea",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.pngnri.org/",
+  "home_ms": 930,
+  "server": "nginx",
+  "err": "",
+  "size": 84652,
+  "https_ok": true,
+  "generator": "",
+  "title": "Home",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.pngnri.org",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=UTF-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/administrator/",
+    "/bin/",
+    "/cache/",
+    "/cli/",
+    "/components/",
+    "/includes/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.postcourier.com.pg",
+  "name": "",
+  "country": "Papua New Guinea",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.postcourier.com.pg/",
+  "home_ms": 478,
+  "server": "",
+  "err": "",
+  "size": 197772,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Homepage - Post Courier",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://www.postcourier.com.pg",
+  "wp": {
+   "ok": true,
+   "total": 138541,
+   "pages": 138541,
+   "latest": "2026-10-27T17:59:05",
+   "api": "https://www.postcourier.com.pg/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Tue, 27 Oct 2026 07:59:05 +0000",
+    "title": "Post Courier",
+    "link_sample": "https://www.postcourier.com.pg/"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Tue, 27 Oct 2026 07:59:05 +0000",
+    "title": "Post Courier",
+    "link_sample": "https://www.postcourier.com.pg/"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.postcourier.com.pg/sitemap.xml",
+    "https://www.postcourier.com.pg/news-sitemap.xml",
+    "https://www.postcourier.com.pg/sitemap_index.xml"
+   ],
+   "disallow": [
+    "/wp-content/uploads/wc-logs/",
+    "/wp-content/uploads/woocommerce_transient_files/",
+    "/wp-content/uploads/woocommerce_uploads/",
+    "/*?add-to-cart=",
+    "/*?*add-to-cart=",
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 3
+   }
+  ],
+  "article": {
+   "url": "https://www.postcourier.com.pg/",
+   "status": 200,
+   "text_len": 0,
+   "paras": 0,
+   "og_image": false,
+   "date": "2026-10-26T18:59:53+10:00",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.radio.co.ck",
+  "name": "",
+  "country": "Cook Islands",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.radio.co.ck/",
+  "home_ms": 5012,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.radio.co.ck",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 404,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.redcross.com.fj",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://giftoflifefiji.com/",
+  "home_ms": 8346,
+  "server": "Apache",
+  "err": "",
+  "size": 87864,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Gift of Life Fiji",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://giftoflifefiji.com",
+  "wp": {
+   "ok": true,
+   "total": 140,
+   "pages": 140,
+   "latest": "2023-07-23T16:15:00",
+   "api": "https://giftoflifefiji.com/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Sun, 23 Jul 2023 16:15:00 +0000",
+    "title": "Gift of Life Fiji",
+    "link_sample": "https://giftoflifefiji.com/"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Sun, 23 Jul 2023 16:15:00 +0000",
+    "title": "Gift of Life Fiji",
+    "link_sample": "https://giftoflifefiji.com/"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://giftoflifefiji.com/sitemap.xml",
+    "https://giftoflifefiji.com/sitemap_1.xml",
+    "https://giftoflifefiji.com/sitemap_2.xml"
+   ],
+   "disallow": []
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 4
+   }
+  ],
+  "article": {
+   "url": "https://giftoflifefiji.com/",
+   "status": 200,
+   "text_len": 227,
+   "paras": 2,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.redcross.org.ck",
+  "name": "",
+  "country": "Cook Islands",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.redcross.org.ck/",
+  "home_ms": 1255,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.redcross.org.ck",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.redcross.org.pg",
+  "name": "",
+  "country": "Papua New Guinea",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.redcross.org.pg/404.html",
+  "home_ms": 4818,
+  "server": "Apache",
+  "err": "",
+  "size": 746,
+  "https_ok": true,
+  "generator": "",
+  "title": "404 Error",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.redcross.org.pg",
+  "wp": {
+   "ok": false,
+   "status": 0,
+   "ct": ""
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.redcross.org.ws",
+  "name": "",
+  "country": "Samoa, Independent State of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.redcross.org.ws/",
+  "home_ms": 225,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.redcross.org.ws",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.redcross.sb",
+  "name": "",
+  "country": "Solomon islands",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.redcross.sb/",
+  "home_ms": 1795,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.redcross.sb",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.redcross.to",
+  "name": "",
+  "country": "Tonga, Kingdom of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.redcross.to/",
+  "home_ms": 235,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.redcross.to",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.rmiepa.com",
+  "name": "",
+  "country": "Marshall Island, Republic of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 404,
+  "home_final": "https://www.rmiepa.com/",
+  "home_ms": 3570,
+  "server": "openresty",
+  "err": "http",
+  "size": 10712,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.rmiepa.com",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.rmiepa.com/sitemap.xml"
+   ],
+   "disallow": [
+    "/",
+    "/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.rythmeblue.nc",
+  "name": "",
+  "country": "Nouvelle-Calédonie",
+  "type": "新闻",
+  "lang_listed": "法语",
+  "home_status": 502,
+  "home_final": "http://www.rythmeblue.nc/",
+  "home_ms": 1238,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.rythmeblue.nc",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.saipantribune.com",
+  "name": "",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 0,
+  "home_final": "http://www.saipantribune.com/",
+  "home_ms": 25002,
+  "server": "",
+  "err": "TimeoutError: timed out",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.saipantribune.com",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 404,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.samoaobserver.ws",
+  "name": "",
+  "country": "Samoa, Independent State of",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.samoaobserver.ws/",
+  "home_ms": 4148,
+  "server": "cloudflare",
+  "err": "",
+  "size": 107260,
+  "https_ok": true,
+  "generator": "",
+  "title": "Samoa Observer",
+  "wp_hint": false,
+  "cf": true,
+  "base": "https://www.samoaobserver.ws",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=UTF-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "/sitemap.xml.gz",
+    "/news_sitemap.xml.gz"
+   ],
+   "disallow": [
+    "/",
+    "/",
+    "/",
+    "/",
+    "/",
+    "/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://www.samoaobserver.ws/category/world/120891",
+   "status": 200,
+   "text_len": 2533,
+   "paras": 32,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.savali.gov.ws",
+  "name": "",
+  "country": "Samoa, Independent State of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.savali.gov.ws/",
+  "home_ms": 1524,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.savali.gov.ws",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.sibconline.com.sb",
+  "name": "",
+  "country": "Solomon islands",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.sibconline.com.sb/",
+  "home_ms": 1399,
+  "server": "cloudflare",
+  "err": "",
+  "size": 213339,
+  "https_ok": true,
+  "generator": "",
+  "title": "SIBC - Solomon Islands Broadcasting Corporation News",
+  "wp_hint": false,
+  "cf": true,
+  "base": "https://www.sibconline.com.sb",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=utf-8"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 30,
+    "latest": "Tue, 27 Oct 2026 04:51:03 GMT",
+    "title": "SIBC News",
+    "link_sample": "https://www.sibconline.com.sb/"
+   },
+   {
+    "path": "/feed/",
+    "items": 30,
+    "latest": "Tue, 27 Oct 2026 04:51:03 GMT",
+    "title": "SIBC News",
+    "link_sample": "https://www.sibconline.com.sb/"
+   }
+  ],
+  "robots": {
+   "status": 0,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 7
+   }
+  ],
+  "article": {
+   "url": "https://www.sibconline.com.sb/",
+   "status": 200,
+   "text_len": 11,
+   "paras": 1,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.sinu.edu.sb",
+  "name": "",
+  "country": "Solomon islands",
+  "type": "智库",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.sinu.edu.sb/",
+  "home_ms": 6350,
+  "server": "Apache",
+  "err": "",
+  "size": 75563,
+  "https_ok": true,
+  "generator": "WordPress 6.7.10",
+  "title": "SINU &#8211; Solomon Islands National University",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://www.sinu.edu.sb",
+  "wp": {
+   "ok": true,
+   "total": 1082,
+   "pages": 1082,
+   "latest": "2026-10-21T18:14:51",
+   "api": "https://www.sinu.edu.sb/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Wed, 21 Oct 2026 07:14:51 +0000",
+    "title": "SINU",
+    "link_sample": "https://www.sinu.edu.sb"
+   },
+   {
+    "path": "/?feed=rss2",
+    "items": 10,
+    "latest": "Wed, 21 Oct 2026 07:14:51 +0000",
+    "title": "SINU",
+    "link_sample": "https://www.sinu.edu.sb"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.sinu.edu.sb/wp-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 6
+   }
+  ],
+  "article": {
+   "url": "https://www.sinu.edu.sb",
+   "status": 200,
+   "text_len": 725,
+   "paras": 7,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.solomonstarnews.com",
+  "name": "",
+  "country": "Solomon islands",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 403,
+  "home_final": "https://www.solomonstarnews.com/",
+  "home_ms": 390,
+  "server": "cloudflare",
+  "err": "http",
+  "size": 3301,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": true,
+  "base": "https://www.solomonstarnews.com",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 403,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.spc.int",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.spc.int/",
+  "home_ms": 2030,
+  "server": "cloudflare",
+  "err": "",
+  "size": 82096,
+  "https_ok": true,
+  "generator": "Drupal 11 (https://www.drupal.org)",
+  "title": "The Pacific Community",
+  "wp_hint": false,
+  "cf": true,
+  "base": "https://www.spc.int",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=utf-8"
+  },
+  "feeds": [
+   {
+    "path": "/rss.xml",
+    "items": 10,
+    "latest": "Thu, 19 Mar 2020 13:07:00 +0000",
+    "title": "The Pacific Community",
+    "link_sample": "https://www.spc.int/"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/",
+    "/",
+    "/",
+    "/",
+    "/",
+    "/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 8
+   }
+  ],
+  "article": {
+   "url": "https://www.spc.int/",
+   "status": 200,
+   "text_len": 0,
+   "paras": 0,
+   "og_image": false,
+   "date": "2026-10-27T12:00:00Z",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.thenational.com.pg",
+  "name": "",
+  "country": "Papua New Guinea",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.thenational.com.pg/",
+  "home_ms": 3712,
+  "server": "cloudflare",
+  "err": "",
+  "size": 935992,
+  "https_ok": true,
+  "generator": "WordPress 7.0.7",
+  "title": "The National | Your Number One Daily!",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://www.thenational.com.pg",
+  "wp": {
+   "ok": true,
+   "total": 0,
+   "pages": 0,
+   "latest": "2026-10-27T14:23:49",
+   "api": "https://www.thenational.com.pg/wp-json/wp/v2/posts"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "http://www.thenational.com.pg/sitemap.xml",
+    "http://www.thenational.com.pg/news-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-admin/",
+    "/",
+    "/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 265
+   }
+  ],
+  "article": {
+   "url": "https://www.thenational.com.pg/category/news/",
+   "status": 200,
+   "text_len": 3922,
+   "paras": 3,
+   "og_image": false,
+   "date": "2026-10-27T09:55:09+10:00",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.tiscookislands.org.ck",
+  "name": "",
+  "country": "Cook Islands",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.tiscookislands.org.ck/",
+  "home_ms": 214,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.tiscookislands.org.ck",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.tntv.pf",
+  "name": "",
+  "country": "French Polynesia",
+  "type": "新闻",
+  "lang_listed": "法语",
+  "home_status": 200,
+  "home_final": "https://www.tntv.pf/",
+  "home_ms": 1046,
+  "server": "cloudflare",
+  "err": "",
+  "size": 4523,
+  "https_ok": true,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": true,
+  "base": "https://www.tntv.pf",
+  "wp": {
+   "ok": true,
+   "total": 0,
+   "pages": 0,
+   "latest": "2026-10-26T19:15:12",
+   "api": "https://www.tntv.pf/wp-json/wp/v2/posts"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://social.feeds.brightcove.com/ott-public/5816339219001/tntv/sitemap_index.xml"
+   ],
+   "disallow": [
+    "/my-account/*",
+    "/settings/about",
+    "/settings/change-language"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap_index.xml",
+    "type": "index",
+    "urls": 1
+   }
+  ],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.tokelau.org.nz",
+  "name": "",
+  "country": "Tokelau",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 403,
+  "home_final": "https://www.tokelau.org.nz/",
+  "home_ms": 1907,
+  "server": "CloudFront",
+  "err": "http",
+  "size": 986,
+  "https_ok": false,
+  "generator": "",
+  "title": "ERROR: The request could not be satisfied",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.tokelau.org.nz",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 403,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.tonga-broadcasting.net",
+  "name": "",
+  "country": "Tonga, Kingdom of",
+  "type": "新闻",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.tonga-broadcasting.net/login/",
+  "home_ms": 7154,
+  "server": "Apache",
+  "err": "",
+  "size": 7284,
+  "https_ok": true,
+  "generator": "",
+  "title": "ISPConfig",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.tonga-broadcasting.net",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=iso-8859-1"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.transparencypng.org.pg",
+  "name": "",
+  "country": "Papua New Guinea",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://transparencypng.org.pg/",
+  "home_ms": 5875,
+  "server": "nginx/1.29.8",
+  "err": "",
+  "size": 255161,
+  "https_ok": true,
+  "generator": "WordPress 7.1.3",
+  "title": "Transparency International PNG &#8211; TIPNG",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://transparencypng.org.pg",
+  "wp": {
+   "ok": true,
+   "total": 154,
+   "pages": 154,
+   "latest": "2026-09-18T10:18:35",
+   "api": "https://transparencypng.org.pg/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Fri, 18 Sep 2026 00:18:35 +0000",
+    "title": "Transparency International PNG",
+    "link_sample": "https://transparencypng.org.pg"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Fri, 18 Sep 2026 00:18:35 +0000",
+    "title": "Transparency International PNG",
+    "link_sample": "https://transparencypng.org.pg"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://transparencypng.org.pg/wp-sitemap.xml"
+   ],
+   "disallow": [
+    "/wp-content/uploads/wc-logs/",
+    "/wp-content/uploads/woocommerce_transient_files/",
+    "/wp-content/uploads/woocommerce_uploads/",
+    "/*?add-to-cart=",
+    "/*?*add-to-cart=",
+    "/wp-admin/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 9
+   }
+  ],
+  "article": {
+   "url": "https://transparencypng.org.pg",
+   "status": 200,
+   "text_len": 1292,
+   "paras": 6,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.univ-nc.nc",
+  "name": "",
+  "country": "Nouvelle-Calédonie",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.univ-nc.nc/",
+  "home_ms": 243,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.univ-nc.nc",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.upf.pf",
+  "name": "",
+  "country": "French Polynesia",
+  "type": "智库",
+  "lang_listed": "法语",
+  "home_status": 200,
+  "home_final": "https://www.upf.pf/fr",
+  "home_ms": 11033,
+  "server": "Apache/2.4.62 (Debian)",
+  "err": "",
+  "size": 92442,
+  "https_ok": true,
+  "generator": "Drupal 9 (https://www.drupal.org)",
+  "title": "Accueil UPF | UPF",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.upf.pf",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=UTF-8"
+  },
+  "feeds": [
+   {
+    "path": "/rss.xml",
+    "items": 10,
+    "latest": "Tue, 26 Sep 2023 20:20:22 +0000",
+    "title": "UPF",
+    "link_sample": "https://www.upf.pf/fr"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/core/",
+    "/profiles/",
+    "/README.txt",
+    "/web.config",
+    "/admin/",
+    "/comment/reply/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://www.upf.pf/fr",
+   "status": 200,
+   "text_len": 0,
+   "paras": 0,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ },
+ {
+  "domain": "www.upng.ac.pg",
+  "name": "",
+  "country": "Papua New Guinea",
+  "type": "智库",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.upng.ac.pg/",
+  "home_ms": 9051,
+  "server": "Apache",
+  "err": "",
+  "size": 74082,
+  "https_ok": true,
+  "generator": "Joomla! - Open Source Content Management",
+  "title": "Welcome! | UPNG Portal",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.upng.ac.pg",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=utf-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/administrator/",
+    "/bin/",
+    "/cache/",
+    "/cli/",
+    "/components/",
+    "/includes/"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://www.upng.ac.pg/admissions/postgraduate-admissions",
+   "status": 200,
+   "text_len": 1233,
+   "paras": 8,
+   "og_image": false,
+   "date": "",
+   "author_meta": "George Ume",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.usp.ac.fj",
+  "name": "",
+  "country": "Fiji Islands, Republic of the",
+  "type": "智库",
+  "lang_listed": "英语",
+  "home_status": 403,
+  "home_final": "https://www.usp.ac.fj/",
+  "home_ms": 442,
+  "server": "cloudflare",
+  "err": "http",
+  "size": 3372,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": true,
+  "base": "https://www.usp.ac.fj",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://www.usp.ac.fj/sitemap_index.xml",
+    "https://www.usp.ac.fj/alumni/sitemap_index.xml",
+    "https://www.usp.ac.fj/research/sitemap_index.xml"
+   ],
+   "disallow": [
+    "/wp-content/uploads/wpforms/",
+    "Sitemap:"
+   ]
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.vbtc.vu",
+  "name": "",
+  "country": "Vanuatu, Republic of",
+  "type": "新闻",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://vbtc.vu/",
+  "home_ms": 1450,
+  "server": "Sucuri/Cloudproxy",
+  "err": "",
+  "size": 319891,
+  "https_ok": true,
+  "generator": "All in One SEO (AIOSEO) 4.9.1",
+  "title": "VBTC",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://vbtc.vu",
+  "wp": {
+   "ok": true,
+   "total": 3703,
+   "pages": 3703,
+   "latest": "2026-10-27T18:06:38",
+   "api": "https://vbtc.vu/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Tue, 27 Oct 2026 07:06:38 +0000",
+    "title": "VBTC",
+    "link_sample": "https://vbtc.vu/"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Tue, 27 Oct 2026 07:06:38 +0000",
+    "title": "VBTC",
+    "link_sample": "https://vbtc.vu/"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [
+    "https://vbtc.vu/sitemap.xml",
+    "https://vbtc.vu/sitemap.rss",
+    "https://vbtc.vu/sitemap_index.xml"
+   ],
+   "disallow": [
+    "Sitemap:"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 14
+   }
+  ],
+  "article": {
+   "url": "https://vbtc.vu/",
+   "status": 200,
+   "text_len": 0,
+   "paras": 0,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.vmgd.gov.vu",
+  "name": "",
+  "country": "Vanuatu, Republic of",
+  "type": "政府网站",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.vmgd.gov.vu/",
+  "home_ms": 4088,
+  "server": "Vercel",
+  "err": "",
+  "size": 144545,
+  "https_ok": true,
+  "generator": "",
+  "title": "Vanuatu Meteorology and Geohazards Department",
+  "wp_hint": true,
+  "cf": false,
+  "base": "https://www.vmgd.gov.vu",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": "text/html; charset=utf-8"
+  },
+  "feeds": [],
+  "robots": {
+   "status": 404,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://www.vmgd.gov.vu/_next/image?url=https%3A%2F%2Fcontent.vmgd.gov.vu%2Fwp-content%2Fuploads%2F2024%2F03%2F45d9f2eef",
+   "status": 400,
+   "text_len": 49,
+   "paras": 1,
+   "og_image": false,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.vwc.vu",
+  "name": "",
+  "country": "Vanuatu, Republic of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 502,
+  "home_final": "http://www.vwc.vu/",
+  "home_ms": 403,
+  "server": "",
+  "err": "http",
+  "size": 0,
+  "https_ok": false,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "http://www.vwc.vu",
+  "wp": {
+   "ok": false
+  },
+  "feeds": [],
+  "robots": {
+   "status": 502,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.wallis-et-futuna.gouv.fr",
+  "name": "",
+  "country": "Wallis and Futuna",
+  "type": "政府网站",
+  "lang_listed": "法语",
+  "home_status": 200,
+  "home_final": "https://www.wallis-et-futuna.gouv.fr/",
+  "home_ms": 4667,
+  "server": "",
+  "err": "",
+  "size": 123431,
+  "https_ok": true,
+  "generator": "",
+  "title": "Accueil - \n                                        Les services de l'État et du Territoire à Wallis et Futuna",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.wallis-et-futuna.gouv.fr",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": ""
+  },
+  "feeds": [],
+  "robots": {
+   "status": 404,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": "https://www.wallis-et-futuna.gouv.fr/Actualites/FILET-SOCIAL-WALLIS-ET-FUTUNA-OCTOBRE-DECEMBRE-2026",
+   "status": 200,
+   "text_len": 2357,
+   "paras": 19,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": false
+  }
+ },
+ {
+  "domain": "www.wibdi.ws",
+  "name": "",
+  "country": "Samoa, Independent State of",
+  "type": "智库",
+  "lang_listed": "",
+  "home_status": 200,
+  "home_final": "https://www.wibdi.ws/",
+  "home_ms": 3181,
+  "server": "",
+  "err": "",
+  "size": 2963,
+  "https_ok": true,
+  "generator": "",
+  "title": "",
+  "wp_hint": false,
+  "cf": false,
+  "base": "https://www.wibdi.ws",
+  "wp": {
+   "ok": false,
+   "status": 404,
+   "ct": ""
+  },
+  "feeds": [],
+  "robots": {
+   "status": 0,
+   "sitemaps": [],
+   "disallow": []
+  },
+  "sitemaps": [],
+  "article": {
+   "url": ""
+  }
+ },
+ {
+  "domain": "www.wpcouncil.org",
+  "name": "",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "智库",
+  "lang_listed": "英语",
+  "home_status": 200,
+  "home_final": "https://www.wpcouncil.org/",
+  "home_ms": 2841,
+  "server": "cloudflare",
+  "err": "",
+  "size": 228264,
+  "https_ok": true,
+  "generator": "WordPress 7.1.2",
+  "title": "Home - Western Pacific Fishery Council",
+  "wp_hint": true,
+  "cf": true,
+  "base": "https://www.wpcouncil.org",
+  "wp": {
+   "ok": true,
+   "total": 0,
+   "pages": 0,
+   "latest": "2026-10-26T18:01:50",
+   "api": "https://www.wpcouncil.org/wp-json/wp/v2/posts"
+  },
+  "feeds": [
+   {
+    "path": "/feed",
+    "items": 10,
+    "latest": "Tue, 27 Oct 2026 04:01:50 +0000",
+    "title": "Western Pacific Fishery Council",
+    "link_sample": "https://www.wpcouncil.org/"
+   },
+   {
+    "path": "/feed/",
+    "items": 10,
+    "latest": "Tue, 27 Oct 2026 04:01:50 +0000",
+    "title": "Western Pacific Fishery Council",
+    "link_sample": "https://www.wpcouncil.org/"
+   }
+  ],
+  "robots": {
+   "status": 200,
+   "sitemaps": [],
+   "disallow": [
+    "/",
+    "/",
+    "/",
+    "/",
+    "/",
+    "/"
+   ]
+  },
+  "sitemaps": [
+   {
+    "path": "/sitemap.xml",
+    "type": "index",
+    "urls": 8
+   }
+  ],
+  "article": {
+   "url": "https://www.wpcouncil.org/",
+   "status": 200,
+   "text_len": 639,
+   "paras": 4,
+   "og_image": true,
+   "date": "",
+   "author_meta": "",
+   "article_tag": true
+  }
+ }
+]

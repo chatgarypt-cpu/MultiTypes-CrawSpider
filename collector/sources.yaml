@@ -1,0 +1,650 @@
+- domain: www.palaugov.pw
+  name: Republic of Palau National Government
+  country: Palau, Republic of
+  lang: en-US
+  type: 政府网站
+  channel: wp-api
+  base: https://www.palaugov.pw
+- domain: islandtimes.org
+  name: Island Times
+  country: Palau, Republic of
+  lang: en-US
+  type: 新闻
+  channel: sitemap
+  base: https://islandtimes.org
+  via: direct
+  sitemap: /sitemap_index.xml
+- domain: www.palauconservation.org
+  name: Palau Conservation Society
+  country: Palau, Republic of
+  lang: en-US
+  type: 智库
+  channel: rss
+  base: https://www.palauconservation.org
+  feed: /feed/
+- domain: www.belaunationalmuseum.net
+  name: Belau National Museum
+  country: Palau, Republic of
+  lang: en-US
+  type: 智库
+  channel: html
+  base: https://www.belaunationalmuseum.net
+- domain: www.palau.edu
+  name: Palau Community College
+  country: Palau, Republic of
+  lang: en-US
+  type: 智库
+  channel: wp-api
+  base: https://pcc.palau.edu
+  via: direct
+- domain: www.nbc.com.pg
+  name: 国家广播公司
+  country: Papua New Guinea
+  lang: en-US
+  type: 新闻
+  channel: sitemap
+  base: https://www.nbc.com.pg
+  sitemap: /sitemap.xml
+- domain: www.thenational.com.pg
+  name: The National
+  country: Papua New Guinea
+  lang: en-US
+  type: 新闻
+  channel: wp-api
+  base: https://www.thenational.com.pg
+- domain: www.postcourier.com.pg
+  name: Post-Courier
+  country: Papua New Guinea
+  lang: en-US
+  type: 新闻
+  channel: wp-api
+  base: https://www.postcourier.com.pg
+- domain: emtv.com.pg
+  name: EMTV
+  country: Papua New Guinea
+  lang: en-US
+  type: 新闻
+  channel: wp-api
+  base: https://emtv.com.pg
+  via: impersonate
+- domain: www.transparencypng.org.pg
+  name: Transparency International PNG
+  country: Papua New Guinea
+  lang: en-US
+  type: 智库
+  channel: wp-api
+  base: https://transparencypng.org.pg
+  via: impersonate
+  no_embed: true
+- domain: www.redcross.org.pg
+  name: PNG Red Cross Society
+  country: Papua New Guinea
+  lang: en-US
+  type: 智库
+  channel: html
+  base: https://www.redcross.org.pg
+- domain: www.upng.ac.pg
+  name: University of Papua New Guinea
+  country: Papua New Guinea
+  lang: en-US
+  type: 智库
+  channel: html
+  base: https://www.upng.ac.pg
+- domain: www.pngimr.org.pg
+  name: PNG Institute of Medical Research
+  country: Papua New Guinea
+  lang: en-US
+  type: 智库
+  channel: wp-api
+  base: https://www.pngimr.org.pg
+- domain: www.pngnri.org
+  name: National Research Institute
+  country: Papua New Guinea
+  lang: en-US
+  type: 智库
+  channel: rss
+  base: https://www.pngnri.org
+  feed: /index.php/news-events/news?format=feed&type=rss&start={start}
+  page_step: 10
+  pages: 50
+  via: direct
+- domain: www.mvariety.com
+  name: Marianas Variety
+  country: Commonwealth of the Northern Mariana Islands
+  lang: en-US
+  type: 新闻
+  channel: sitemap
+  base: https://www.mvariety.com
+  sitemap: /sitemap.xml
+- domain: www.saipantribune.com
+  name: Saipan Tribune
+  country: Commonwealth of the Northern Mariana Islands
+  lang: en-US
+  type: 新闻
+  channel: wp-api
+  base: https://www.saipantribune.com
+  via: direct
+  api: rest_route
+  wp_fields: id,date,modified,link,title,content,author,featured_media,categories
+- domain: minapacific.org
+  name: Marianas Islands Nature Alliance
+  country: Commonwealth of the Northern Mariana Islands
+  lang: en-US
+  type: 智库
+  channel: html
+  base: https://minapacific.org
+- domain: dcrm.gov.mp
+  name: CNMI Division of Coastal Resources Management
+  country: Commonwealth of the Northern Mariana Islands
+  lang: en-US
+  type: 政府网站
+  channel: wp-api
+  base: https://dcrm.gov.mp
+- domain: www.marianas.edu
+  name: Northern Marianas College
+  country: Commonwealth of the Northern Mariana Islands
+  lang: en-US
+  type: 智库
+  channel: rss
+  base: https://www.marianas.edu
+  feed: /feed
+- domain: www.fisheries.noaa.gov
+  name: NOAA Pacific Islands Fisheries Science Center
+  country: Commonwealth of the Northern Mariana Islands
+  lang: en-US
+  type: 政府网站
+  channel: sitemap
+  base: https://www.fisheries.noaa.gov
+  sitemap: /sitemap.xml
+  url_filter: /pacific-islands/
+- domain: www.wpcouncil.org
+  name: Western Pacific Regional Fishery Management Council
+  country: Commonwealth of the Northern Mariana Islands
+  lang: en-US
+  type: 智库
+  channel: wp-api
+  base: https://www.wpcouncil.org
+- domain: www.tntv.pf
+  name: Tahiti Nui Télévision
+  country: French Polynesia
+  lang: fr-FR
+  type: 新闻
+  channel: wp-api
+  base: https://www.tntv.pf
+- domain: la1ere.francetvinfo.fr
+  name: Polynésie 1ère
+  country: French Polynesia
+  lang: fr-FR
+  type: 新闻
+  channel: html
+  base: https://la1ere.franceinfo.fr
+  via: direct
+  # 只保留太平洋频道（本项目范围）；首页混有全法/加勒比内容，故不抓
+  list_urls:
+  - https://la1ere.franceinfo.fr/polynesie/
+  - https://la1ere.franceinfo.fr/wallisfutuna/
+  - https://la1ere.franceinfo.fr/wallisfutuna/wallis
+  link_pattern: '/(?:polynesie|wallisfutuna)/[^"]*-\d{5,}\.html$'
+- domain: www.coralgardeners.org
+  name: Coral Gardeners
+  country: French Polynesia
+  lang: fr-FR
+  type: 智库
+  channel: sitemap
+  base: https://www.coralgardeners.org
+  sitemap: /sitemap.xml
+  via: browser
+- domain: www.upf.pf
+  name: Université de la Polynésie Française
+  country: French Polynesia
+  lang: fr-FR
+  type: 智库
+  channel: rss
+  base: https://www.upf.pf
+  feed: /rss.xml
+- domain: www.ilm.pf
+  name: Institut Louis Malardé
+  country: French Polynesia
+  lang: fr-FR
+  type: 智库
+  channel: json-api
+  base: https://www.ilm.pf
+  via: direct
+  api: /backend/items/article
+  api_query: limit=100&sort=id&meta=total_count&filter={"status":{"_eq":"published"}}
+  api_page_size: 100
+  api_category:
+    api: /backend/items/category
+    query: limit=200&fields=id,name,parent
+- domain: www.criobe.pf
+  name: Centre de Recherches Insulaires et Observatoire de l’Environnement
+  country: French Polynesia
+  lang: fr-FR
+  type: 智库
+  channel: wp-api
+  base: https://www.criobe.pf
+- domain: www.fijitimes.com
+  name: Fiji Times
+  country: Fiji Islands, Republic of the
+  lang: en-US
+  type: 新闻
+  channel: sitemap
+  base: https://www.fijitimes.com.fj
+  sitemap: /sitemap.xml
+- domain: fijisun.com.fj
+  name: Fiji Sun
+  country: Fiji Islands, Republic of the
+  lang: en-US
+  type: 新闻
+  channel: sitemap
+  base: https://fijisun.com.fj
+  sitemap: /sitemap.xml
+- domain: www.fbc.com.fj
+  name: Fiji Broadcasting Corporation
+  country: Fiji Islands, Republic of the
+  lang: en-US
+  type: 新闻
+  channel: html
+  base: https://www.fbc.com.fj
+- domain: www.fijione.tv
+  name: Fiji One Television
+  country: Fiji Islands, Republic of the
+  lang: en-US
+  type: 新闻
+  channel: sitemap
+  base: https://www.fijione.tv
+  sitemap: /sitemap.xml
+- domain: www.redcross.com.fj
+  name: Fiji Red Cross Society
+  country: Fiji Islands, Republic of the
+  lang: en-US
+  type: 智库
+  channel: wp-api
+  base: https://giftoflifefiji.com
+- domain: fela.org.fj
+  name: Fiji Environmental Law Association
+  country: Fiji Islands, Republic of the
+  lang: en-US
+  type: 智库
+  channel: wp-api
+  base: https://www.fela.org.fj
+- domain: www.fwrm.org.fj
+  name: Fiji Women’s Rights Movement
+  country: Fiji Islands, Republic of the
+  lang: en-US
+  type: 智库
+  channel: html
+  base: https://www.fwrm.org.fj
+  list_urls:
+    - /news/media-releases
+    - /news/gender-equality-campaign
+    - /index.php/news
+  link_pattern: /news/[\w-]+/[\w-]+$
+  via: direct
+- domain: www.usp.ac.fj
+  name: The University of the South Pacific
+  country: Fiji Islands, Republic of the
+  lang: en-US
+  type: 智库
+  channel: wp-api
+  base: https://www.usp.ac.fj
+  via: impersonate
+  no_embed: true
+  orderby: ''
+  via_media: ego
+  wp_per_page: 100
+- domain: www.fnu.ac.fj
+  name: Fiji National University
+  country: Fiji Islands, Republic of the
+  lang: en-US
+  type: 智库
+  channel: wp-api
+  base: https://www.fnu.ac.fj
+  via: impersonate
+- domain: www.spc.int
+  name: Pacific Community
+  country: Fiji Islands, Republic of the
+  lang: en-US
+  type: 智库
+  channel: sitemap
+  base: https://www.spc.int
+  sitemap: /sitemap.xml
+  url_filter: /updates/blog/
+  note: "原 rss 通道只拿到 feed 10 条；sitemap index 8 个子图约 7700 条文章，限定英文 /updates/blog/"
+
+- domain: www.kiribati.gov.ki
+  name: Government of Kiribati
+  country: Kiribati, Republic of
+  lang: en-US
+  type: 政府网站
+  channel: rss
+  base: http://www.kiribati.gov.ki
+  via: direct
+  feed: /rss.xml
+- domain: pina.com.fj
+  name: Pacific Islands News Association
+  country: Fiji Islands, Republic of the
+  lang: en-US
+  type: 新闻
+  channel: wp-api
+  base: https://pina.com.fj
+- domain: www.melad.gov.ki
+  name: Ministry of Environment, Lands and Agricultural Development
+  country: Kiribati, Republic of
+  lang: en-US
+  type: 政府网站
+  channel: rss
+  base: https://www.melad.gov.ki
+  feed: /index.php?option=com_content&view=featured&format=feed&type=rss
+  via: direct
+- domain: www.cookislandsnews.com
+  name: Cook Islands News
+  country: Cook Islands
+  lang: en-US
+  type: 新闻
+  channel: wp-api
+  base: https://www.cookislandsnews.com
+- domain: www.mmr.gov.ck
+  name: Ministry of Marine Resources
+  country: Cook Islands
+  lang: en-US
+  type: 政府网站
+  channel: wp-api
+  base: https://mmr.gov.ck
+- domain: www.kpress.info
+  name: The Kaselehlie Press
+  country: Micronesia, Federated States of
+  lang: en-US
+  type: 新闻
+  channel: sitemap
+  base: http://www.kpress.info
+  sitemap: /sitemap.xml
+- domain: www.nuclearclaimstribunal.com
+  name: Nuclear Claims Tribunal
+  country: Marshall Island, Republic of
+  lang: en-US
+  type: 智库
+  channel: sitemap
+  base: https://www.nuclearclaimstribunal.com
+  sitemap: /sitemap.xml
+- domain: www.cmi.edu
+  name: College of the Marshall Islands
+  country: Marshall Island, Republic of
+  lang: en-US
+  type: 智库
+  channel: sitemap
+  base: https://www.cmi.edu
+  sitemap: /sitemap.xml
+- domain: www.fsmgov.org
+  name: FSM Government
+  country: Micronesia, Federated States of
+  lang: en-US
+  type: 政府网站
+  channel: wp-api
+  base: https://gov.fm
+  via: direct
+- domain: www.comfsm.fm
+  name: College of Micronesia-FSM
+  country: Micronesia, Federated States of
+  lang: en-US
+  type: 智库
+  channel: wp-api
+  base: https://www.comfsm.edu.fm
+- domain: www.gov.nu
+  name: Government of Niue
+  country: Niue
+  lang: en-US
+  type: 政府网站
+  channel: html
+  base: https://www.gov.nu
+- domain: www.norfolkisland.gov.nf
+  name: Norfolk Island Regional Council
+  country: Norfolk Island
+  lang: en-US
+  type: 政府网站
+  channel: sitemap
+  base: https://www.nirc.gov.au
+  sitemap: /sitemap.xml
+  url_filter: /Your-council/News-Articles/
+  via: ego
+  note: "www.norfolkisland.gov.nf 301 到 nirc.gov.au；Akamai 只挡非浏览器，走 ego（浏览器内 sitemap 507 条，其中 news 170 条）"
+- domain: www.government.pn
+  name: Government of Pitcairn Islands
+  country: Pitcairn Islands
+  lang: en-US
+  type: 政府网站
+  channel: sitemap
+  base: https://www.government.pn
+  sitemap: /sitemap.xml
+- domain: www.samoaobserver.ws
+  name: Samoa Observer
+  country: Samoa, Independent State of
+  lang: en-US
+  type: 新闻
+  channel: json-list
+  base: https://www.samoaobserver.ws
+  via: direct
+  api_list: /stories/page/{page}.json?category={category}&api=true
+  api_categories:
+  - samoa
+  - opinion
+  - sport
+  api_items: stories
+  free_field: is_premium
+  api_url: '{base}/category/{category_name}/{id}'
+  premium_marker: id="impression-panel"
+  pages: 100000
+- domain: radiosamoa.ws
+  name: Radio Samoa 2AP
+  country: Samoa, Independent State of
+  lang: en-US
+  type: 新闻
+  channel: wp-api
+  base: https://cms.radiosamoa.co.nz
+- domain: www.mnre.gov.ws
+  name: Ministry of Natural Resources and Environment
+  country: Samoa, Independent State of
+  lang: en-US
+  type: 政府网站
+  channel: wp-api
+  base: https://www.mnre.gov.ws
+  api: rest_route
+- domain: www.wibdi.ws
+  name: Women in Business Development Inc.
+  country: Samoa, Independent State of
+  lang: en-US
+  type: 智库
+  channel: html
+  base: https://www.wibdi.ws
+- domain: www.nus.edu.ws
+  name: National University of Samoa
+  country: Samoa, Independent State of
+  lang: en-US
+  type: 智库
+  channel: wp-api
+  base: https://nus.edu.ws
+- domain: www.sibconline.com.sb
+  name: Solomon Islands Broadcasting Corporation
+  country: Solomon islands
+  lang: en-US
+  type: 新闻
+  channel: sitemap
+  base: https://www.sibconline.com.sb
+  sitemap: /sitemap.xml
+  via: direct
+- domain: www.solomonstarnews.com
+  name: Solomon Star
+  country: Solomon islands
+  lang: en-US
+  type: 新闻
+  channel: wp-api
+  base: https://www.solomonstarnews.com
+  via: ego
+  api: rest_route
+  wp_fields: id,date,modified,link,title,content,author,featured_media,categories
+- domain: www.sinu.edu.sb
+  name: Solomon Islands National University
+  country: Solomon islands
+  lang: en-US
+  type: 智库
+  channel: wp-api
+  base: https://www.sinu.edu.sb
+- domain: www.gov.to
+  name: Government of Tonga
+  country: Tonga, Kingdom of
+  lang: en-US
+  type: 政府网站
+  channel: wp-api
+  base: https://www.gov.to
+  via: direct
+- domain: www.tonga-broadcasting.net
+  name: Tonga Broadcasting Commission
+  country: Tonga, Kingdom of
+  lang: en-US
+  type: 新闻
+  channel: html
+  base: https://www.tonga-broadcasting.net
+- domain: matangitonga.to
+  name: Matangi Tonga
+  country: Tonga, Kingdom of
+  lang: en-US
+  type: 新闻
+  channel: sitemap
+  base: https://matangitonga.to
+  sitemap: /sitemap.xml
+  via: direct
+- domain: www.fisheries.gov.to
+  name: Ministry of Fisheries
+  country: Tonga, Kingdom of
+  lang: en-US
+  type: 政府网站
+  channel: rss
+  base: https://fisheries.gov.to
+  feed: /feed/
+  via: direct
+- domain: www.tokelau.org.nz
+  name: Government of Tokelau
+  country: Tokelau
+  lang: en-US
+  type: 政府网站
+  channel: html
+  base: https://www.tokelau.org.nz
+  via: browser
+- domain: www.wallis-et-futuna.gouv.fr
+  name: Préfecture des Îles Wallis-et-Futuna
+  country: Wallis and Futuna
+  lang: fr-FR
+  type: 政府网站
+  channel: html
+  base: https://www.wallis-et-futuna.gouv.fr
+  list_url: https://www.wallis-et-futuna.gouv.fr/Actualites/(offset)/{offset}
+  link_pattern: /Actualites/[^/"]+$
+  page_step: 10
+  pages: 60
+  via: direct
+- domain: www.lefigaro.fr
+  name: Le Figaro Pacific
+  country: Wallis and Futuna
+  lang: fr-FR
+  type: 新闻
+  channel: html
+  base: https://www.lefigaro.fr
+  via: browser
+- domain: www.croix-rouge.fr
+  name: Croix-Rouge Française
+  country: Wallis and Futuna
+  lang: fr-FR
+  type: 智库
+  channel: sitemap
+  base: https://www.croix-rouge.fr
+  sitemap: /sitemap.xml
+- domain: dailypost.vu
+  name: Vanuatu Daily Post
+  country: Vanuatu, Republic of
+  lang: en-US
+  type: 新闻
+  channel: sitemap
+  base: https://www.dailypost.vu
+  sitemap: /sitemap.xml
+- domain: www.vbtc.vu
+  name: Vanuatu Broadcasting & Television Corporation
+  country: Vanuatu, Republic of
+  lang: en-US
+  type: 新闻
+  channel: wp-api
+  base: https://vbtc.vu
+- domain: www.gov.vu
+  name: Government of Vanuatu
+  country: Vanuatu, Republic of
+  lang: en-US
+  type: 政府网站
+  channel: rss
+  base: https://www.gov.vu
+  feed: /index.php/events/news?format=feed&type=rss
+  via: direct
+- domain: www.vmgd.gov.vu
+  name: Vanuatu Meteorology & Geohazards Department
+  country: Vanuatu, Republic of
+  lang: en-US
+  type: 政府网站
+  channel: sitemap
+  base: https://www.vmgd.gov.vu
+  sitemap: /sitemap.xml
+- domain: www.lnc.nc
+  name: Les Nouvelles Calédoniennes
+  country: Nouvelle-Calédonie
+  lang: fr-FR
+  type: 新闻
+  channel: sitemap
+  base: https://www.lnc.nc
+  sitemap: /sitemap.xml
+  via: direct
+  note: "棘手：Drupal 老站，sitemap 41.6 万条真实文章；无 JSON API/批量接口，只能逐页抓。站点侧并发上限约 19 条/s；已采 5.6 万，剩 40 万，2026-11-07 暂停（data/CRAWL_PAUSED）。"
+- domain: www.adck.nc
+  name: Agence de Développement de la Culture Kanak
+  country: Nouvelle-Calédonie
+  lang: fr-FR
+  type: 政府网站
+  channel: rss
+  base: https://centretjibaou.nc
+  feed: /rss.xml
+- domain: dimenc.gouv.nc
+  name: Direction de l’Industrie, des Mines et de l’Énergie
+  country: Nouvelle-Calédonie
+  lang: en-US
+  type: 智库
+  channel: html
+  base: https://dimenc.gouv.nc
+  list_urls:
+    - /actualites?page={page}
+    - /communiques?page={page}
+  page_step: 1
+  pages: 20
+  link_pattern: '/actualites/(?:[^/"]+/){2,}[^/"]+$|/communiques/[^"/?]+$'
+  via: direct
+- domain: www.maisondelaculture.pf
+  name: Maison de la Culture de Tahiti
+  country: French Polynesia
+  lang: fr-FR
+  type: 智库
+  channel: wp-api
+  base: https://www.maisondelaculture.pf
+  via: cloud
+- domain: www.mecdm.gov.sb
+  name: Solomon Islands MECDM
+  country: Solomon islands
+  lang: en-US
+  type: 政府网站
+  channel: sitemap
+  sitemap: /sitemap.xml
+  base: https://www.mecdm.gov.sb
+  via: direct
+  url_filter: /(news|announcements)/[0-9]+-.*\.html$
+- domain: gov.fm
+  name: FSM Government
+  country: Micronesia, Federated States of
+  lang: en-US
+  type: 政府网站
+  channel: wp-api
+  base: https://gov.fm
+  via: direct

@@ -1,0 +1,1 @@
+{"endpointKey":"GET https://www.wallis-et-futuna.gouv.fr/","samples":[{"requestId":"adapted-000000","method":"GET","url":"https://www.wallis-et-futuna.gouv.fr/","origin":"https://www.wallis-et-futuna.gouv.fr","path":"/","query":{},"status":200,"type":"Document","contentType":null,"reqHeaders":{},"reqBody":null,"respHeaders":{},"respBody":null,"ts":null}]}

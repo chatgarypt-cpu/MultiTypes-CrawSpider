@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-14",
+  "project": "/Users/gary/项目开发/REA_CrawlSpider",
+  "operations": [
+    {
+      "original": "/Users/gary/Projects/云阁FDE/evose/ai cmo/output/web-reverse-crawl/rt-english/20261014-test",
+      "current": "/Users/gary/项目开发/REA_CrawlSpider/artifacts/rt-english/20261014-test",
+      "files_verified": 25,
+      "operation": "copy preserving historical evidence"
+    },
+    {
+      "original": "/Users/gary/Projects/云阁FDE/evose/ai cmo/output/skill-validation/web-reverse-crawl-20261014",
+      "current": "/Users/gary/项目开发/REA_CrawlSpider/artifacts/local-demo/20261014",
+      "files_verified": 28,
+      "operation": "copy preserving historical evidence"
+    },
+    {
+      "original": "/Users/gary/.codex/skills/web-reverse-crawl",
+      "current": "/Users/gary/项目开发/REA_CrawlSpider/skills/web-reverse-crawl",
+      "operation": "move canonical source; installed path becomes symlink"
+    }
+  ],
+  "note": "Historical evidence files retain original operation paths and Evidence IDs; runtime RT example source lives in examples/rt."
+}

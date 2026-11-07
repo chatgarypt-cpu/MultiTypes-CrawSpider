@@ -1,0 +1,1151 @@
+[
+ {
+  "domain": "la1ere.francetvinfo.fr",
+  "country": "French Polynesia",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "la1ere.francetvinfo.fr",
+  "country": "Nouvelle-Calédonie",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "minapacific.org",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "fijisun.com.fj",
+  "country": "Fiji Islands, Republic of the",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    98
+   ]
+  ],
+  "samples": []
+ },
+ {
+  "domain": "dailypost.vu",
+  "country": "Vanuatu, Republic of",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    5
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.dailypost.vu/tncms/sitemap/news.xml",
+    "status": 200,
+    "len": 2740,
+    "title": "",
+    "date": "2026-10-27",
+    "author": "",
+    "sitename": "",
+    "lang": "",
+    "head": "https://www.dailypost.vu/news/govt-eyes-atr-next-year-boeing-or-airbus-by-2030/article_180f6d21-b474-5598-b5de-e2bad3e12"
+   },
+   {
+    "url": "http://www.dailypost.vu/classifieds/public_notice/vanuatu-australia-infrastructure-for-development-vai4d-request-for-quotation-rfq/pdfdisplayad_a3f002ce-ea11-4988-be6e-e4168fbf2277.html",
+    "status": 429,
+    "len": 0,
+    "title": "",
+    "date": "",
+    "author": "",
+    "sitename": "",
+    "lang": "",
+    "head": ""
+   }
+  ]
+ },
+ {
+  "domain": "www.belaunationalmuseum.net",
+  "country": "Palau, Republic of",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.adck.nc",
+  "country": "Nouvelle-Calédonie",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "Drupal 11 (https://www.drupal.org)",
+  "wp_total": null,
+  "feeds": 1,
+  "sitemaps": [],
+  "samples": [
+   {
+    "url": "https://centretjibaou.nc/",
+    "status": 200,
+    "len": 8209,
+    "title": "œuvre d'art(S)",
+    "date": "2026-08-13",
+    "author": "",
+    "sitename": "centretjibaou.nc",
+    "lang": "",
+    "head": "Jeudi 5 novembre 2026 à 18h15, Salle Sisia 𝗘𝗻𝘁𝗿𝗲́𝗲 𝗹𝗶𝗯𝗿𝗲 𝗲𝘁 𝗴𝗿𝗮𝘁𝘂𝗶𝘁𝗲 (dans la limite des places disponibles) Information"
+   }
+  ]
+ },
+ {
+  "domain": "fela.org.fj",
+  "country": "Fiji Islands, Republic of the",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 7.1.3",
+  "wp_total": 5,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    5
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.fela.org.fj/2026/07/19/fela-represents-fiji-at-biosecurity-symposium-in-hawaii-15-18-july-2026/",
+    "status": 200,
+    "len": 2445,
+    "title": "FELA Represents Fiji at Biosecurity Symposium in Hawaii. (15-18 July, ",
+    "date": "2026-07-19",
+    "author": "",
+    "sitename": "FELA Represents Fiji at Biosec",
+    "lang": "",
+    "head": "FELA Executive Director, Kiji Vukikomoala, recently participated in a biosecurity symposium hosted by the University of "
+   },
+   {
+    "url": "https://www.fela.org.fj/2026/03/30/fela-facilitates-community-centred-climate-research-in-ovalau/",
+    "status": 200,
+    "len": 1806,
+    "title": "FELA Facilitates Community-Centred Climate Research in Ovalau",
+    "date": "2026-03-30",
+    "author": "",
+    "sitename": "fela.org.fj",
+    "lang": "",
+    "head": "FELA is pleased to have supported important new research examining the effects of climate change on the livelihoods and "
+   }
+  ]
+ },
+ {
+  "domain": "pina.com.fj",
+  "country": "Fiji Islands, Republic of the",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 7.1.3",
+  "wp_total": 13524,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    19
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://pina.com.fj/2026/10/27/spc-must-stay-accountable-to-members-as-it-approaches-80th-anniversary/",
+    "status": 200,
+    "len": 2658,
+    "title": "SPC must stay accountable to members as it approaches 80th anniversary",
+    "date": "2026-10-27",
+    "author": "Pita Ligaiula",
+    "sitename": "pina.com.fj",
+    "lang": "",
+    "head": "The Pacific Community (SPC) must remain responsive to its members’ priorities and accountable for its work as it approac"
+   },
+   {
+    "url": "https://pina.com.fj/2026/10/27/tonga-urges-spc-members-to-ensure-decisions-deliver-for-pacific-people/",
+    "status": 200,
+    "len": 2140,
+    "title": "Tonga urges SPC members to ensure decisions deliver for Pacific people",
+    "date": "2026-10-27",
+    "author": "Pita Ligaiula",
+    "sitename": "pina.com.fj",
+    "lang": "",
+    "head": "Pacific Community (SPC) members must make clear decisions on priorities and resources to ensure the organisation continu"
+   }
+  ]
+ },
+ {
+  "domain": "www.croix-rouge.fr",
+  "country": "Wallis and Futuna",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    33
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.croix-rouge.fr/sitemap-articles.xml",
+    "status": 200,
+    "len": 26534,
+    "title": "",
+    "date": "2023-01-01",
+    "author": "",
+    "sitename": "",
+    "lang": "",
+    "head": "https://www.croix-rouge.fr/canicule-comment-se-rafraichir-quand-il-fait-chaud                   https://www.croix-rouge."
+   },
+   {
+    "url": "https://www.croix-rouge.fr/sitemap-structure-news.xml",
+    "status": 200,
+    "len": 82233,
+    "title": "",
+    "date": "2025-02-27",
+    "author": "",
+    "sitename": "",
+    "lang": "",
+    "head": "https://www.croix-rouge.fr/accueil-de-refugies-reinstalles-du-douaisis/de-saint-jans-cappel-aux-jeux-olympiques-la-missi"
+   }
+  ]
+ },
+ {
+  "domain": "www.comfsm.fm",
+  "country": "Micronesia, Federated States of",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 7.1.3",
+  "wp_total": 10,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    6
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.comfsm.edu.fm/moodlemoot-philippines-2026/",
+    "err": "SSLError:HTTPSConnectionPool(host='www.comfsm.edu.fm', port=443): Max"
+   },
+   {
+    "url": "https://www.comfsm.edu.fm/moodle-success-stories-the-college-of-micronesia-fsm/",
+    "status": 200,
+    "len": 832,
+    "title": "Moodle Success stories – The College of Micronesia-FSM",
+    "date": "2026-05-13",
+    "author": "",
+    "sitename": "comfsm.edu.fm",
+    "lang": "",
+    "head": "Moodle Success stories – The College of Micronesia-FSM You may also like MoodleMoot Philippines 2026 June 29, 2026 CHUUK"
+   }
+  ]
+ },
+ {
+  "domain": "dcrm.gov.mp",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": 0,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    7
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://dcrm.gov.mp",
+    "status": 200,
+    "len": 3014,
+    "title": "Promoting Conservation & Wise Use of Our Coastal Resources",
+    "date": "2019-10-31",
+    "author": "",
+    "sitename": "dcrm.gov.mp",
+    "lang": "",
+    "head": "About DCRM Director’s Office Mission Strategic Planning DCRM Strategic Plan for 2018-2023 CRI Management Priorities & Lo"
+   },
+   {
+    "url": "https://dcrm.gov.mp/",
+    "status": 200,
+    "len": 3014,
+    "title": "Promoting Conservation & Wise Use of Our Coastal Resources",
+    "date": "2019-10-31",
+    "author": "",
+    "sitename": "dcrm.gov.mp",
+    "lang": "",
+    "head": "About DCRM Director’s Office Mission Strategic Planning DCRM Strategic Plan for 2018-2023 CRI Management Priorities & Lo"
+   }
+  ]
+ },
+ {
+  "domain": "www.fijione.tv",
+  "country": "Fiji Islands, Republic of the",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    1
+   ]
+  ],
+  "samples": []
+ },
+ {
+  "domain": "www.croix-rouge.fr",
+  "country": "Nouvelle-Calédonie",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    33
+   ]
+  ],
+  "samples": []
+ },
+ {
+  "domain": "www.fisheries.noaa.gov",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "Drupal 11 (https://www.drupal.org)",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    3
+   ]
+  ],
+  "samples": []
+ },
+ {
+  "domain": "www.gov.nu",
+  "country": "Niue",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.gov.vu",
+  "country": "Vanuatu, Republic of",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "Joomla! - Open Source Content Management",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.government.pn",
+  "country": "Pitcairn Islands",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    19
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.government.pn/history",
+    "status": 200,
+    "len": 27755,
+    "title": "History — The Official Website of the Government of the Pitcairn Islan",
+    "date": "2023-08-22",
+    "author": "",
+    "sitename": "The Official Website of the Go",
+    "lang": "",
+    "head": "Pitcairn’s History As you sail towards Pitcairn, you approach one of the remotest of the world's inhabited islands, lyin"
+   }
+  ]
+ },
+ {
+  "domain": "www.ilm.pf",
+  "country": "French Polynesia",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.fsmgov.org",
+  "country": "Micronesia, Federated States of",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": 1,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": [
+   {
+    "url": "https://hxp.rzk.mybluehost.me/hello-world/",
+    "status": 200,
+    "len": 434,
+    "title": "Welcome — Coming Soon",
+    "date": "",
+    "author": "",
+    "sitename": "Welcome — Coming Soon",
+    "lang": "",
+    "head": "Welcome — Just another WordPress site Signup to be the first to know when we launch. \t\t\t\t\t\t\t\tThank you, please check you"
+   }
+  ]
+ },
+ {
+  "domain": "www.criobe.pf",
+  "country": "French Polynesia",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 7.1.2",
+  "wp_total": 112,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    7
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.criobe.pf/offre-de-stage-shs-enquete-sur-les-perceptions-du-projet-dextension-de-laire-marine-protegee-de-cerbere-banyuls/",
+    "status": 200,
+    "len": 1936,
+    "title": "Offre de Stage SHS : Enquête sur les perceptions du projet d’extension",
+    "date": "2026-07-24",
+    "author": "Peter Esteve",
+    "sitename": "CRIOBE - UAR3278",
+    "lang": "",
+    "head": "Encadrant : Joachim Claudet Contrat : 4 à 6 mois selon les disponibilités Date du début : 14 septembre 2026 Laboratoire "
+   },
+   {
+    "url": "https://www.criobe.pf/ofai-n26/",
+    "status": 200,
+    "len": 304,
+    "title": "OFAI N°26 - CRIOBE - UAR3278",
+    "date": "2025-03-16",
+    "author": "Peter Esteve",
+    "sitename": "CRIOBE - UAR3278",
+    "lang": "",
+    "head": "- Titre : OFAI n°26 - Directeur de publication : Pierre Sasal - Réalisation : Cécile Berthe - Contenus : Cécile Berthe, "
+   }
+  ]
+ },
+ {
+  "domain": "www.melad.gov.ki",
+  "country": "Kiribati, Republic of",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.kpress.info",
+  "country": "Micronesia, Federated States of",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    3237
+   ]
+  ],
+  "samples": []
+ },
+ {
+  "domain": "www.mnre.gov.ws",
+  "country": "Samoa, Independent State of",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "emtv.com.pg",
+  "country": "Papua New Guinea",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "Site Kit by Google 1.190.0",
+  "wp_total": 21030,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    1
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://emtv.com.pg/ncdpha-conducts-training-workshops-ahead-of-hpv-vaccine-rollout/",
+    "status": 200,
+    "len": 1488,
+    "title": "NCDPHA CONDUCT TRAINING WORKSHOPS AHEAD OF HPV VACCINE ROLLOUT — EMTV ",
+    "date": "2026-10-27",
+    "author": "Charlie Dumavi",
+    "sitename": "EMTV ONLINE",
+    "lang": "",
+    "head": "NCDPHA CONDUCT TRAINING WORKSHOPS AHEAD OF HPV VACCINE ROLLOUT By Abagain Mara The National Capital District Provincial "
+   },
+   {
+    "url": "https://emtv.com.pg/dataco-pebbles-crowned-2026-media-pool-competition-champions/",
+    "status": 200,
+    "len": 1848,
+    "title": "DATACO PEBBLES CROWNED 2026 MEDIA POOL COMPETITION CHAMPIONS — EMTV ON",
+    "date": "2026-10-27",
+    "author": "Charlie Dumavi",
+    "sitename": "EMTV ONLINE",
+    "lang": "",
+    "head": "DATACO PEBBLES CROWNED 2026 MEDIA POOL COMPETITION CHAMPIONS By Issabella Narapal The 2026 Media Pool Competition has su"
+   }
+  ]
+ },
+ {
+  "domain": "www.fijitimes.com",
+  "country": "Fiji Islands, Republic of the",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    8
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.fijitimes.com.fj/",
+    "status": 200,
+    "len": 413,
+    "title": "The Fiji Times",
+    "date": "2026-10-27",
+    "author": "ANISH CHAND",
+    "sitename": "The Fiji Times",
+    "lang": "",
+    "head": "Local News Valenitabua sworn in as Acting Attorney-General Sevuloni Valenitabua has been sworn in as Fiji’s Acting Attor"
+   },
+   {
+    "url": "https://www.fijitimes.com.fj/reflection-i-inspired-by-the-sacred-chime/",
+    "status": 200,
+    "len": 3941,
+    "title": "REFLECTION I Inspired by the sacred chime",
+    "date": "2026-07-26",
+    "author": "AAP; RITA NAND",
+    "sitename": "The Fiji Times",
+    "lang": "",
+    "head": "THIS poem is inspired by the chime of a rooster in the distance outside my bedroom window each morn. Later, a family mem"
+   }
+  ]
+ },
+ {
+  "domain": "www.palau.edu",
+  "country": "Palau, Republic of",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "Namo WebEditor v5.0",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.nuclearclaimstribunal.com",
+  "country": "Marshall Island, Republic of",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    1
+   ]
+  ],
+  "samples": []
+ },
+ {
+  "domain": "www.mvariety.com",
+  "country": "Commonwealth of the Northern Mariana Islands",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    4
+   ]
+  ],
+  "samples": []
+ },
+ {
+  "domain": "www.pngnri.org",
+  "country": "Papua New Guinea",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.mmr.gov.ck",
+  "country": "Cook Islands",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 7.1.3",
+  "wp_total": 0,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    1
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://mmr.gov.ck",
+    "status": 200,
+    "len": 166,
+    "title": "Ministry of Marine Resources - Cook Islands",
+    "date": "2024-07-01",
+    "author": "",
+    "sitename": "Ministry of Marine Resources -",
+    "lang": "",
+    "head": "Coming Soon Kia Orana, the new MMR website will be coming soon. For those interested in publications or general informat"
+   },
+   {
+    "url": "https://mmr.gov.ck/",
+    "err": "SSLError:HTTPSConnectionPool(host='mmr.gov.ck', port=443): Max retrie"
+   }
+  ]
+ },
+ {
+  "domain": "www.postcourier.com.pg",
+  "country": "Papua New Guinea",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 7.1.3",
+  "wp_total": 138541,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    3
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.postcourier.com.pg/pm-marape-visits-the-department-of-national-planning-and-monitoring/",
+    "status": 200,
+    "len": 901,
+    "title": "PM Marape visits the Department of National Planning and Monitoring",
+    "date": "2026-10-27",
+    "author": "Postcourieronline",
+    "sitename": "Post Courier",
+    "lang": "",
+    "head": "Prime Minister of Papua New Guinea James Marape paid a courtesy visit to the office of the Department of National Planni"
+   },
+   {
+    "url": "https://www.postcourier.com.pg/minister-maladina-clarifies-papua-lng-revenue-implications-and-rejects-k28-billion-loss-claims/",
+    "status": 200,
+    "len": 777,
+    "title": "Minister Maladina clarifies Papua LNG revenue implications and rejects",
+    "date": "2026-10-27",
+    "author": "Postcourieronline",
+    "sitename": "Post Courier",
+    "lang": "",
+    "head": "Papua New Guinea's 'trupla' leading Daily Newspaper Since 1969.The Post-Courier is proud of its record as the voice of P"
+   }
+  ]
+ },
+ {
+  "domain": "www.redcross.org.pg",
+  "country": "Papua New Guinea",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.palaugov.pw",
+  "country": "Palau, Republic of",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 7.1.3",
+  "wp_total": 266,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    6
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.palaugov.pw",
+    "err": "SSLError:HTTPSConnectionPool(host='www.palaugov.pw', port=443): Max r"
+   },
+   {
+    "url": "https://www.palaugov.pw/palau-in-a-state-of-emergency/",
+    "status": 200,
+    "len": 554,
+    "title": "Palau in a State of Emergency",
+    "date": "2016-03-24",
+    "author": "",
+    "sitename": "PalauGov.pw",
+    "lang": "",
+    "head": "Palau in a State of Emergency President Remengesau has issued Executive Order No. 389 to declare a State of Emergency du"
+   }
+  ]
+ },
+ {
+  "domain": "www.tonga-broadcasting.net",
+  "country": "Tonga, Kingdom of",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.palauconservation.org",
+  "country": "Palau, Republic of",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 7.1.3",
+  "wp_total": null,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    14
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.palauconservation.org",
+    "status": 200,
+    "len": 1621,
+    "title": "Questions? Contact Us Today:",
+    "date": "2022-01-01",
+    "author": "",
+    "sitename": "palauconservation.org",
+    "lang": "",
+    "head": "About PCS The Palau Conservation Society (PCS) works to empower our communities to steward Palau’s environment. Our visi"
+   },
+   {
+    "url": "https://www.palauconservation.org/wp-sitemap-posts-ditty_news_ticker-1.xml",
+    "status": 200,
+    "len": 0,
+    "title": "",
+    "date": "",
+    "author": "",
+    "sitename": "",
+    "lang": "",
+    "head": ""
+   }
+  ]
+ },
+ {
+  "domain": "www.upf.pf",
+  "country": "French Polynesia",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "Drupal 9 (https://www.drupal.org)",
+  "wp_total": null,
+  "feeds": 1,
+  "sitemaps": [],
+  "samples": [
+   {
+    "url": "https://www.upf.pf/fr",
+    "status": 200,
+    "len": 330,
+    "title": "Accueil UPF",
+    "date": "2019-10-26",
+    "author": "",
+    "sitename": "UPF",
+    "lang": "",
+    "head": "+               - Je suis -            +Lycéen ou Futur étudiantEn poursuite d'étude Valider ses études Choisir une form"
+   }
+  ]
+ },
+ {
+  "domain": "www.upng.ac.pg",
+  "country": "Papua New Guinea",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "Joomla! - Open Source Content Management",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.fnu.ac.fj",
+  "country": "Fiji Islands, Republic of the",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 5.5.23",
+  "wp_total": 160,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    9
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.fnu.ac.fj/blog/one-year-of-waiting-a-lifetime-of-purpose-kriths-journey-into-aircraft-engineering/",
+    "status": 200,
+    "len": 7111,
+    "title": "One Year of Waiting, A Lifetime of Purpose: Krith's Journey into Aircr",
+    "date": "2026-07-27",
+    "author": "Romeka",
+    "sitename": "Fiji National University",
+    "lang": "",
+    "head": "For as long as he can remember, Krith Kaartik Reddy had dreamed of a career in aviation. Today, the 20-year-old from Saw"
+   },
+   {
+    "url": "https://www.fnu.ac.fj/blog/fnu-secures-record-four-acu-phd-scholarships-affirming-its-growing-research-excellence/",
+    "status": 200,
+    "len": 4304,
+    "title": "FNU Secures Record Four ACU PhD Scholarships, Affirming Its Growing Re",
+    "date": "2025-11-10",
+    "author": "Romeka",
+    "sitename": "Fiji National University",
+    "lang": "",
+    "head": "The Fiji National University (FNU) has achieved a remarkable milestone, securing four prestigious King’s Fellowship Awar"
+   }
+  ]
+ },
+ {
+  "domain": "www.vmgd.gov.vu",
+  "country": "Vanuatu, Republic of",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.wallis-et-futuna.gouv.fr",
+  "country": "Wallis and Futuna",
+  "type": "政府网站",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.wibdi.ws",
+  "country": "Samoa, Independent State of",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 0,
+  "sitemaps": [],
+  "samples": []
+ },
+ {
+  "domain": "www.vbtc.vu",
+  "country": "Vanuatu, Republic of",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "All in One SEO (AIOSEO) 4.9.1",
+  "wp_total": 3703,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    14
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://vbtc.vu/government-plans-stock-market-legislation/",
+    "status": 200,
+    "len": 4521,
+    "title": "VBTC - Parliament Debates Financial Reforms as Government Plans Stock ",
+    "date": "2026-10-27",
+    "author": "Anita Nalau",
+    "sitename": "VBTC",
+    "lang": "",
+    "head": "Parliament has passed four financial sector amendment Bills, as MPs debate the need to strengthen compliance while ensur"
+   },
+   {
+    "url": "https://vbtc.vu/air-vanuatu-twin-otter/",
+    "status": 200,
+    "len": 6329,
+    "title": "VBTC - Second Twin Otter Arrives as Government Sets Sights on VT50 Bil",
+    "date": "2026-10-27",
+    "author": "Anita Nalau",
+    "sitename": "VBTC",
+    "lang": "",
+    "head": "The arrival of Air Vanuatu’s second Twin Otter marks another step in rebuilding the national airline and strengthening c"
+   }
+  ]
+ },
+ {
+  "domain": "www.transparencypng.org.pg",
+  "country": "Papua New Guinea",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 7.1.3",
+  "wp_total": 154,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    9
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://transparencypng.org.pg",
+    "status": 200,
+    "len": 1706,
+    "title": "#Integrity&Action",
+    "date": "2026-09-18",
+    "author": "",
+    "sitename": "transparencypng.org.pg",
+    "lang": "",
+    "head": "#Integrity&Action We have been on the frontlines in the fight against corruption in Papua New Guinea since 1997. TIPNG l"
+   },
+   {
+    "url": "https://transparencypng.org.pg/tipng-2020-cpi-launch-event-aims-to-unify-law-and-justice-sector-againstcorruption/",
+    "err": "SSLError:HTTPSConnectionPool(host='transparencypng.org.pg', port=443)"
+   }
+  ]
+ },
+ {
+  "domain": "www.redcross.com.fj",
+  "country": "Fiji Islands, Republic of the",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 7.1.3",
+  "wp_total": 140,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    4
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://giftoflifefiji.com/",
+    "status": 200,
+    "len": 620,
+    "title": "DID YOU KNOW?",
+    "date": "2026-10-12",
+    "author": "",
+    "sitename": "Home - Gift of Life Fiji",
+    "lang": "",
+    "head": "Sorry, the participation module is currently under maintenance. We will be done soon. Please try again later. Your oppor"
+   },
+   {
+    "url": "https://giftoflifefiji.com/fbc-news-28-september-2022/",
+    "status": 200,
+    "len": 547,
+    "title": "FBC News - 28 September 2022 - Gift of Life Fiji",
+    "date": "2022-10-22",
+    "author": "",
+    "sitename": "Gift of Life Fiji",
+    "lang": "",
+    "head": "Sorry, the participation module is currently under maintenance. We will be done soon. Please try again later. Your oppor"
+   }
+  ]
+ },
+ {
+  "domain": "www.sinu.edu.sb",
+  "country": "Solomon islands",
+  "type": "智库",
+  "status": 200,
+  "cf": false,
+  "generator": "WordPress 6.7.10",
+  "wp_total": 1082,
+  "feeds": 2,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    6
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.sinu.edu.sb/executive-governance-committee-holds-meeting-to-strengthen-university-governance-and-oversight/",
+    "status": 200,
+    "len": 1849,
+    "title": "Executive Governance Committee Holds Meeting to Strengthen University ",
+    "date": "2022-09-01",
+    "author": "",
+    "sitename": "sinu.edu.sb",
+    "lang": "",
+    "head": "PRESS RELEASE 21 October 2026 The Executive Governance Committee (EGC) of the Solomon Islands National University (SINU)"
+   },
+   {
+    "url": "https://www.sinu.edu.sb/sinu-and-honiara-city-council-promote-cleaner-communities-through-waste-management-awareness/",
+    "status": 200,
+    "len": 1595,
+    "title": "SINU AND HONIARA CITY COUNCIL PROMOTE CLEANER COMMUNITIES THROUGH WAST",
+    "date": "2022-09-01",
+    "author": "",
+    "sitename": "sinu.edu.sb",
+    "lang": "",
+    "head": "PRESS RELEASE 21 OCTOBER 2026 The Solomon Islands National University (SINU), in partnership with Honiara City Council ("
+   }
+  ]
+ },
+ {
+  "domain": "www.lnc.nc",
+  "country": "Nouvelle-Calédonie",
+  "type": "新闻",
+  "status": 200,
+  "cf": false,
+  "generator": "",
+  "wp_total": null,
+  "feeds": 1,
+  "sitemaps": [
+   [
+    "/sitemap.xml",
+    9
+   ]
+  ],
+  "samples": [
+   {
+    "url": "https://www.lnc.nc",
+    "status": 200,
+    "len": 7478,
+    "title": "Les Nouvelles Calédoniennes",
+    "date": "2023-03-01",
+    "author": "",
+    "sitename": "Les Nouvelles Calédoniennes",
+    "lang": "",
+    "head": "Aller au contenu principal Programme TV Cinéma Jeux Météo Horoscope Hippisme Connexion INSCRIPTION MON COMPTE CONTACT AB"
+   },
+   {
+    "url": "https://www.lnc.nc/",
+    "err": "SSLError:HTTPSConnectionPool(host='www.lnc.nc', port=443): Max retrie"
+   }
+  ]
+ }
+]
