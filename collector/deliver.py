@@ -429,17 +429,35 @@ def _validate_date(date: str) -> str:
 
 
 def run(date=None, no_export=False, dry_run=False, data_dir=None, csv_dir=None,
-        delivery_root=None, sources=None) -> dict:
-    """生成交付物。返回汇总 dict；dry_run=True 时只统计不写盘。"""
+        delivery_root=None, sources=None, sites_include=None, coverage_file=None,
+        delivery_name=None) -> dict:
+    """生成交付物。返回汇总 dict；dry_run=True 时只统计不写盘。
+
+    sites_include: 可选的域名白名单（批量交付/分批打包用）；None = 全部站点。
+    coverage_file: 指定覆盖率快照路径（默认取 data/coverage-<date>.json 或最新）。
+    delivery_name: 交付目录名（默认 date），例如 "20261109-batch23"。
+    """
     date = _validate_date(date or datetime.now().strftime("%Y%m%d"))
     data = Path(data_dir) if data_dir else _default_data_dir()
     csv_out = Path(csv_dir) if csv_dir else CSV_DIR
     delivery_base = Path(delivery_root) if delivery_root else DELIVERY_ROOT
-    delivery_dir = delivery_base / date
+    delivery_dir = delivery_base / (delivery_name or date)
+    include = set(sites_include) if sites_include else None
 
     src = load_sources(sources)
     skip_keys = read_skip_keys(data)
-    coverage, coverage_path, warning = load_coverage(data, date)
+    if coverage_file:
+        coverage_path = Path(coverage_file)
+        coverage = _read_json(coverage_path)
+        warning = None
+        if not isinstance(coverage, dict):
+            coverage, warning = None, f"指定的覆盖率快照不可用：{coverage_path}"
+    else:
+        coverage, coverage_path, warning = load_coverage(data, date)
+    if include:                                   # 只保留本批站点的覆盖率记录
+        coverage = {"report": [r for r in (coverage or {}).get("report", []) if r.get("domain") in include],
+                    "verified": sum(1 for r in (coverage or {}).get("report", []) if r.get("domain") in include and r.get("coverage") is not None),
+                    "complete": sum(1 for r in (coverage or {}).get("report", []) if r.get("domain") in include and r.get("verdict") == "已核对")}
     if warning:
         print(f"⚠ {warning}", file=sys.stderr)
     if coverage_path is None:
@@ -448,11 +466,18 @@ def run(date=None, no_export=False, dry_run=False, data_dir=None, csv_dir=None,
               file=sys.stderr)
 
     configured = [s["domain"] for s in src if (s or {}).get("domain")]
-    domains = configured + [d for d in site_dirs(data) if d not in set(configured)]
+    if include:
+        configured = [d for d in configured if d in include]
+        domains = list(configured)
+    else:
+        domains = configured + [d for d in site_dirs(data) if d not in set(configured)]
+
+    def _filter(rows):
+        return [r for r in rows if r["domain"] in include] if include else rows
 
     if dry_run:
-        manifest = build_manifest(src, data, coverage, csv_out, skip_keys)
-        residuals = build_residuals(coverage, data)
+        manifest = _filter(build_manifest(src, data, coverage, csv_out, skip_keys))
+        residuals = _filter(build_residuals(coverage, data))
         would_export = {d: site_counts(data, d) for d in domains if any(site_counts(data, d).values())}
         print(f"[dry-run] 将写入：{delivery_dir}/"
               "{site_manifest.csv, residuals.csv, 交付说明.md, coverage.json}")
@@ -464,8 +489,8 @@ def run(date=None, no_export=False, dry_run=False, data_dir=None, csv_dir=None,
                 "csv_exported": {}, "coverage_source": str(coverage_path) if coverage_path else None}
 
     csv_counts = {} if no_export else export_csvs(domains, data, csv_out)
-    manifest = build_manifest(src, data, coverage, csv_out, skip_keys)
-    residuals = build_residuals(coverage, data)
+    manifest = _filter(build_manifest(src, data, coverage, csv_out, skip_keys))
+    residuals = _filter(build_residuals(coverage, data))
     readme = render_readme(date, manifest, residuals, coverage, coverage_path, csv_counts, warning)
 
     _write_csv(delivery_dir / "site_manifest.csv", MANIFEST_COLS, manifest)
@@ -507,8 +532,16 @@ def main(argv=None) -> int:
                     help="交付日期，默认今天；同时用于选择 data/coverage-<date>.json")
     ap.add_argument("--no-export", action="store_true", help="跳过 output/csv 导出，只出清单")
     ap.add_argument("--dry-run", action="store_true", help="只打印计划，不写任何文件")
+    ap.add_argument("--sites-file", help="只交付文件里列出的域名（每行一个，# 注释）")
+    ap.add_argument("--coverage", help="指定覆盖率快照 JSON（默认 data/coverage-<date>.json 或最新）")
+    ap.add_argument("--delivery-name", help="交付目录名（默认日期），如 20261109-batch23")
     args = ap.parse_args(argv)
-    run(date=args.date, no_export=args.no_export, dry_run=args.dry_run)
+    include = None
+    if args.sites_file:
+        include = [ln.split("#")[0].strip() for ln in Path(args.sites_file).read_text(encoding="utf-8").splitlines()
+                   if ln.split("#")[0].strip()]
+    run(date=args.date, no_export=args.no_export, dry_run=args.dry_run,
+        sites_include=include, coverage_file=args.coverage, delivery_name=args.delivery_name)
     return 0
 
 
