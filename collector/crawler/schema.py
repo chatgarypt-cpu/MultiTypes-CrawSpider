@@ -29,7 +29,9 @@ SHARED = {"domain", "name", "country", "lang", "type", "channel", "base", "via",
           # html 页面流水线（crawler.htmlpage）：schema=XPath→字段，llm_fields=让可选 LLM 补的空字段
           "schema", "llm_fields", "llm_override", "noise_gate",
           # robots: false = 该站不按 robots.txt 限制（用户显式决定）；ego_wait_ms = 浏览器加载后等待
-          "robots", "ego_wait_ms"}
+          "robots", "ego_wait_ms",
+          # 人工确认不可采（无列表入口/站点下线/反爬）：不算配置错误，单独归类
+          "disabled", "disabled_reason"}
 OPTIONAL = {
     "wp-api": {"api"},
     "sitemap": set(),
@@ -44,6 +46,7 @@ TYPES = {
     "api_page_size": int, "no_embed": bool, "min_text": int,
     "schema": dict, "llm_fields": list, "llm_override": bool, "noise_gate": bool,
     "item_selector": str, "robots": bool, "ego_wait_ms": int,
+    "disabled": bool, "disabled_reason": str,
 }
 REGEX_KEYS = ("link_pattern", "url_filter")
 
@@ -109,9 +112,20 @@ def validate_site(site):
         typ = TYPES.get(key)
         if typ and key in site and not isinstance(site[key], typ):
             errors.append(f"{domain}: {key} must be {typ.__name__}")
-    # 发现入口完整性：宁可在 validate 阶段吵，也不要抓了半天才发现没入口
-    if channel == "html" and not (site.get("list_url") or site.get("list_urls")):
-        warnings.append(f"{domain}: html channel without list_url/list_urls (discovery entry missing; only base is scanned)")
+    # 发现入口完整性：宁可在 validate 阶段吵，也不要抓了半天才发现没入口。
+    # disabled 是显式的人工分类（站点下线/无列表入口/反爬），不算配置错误；
+    # html 站没有 list_url/list_urls 又没 disabled，一律当 error 处理。
+    disabled = site.get("disabled") is True
+    if disabled:
+        reason = site.get("disabled_reason") or "未写原因"
+        missing_entry = channel == "html" and not (site.get("list_url") or site.get("list_urls"))
+        category = "缺列表入口" if missing_entry else "不可访问/不采"
+        warnings.append(f"{domain}: disabled site ({category}) — {reason}")
+    elif channel == "html" and not (site.get("list_url") or site.get("list_urls")):
+        errors.append(f"{domain}: html channel without list_url/list_urls "
+                      f"(discovery entry missing; disable the site with disabled/disabled_reason if it is not crawlable)")
+    if not disabled and site.get("disabled_reason"):
+        warnings.append(f"{domain}: disabled_reason is set but disabled is not true")
     if channel == "sitemap" and not site.get("sitemap"):
         warnings.append(f"{domain}: sitemap channel without sitemap path (discovery entry missing)")
     # 正则 mismatch：写错的正则会让发现阶段静默 0 条
