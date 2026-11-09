@@ -95,10 +95,12 @@
   list_urls:
   - /announcements?start={page}
   page_step: 6
-  pages: 60
+  pages: 12
   link_pattern: '/announcements/\d+-'
   noise_gate: true
-  via: direct
+  via: ego
+  ego_wait_ms: 3000
+  note: "2026-11-09 直连会被 Cloudflare JS 挑战（One moment, please）；改 via: ego 本地浏览器，加载后等 3s，实测 1.5s 后列表 22 条链接可见"
 - domain: www.pngimr.org.pg
   name: PNG Institute of Medical Research
   country: Papua New Guinea
