@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import requests, trafilatura
+from crawler import htmlpage
 from crawler.text import clean, iframes, first_img, meta, iso, parse_dt
 from crawler.config import ROOT, DATA, DB, UA, COLS, MEDIA_COLS, WORKERS
 
@@ -122,12 +123,15 @@ def candidates(url, body, site=None):
             row["created_at"] = row.get("created_at") or ld_value(nodes, "datePublished")
             out.append({"extractor": "jsonld", "text": row["text"], "title": row["title"],
                         "date": row["created_at"], "row": row})
+    # 粗抽（整页可见文字）只做兜底：它一定比剪枝结果长（含导航/页脚），按长度择优会永远赢，
+    # 于是 2026-11 之前入库的 html/rss 站正文常带 "Skip to main content / EXPLORE" 这类菜单。
+    # 只有剪枝结果明显不合格（不足粗抽的 40%）时才让粗抽参与竞争。
     para = _para_text(body)
-    if len(para) > 200:
+    base_text = base.get("text") or ""
+    if len(para) > 200 and len(base_text) < 0.4 * len(para):
         row = dict(base)
-        if len(para) > len(base.get("text", "")):
-            row["text"] = para
-        out.append({"extractor": "html_text", "text": row["text"], "title": row.get("title", ""),
+        row["text"] = para
+        out.append({"extractor": "html_text", "text": para, "title": row.get("title", ""),
                     "date": row.get("created_at", ""), "row": row})
     for c in out:
         c["score"] = _score(c)
@@ -144,7 +148,10 @@ def _score(c):
 
 
 def extract_best(url, body, site=None, min_text=60):
-    """Pick the best candidate; return None when nothing reaches min_text."""
+    """Pick the best candidate; return None when nothing reaches min_text.
+
+    HTML 通道还会过列表页闸门、按 site 的 schema/llm_fields 补字段（crawler.htmlpage）。
+    """
     cands = candidates(url, body, site)
     if not cands:
         return None
@@ -154,4 +161,4 @@ def extract_best(url, body, site=None, min_text=60):
         return None
     row["text"] = best["text"]
     row["_extractor"] = best["extractor"]
-    return row
+    return htmlpage.enrich(row, body, url, site)

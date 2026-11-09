@@ -2,9 +2,10 @@
 import html, json, logging, math, os, re, sqlite3, subprocess, sys, tempfile, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests, trafilatura
+from lxml import html as lxml_html
 from crawler.config import ROOT, DATA, DB, UA, COLS, MEDIA_COLS, WORKERS
 
 def wp_page_url(site, page, per=50, kind="posts"):
@@ -65,9 +66,8 @@ def rss_urls(site, fetcher, limit):
             if m: out.append(html.unescape(m.group(1).strip()))
     return out[:limit] if limit else out if limit else out
 
-def html_urls(site, fetcher, limit):
-    pat = site.get("link_pattern")
-    out, seen = [], set()
+def _page_urls(site):
+    """列表页地址（支持 {page} / {offset} 占位符，page_step 为步长）。"""
     raw = site.get("list_urls") or [site.get("list_url") or (site["base"] + "/")]
     step = int(site.get("page_step", 10)); count = int(site.get("pages", 1))
     pages = []
@@ -81,21 +81,57 @@ def html_urls(site, fetcher, limit):
             pages += [u.replace("{page}", str(i * steps)) for i in range(count)]
         else:
             pages.append(u)
-    # 列表页很多时（如 wallis 60 个分页）串行抓会非常慢：本机网络出口可并行就用 stream_many
+    return pages
+
+
+ASSET = re.compile(r"\.(?:jpe?g|png|gif|webp|svg|ico|css|js|json|xml|pdf|zip|mp4|mp3|woff2?|ttf|eot)$", re.I)
+SKIP_SCHEME = ("#", "javascript:", "mailto:", "tel:")
+
+
+def html_urls(site, fetcher, limit):
+    """列表页 → 文章 URL。
+
+    - `item_selector`：可选 XPath，返回 href 字符串（如 //a[contains(@href,'/news/')]/@href）；
+    - `link_pattern`：对解析后的绝对 URL 过滤（既有正则都没有 ^ 锚点，语义不变）；
+    - 相对链接用 urljoin 按所在列表页解析（旧实现用 base + "/" 拼，子目录站点会拼错）；
+    - 资源/锚点/javascript 链接一律丢弃（旧实现会捡到 /media/ 下的 .css）。
+    """
+    pat = site.get("link_pattern")
+    sel = site.get("item_selector")
+    out, seen = [], set()
+    pages = _page_urls(site)
     if getattr(fetcher, "ego", False) or getattr(fetcher, "browser", False) or getattr(fetcher, "cloud", False):
         results = fetcher.get_many(pages)
     else:
         results = list(fetcher.stream_many(pages, workers=4))
-    for u, status, body in results:
-        if status != 200: continue
-        for href in re.findall(r'href="([^"#]+)"', body):
-            if pat and not re.search(pat, href): continue
-            if not pat and not re.search(r"/20\d\d/|/news/|/article|/story|/press|/media", href): continue
-            full = href if href.startswith("http") else site["base"] + "/" + href.lstrip("/")
-            host = urlparse(site["base"]).netloc
+    host = urlparse(site["base"]).netloc
+    for page_url, status, body in results:
+        if status != 200 or not body:
+            continue
+        try:
+            doc = lxml_html.fromstring(body)
+        except Exception:
+            continue
+        hrefs = []
+        if sel:                                   # 显式选择器：只信它，不再叠加启发式
+            try:
+                hrefs = [x for x in doc.xpath(sel) if isinstance(x, str)]
+            except Exception:
+                hrefs = []
+        else:
+            hrefs = [a.get("href") for a in doc.xpath("//a[@href]")]
+        for href in hrefs:
+            href = (href or "").strip()
+            if not href or href.startswith(SKIP_SCHEME) or ASSET.search(href):
+                continue
+            full = urljoin(page_url, href)        # 先按列表页解析相对链接，再按绝对 URL 过滤
+            if pat and not re.search(pat, full):
+                continue
+            if not pat and not sel and not re.search(r"/20\d\d/|/news/|/article|/story|/press|/media", full):
+                continue
             if full not in seen and (host in full or site["domain"] in full):
                 seen.add(full); out.append(full)
-    return out[:limit] if limit else out if limit else out
+    return out[:limit] if limit else out
 
 
 def iter_sitemap_urls(site, fetcher, cap=0, chunk_children=5):

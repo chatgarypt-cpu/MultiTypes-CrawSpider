@@ -9,6 +9,7 @@ collector/
     config.py             # 路径、UA、31 列 schema、并发数
     text.py               # HTML/文本小工具（clean、meta、日期解析…）
     extract.py            # 正文抽取（trafilatura + JSON-LD 兜底）
+    htmlpage.py           # HTML 后两层：剪枝→Markdown、列表页闸门、XPath schema、可选 LLM 补字段
     mapping.py            # 各通道原始对象 → 31 列行（map_wp_post / map_wp_media / map_json_item）
     discover.py           # 找 URL：sitemap / rss / html 列表 / WP 分页
     web.py                # HTTP 层：Fetcher（direct/impersonate/cloud/browser）、_get、wp_json
@@ -35,7 +36,7 @@ collector/
 |---|---|---|
 | P0 请求队列 | `request.py`：sqlite 表 requests，`unprocessed→done/error/skipped`，key 为 canonical URL | 断点续跑、单条重试、分批流式（内存从 13GB 降到 246MB） |
 | P1 限速 + robots | `politeness.py`：每域令牌桶（默认 2 req/s），403/429 自动减半，连续成功回速；robots.txt Disallow 直接 skipped | 不再把站点打到 403 |
-| P2 抽取择优 | `extract.extract_best()`：trafilatura / JSON-LD / HTML 段落三候选打分取最高 | 救回短页面，不再"抽不到就丢" |
+| P2 抽取择优 | `extract.extract_best()`：trafilatura / JSON-LD / HTML 段落三候选打分取最高；粗抽只在剪枝 <40% 时兜底，html 通道再过列表页闸门 | 救回短页面，不再"抽不到就丢"，也不再让带导航的整页文字胜出 |
 | P3 管道阶段 | `pipeline.py`：normalize → validate（阈值按通道：posts 120 / pages 60 / media 0）→ store | 丢弃原因可计数（`reasons`），能解释自己的漏采率 |
 | P4 配置校验 | `schema.py`：每通道声明必填/可选键、类型；`collect.py --validate` | 99 个站一次校验，0 errors / 15 warnings |
 
@@ -121,3 +122,25 @@ uv run --with requests --with pyyaml --with curl_cffi python3 collector/verify_c
 > 教训：Saipan 之前被判定为"Cloudflare 站必须上浏览器"，实际只是 REST 只接受
 > `?rest_route=` 形式而配置里少了 `api: rest_route`。ego 里明明能看到这个 URL，
 > 却没有据此改配置——**看到请求就要把它变成配置**。
+
+## HTML 页面流水线（层 2 / 3，2026-11-09）
+
+「渲染抓取 → 剪枝降噪 → 结构化提取」里的抓取层仍由 `web.Fetcher` 的出口负责
+（`direct` / `impersonate` / `ego` / `cloud` / `browser`），后两层在 `crawler/htmlpage.py`：
+
+```
+extract_best(url, body, site)
+  candidates(): trafilatura 剪枝 / JSON-LD / 整页粗抽（仅当剪枝结果 <40% 才参与）
+  htmlpage.enrich():
+    noise_gate  → 列表页/导航页判定（link_ratio>0.35 且 Markdown<1200 字）→ 丢弃
+    schema      → 字段 → XPath，确定性覆盖（无模型、离线可测）
+    llm_fields  → 可选：任意 OpenAI 兼容接口补空字段（无 key 时不参与）
+```
+
+配置键（`sources.yaml`，`schema.py` 已放开校验）：
+`item_selector`（XPath 返回 href，替代 `link_pattern` 过滤）、`noise_gate`、`schema`、`llm_fields`、
+`llm_override`。可选 LLM 用 `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL`，
+并认 `OPENAI_API_KEY` / `DEEPSEEK_API_KEY`。
+
+取舍：图上的 Scrapling / Crawl4AI / Instructor 均评估后未接入（依赖重量与运行形态不合），
+理由、版本与逐站实测见 `docs/research/html-pipeline-20261109.md`。
