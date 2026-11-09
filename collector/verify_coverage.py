@@ -32,6 +32,9 @@ UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit
 KINDS = ("posts", "pages", "media")
 # expected <= local / ANOMALY_RATIO => 上游总量不是同一范围（本地远大于上游）
 ANOMALY_RATIO = 1.5
+# sitemap 过大（如 lnc 41.6 万条）时不再全量拉取/解析：截断并标"不可验证（sitemap 过大）"，
+# 避免一次 verify 卡十几分钟；其余站点不受影响。
+SITEMAP_MAX_LOCS = int(os.environ.get("COVERAGE_MAX_LOCS", "60000"))
 MISSING_SAMPLE = 20
 MISSING_FULL_CAP = 50
 ARTICLE_RE = re.compile(r"/20\d\d/|/20\d\d-|/news/|/article|/story|/post|/blog|/press")
@@ -151,8 +154,11 @@ def wp_missing_sample(site, kinds, pages=2, per_page=100):
             "note": f"按最新 {scanned} 条抽样（非全量缺失清单）" if scanned else "缺失样本探测失败"}
 
 
-def sitemap_urls(site, limit_children=25):
-    """Return the list of URLs advertised by the site sitemap."""
+def sitemap_urls(site, limit_children=25, state=None):
+    """Return the list of URLs advertised by the site sitemap.
+
+    state: 可选 dict；sitemap 超过 SITEMAP_MAX_LOCS 时置 state["truncated"]=True。
+    """
     base = site["base"].rstrip("/")
     path = site.get("sitemap") or "/sitemap.xml"
     if not path.startswith("http"):
@@ -174,6 +180,11 @@ def sitemap_urls(site, limit_children=25):
             queue.extend(re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", body))
         else:
             urls.extend(re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", body))
+            if len(urls) > SITEMAP_MAX_LOCS:
+                urls = urls[:SITEMAP_MAX_LOCS]
+                if state is not None:
+                    state["truncated"] = True
+                break
     filt = site.get("url_filter")
     pat = site.get("link_pattern")
     if filt:
@@ -290,9 +301,14 @@ def verify_site(s, got):
         if channel == "wp-api":
             _verify_wp(s, rec, got)
         elif channel == "sitemap":
-            urls = sitemap_urls(s)
+            state = {}
+            urls = sitemap_urls(s, state=state)
             rec["source"] = "sitemap <loc>"
-            if urls:
+            if state.get("truncated"):
+                rec["verdict"] = "不可验证"
+                rec["verdict_detail"] = (f"sitemap 超过 {SITEMAP_MAX_LOCS} 条已截断"
+                                         f"（本地 {got['posts']} 条），需单独抽样核对")
+            elif urls:
                 _verify_set(rec, s["domain"], "posts", urls)
             else:                                # 该通道本应以 sitemap 为上游，取不到 loc => expected 缺失
                 rec["source"] = "sitemap <loc>（未返回 loc）"
@@ -308,8 +324,13 @@ def verify_site(s, got):
                                   "urls": None, "truncated": True,
                                   "note": "上游只给总量，无 URL 列表"}
         else:                                    # rss / html / json-list: probe a sitemap
-            urls = [u for u in sitemap_urls(s) if ARTICLE_RE.search(u)]
-            if urls:
+            state = {}
+            urls = [u for u in sitemap_urls(s, state=state) if ARTICLE_RE.search(u)]
+            if state.get("truncated"):
+                rec["source"] = "sitemap <loc> (truncated)"
+                rec["verdict"] = "不可验证"
+                rec["verdict_detail"] = f"sitemap 超过 {SITEMAP_MAX_LOCS} 条已截断，需单独抽样核对"
+            elif urls:
                 rec["source"] = "sitemap <loc> (probed)"
                 _verify_set(rec, s["domain"], "posts", urls)
             else:
