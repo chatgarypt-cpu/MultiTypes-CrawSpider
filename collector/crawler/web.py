@@ -157,7 +157,9 @@ class Fetcher:
         if self.ego:
             from crawler.browser_ego import fetch_many as ego_fetch
             json_mode = all(("wp-json" in u or "rest_route" in u or u.endswith(".json")) for u in urls)
-            return ego_fetch(urls, json_mode=json_mode, space="collector-" + self.site["domain"].replace(".", "-"))
+            return ego_fetch(urls, json_mode=json_mode,
+                             wait_ms=self.site.get("ego_wait_ms"),
+                             space="collector-" + self.site["domain"].replace(".", "-"))
         if self.browser:
             return self._browser(urls)
         if self.cloud:

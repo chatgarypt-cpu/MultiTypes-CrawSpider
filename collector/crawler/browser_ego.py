@@ -40,7 +40,7 @@ async function grab(pg, idx) {
   let status = 0, html = "";
   try {
     await pg.goto(u, { waitUntil: "domcontentloaded", timeout: 60000 });
-    await pg.waitForTimeout(1000);
+    await pg.waitForTimeout(__WAIT__);
     const info = await pg.info();
     status = (info && (info.status || info.statusCode)) || 200;
     html = jsonMode
@@ -79,11 +79,14 @@ def available():
     return subprocess.run(["which", EGO_BIN], capture_output=True).returncode == 0
 
 
-def fetch_many(urls, timeout=600, json_mode=False, space=None, tabs=None):
+def fetch_many(urls, timeout=600, json_mode=False, space=None, tabs=None, wait_ms=None):
     """Return [(url, status, body)] using the local ego browser.
 
     json_mode=True reads document.body.innerText (JSON endpoints render as a <pre>).
+    wait_ms: 每页加载后等待 JS/挑战页完成的时间（默认 EGO_WAIT_MS=1000；Cloudflare
+    挑战页通常要 2-3s）。
     """
+    wait_ms = int(wait_ms or os.environ.get("EGO_WAIT_MS", "1000"))
     results = []
     for i in range(0, len(urls), CHUNK):
         part = urls[i:i + CHUNK]
@@ -93,6 +96,7 @@ def fetch_many(urls, timeout=600, json_mode=False, space=None, tabs=None):
                         .replace("__OUT__", out_path)
                         .replace("__SPACE__", space or SPACE)
                         .replace("__JSON__", "true" if json_mode else "false")
+                        .replace("__WAIT__", str(wait_ms))
                         .replace("__TABS__", str(tabs or int(os.environ.get("EGO_TABS", "1")))))
         try:
             proc = subprocess.run([EGO_BIN, "nodejs"], input=script, capture_output=True,

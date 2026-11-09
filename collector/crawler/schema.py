@@ -28,8 +28,8 @@ SHARED = {"domain", "name", "country", "lang", "type", "channel", "base", "via",
           "pages", "page_step", "discover_cap", "orderby", "order", "via_posts", "via_pages", "via_media", "wp_per_page", "wp_fields",
           # html 页面流水线（crawler.htmlpage）：schema=XPath→字段，llm_fields=让可选 LLM 补的空字段
           "schema", "llm_fields", "llm_override", "noise_gate",
-          # robots: false = 该站不按 robots.txt 限制（用户显式决定）
-          "robots"}
+          # robots: false = 该站不按 robots.txt 限制（用户显式决定）；ego_wait_ms = 浏览器加载后等待
+          "robots", "ego_wait_ms"}
 OPTIONAL = {
     "wp-api": {"api"},
     "sitemap": set(),
@@ -43,7 +43,7 @@ TYPES = {
     "list_urls": list, "api_categories": list, "pages": int, "page_step": int,
     "api_page_size": int, "no_embed": bool, "min_text": int,
     "schema": dict, "llm_fields": list, "llm_override": bool, "noise_gate": bool,
-    "item_selector": str, "robots": bool,
+    "item_selector": str, "robots": bool, "ego_wait_ms": int,
 }
 REGEX_KEYS = ("link_pattern", "url_filter")
 
