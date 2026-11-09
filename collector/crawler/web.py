@@ -62,6 +62,10 @@ def cloud_get(url, timeout=90):
 from crawler.politeness import DomainLimiter, RobotsCache
 
 
+def site_ua(site):
+    return site.get("user_agent") or UA
+
+
 def headers_for(site):
     """UA + optional replay cookie for sites whose Cloudflare clearance we minted."""
     h = {"User-Agent": site.get("user_agent") or UA, "Accept": "*/*"}
@@ -149,6 +153,7 @@ class Fetcher:
         self.ego = site.get("via") == "ego"
         self.cloud = site.get("via") == "cloud"
         self.impersonate = site.get("via") == "impersonate"
+        self.playwright = site.get("via") == "playwright"
         # 默认遵守 robots；站点显式写 robots: false 才跳过（用户决定，记在 sources.yaml note 里）
         self.robots = site.get("robots", True) is not False
 
@@ -160,6 +165,12 @@ class Fetcher:
             return ego_fetch(urls, json_mode=json_mode,
                              wait_ms=self.site.get("ego_wait_ms"),
                              space="collector-" + self.site["domain"].replace(".", "-"))
+        if self.playwright:
+            from crawler.browser_playwright import fetch_many as pw_fetch
+            return pw_fetch(urls, wait_ms=self.site.get("playwright_wait_ms") or self.site.get("ego_wait_ms"),
+                            headless=self.site.get("headless", True),
+                            block_resources=bool(self.site.get("block_resources")),
+                            user_agent=site_ua(self.site))
         if self.browser:
             return self._browser(urls)
         if self.cloud:
@@ -187,7 +198,7 @@ class Fetcher:
 
     def stream_many(self, urls, workers=4):
         """Yield (url, status, body) with bounded in-site concurrency (non-WP article fetches)."""
-        if self.ego or self.browser or self.cloud or workers <= 1:
+        if self.ego or self.browser or self.cloud or self.playwright or workers <= 1:
             yield from self.get_many(urls)
             return
         headers = {"User-Agent": UA, "Accept-Language": "en-US,en;q=0.9"}

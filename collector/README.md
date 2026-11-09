@@ -13,6 +13,7 @@ uv run pytest                            # 离线测试（collector/tests）
 ```
 
 `uv.lock` 固定版本；加依赖改 `pyproject.toml` 后重新 `uv sync`。
+需要浏览器抓取（`via: playwright`）时：`uv sync --extra browser && python -m playwright install --with-deps chromium`。
 历史 `演练场（ignore)/.venv` 是 launchd/supervisor 正在用的旧环境，依赖与 `.venv` 一致，
 两者都能跑；`deploy/collectorctl` 会优先用仓库根 `.venv`。
 
@@ -63,7 +64,7 @@ uv run python collector/serve.py      # http://127.0.0.1:8787/
 | `rss` | feed 条目 | 文章 |
 | `html` | 列表页 + `link_pattern`（或 `item_selector` XPath；未配置则跳过） | 文章 |
 
-出口：`direct`（默认）/ `cloud`（Browserbase `/v1/fetch`）/ `browser`（会话隧道，过 Cloudflare）/ `impersonate`（Chrome TLS 指纹）。
+出口：`direct`（默认）/ `cloud`（Browserbase `/v1/fetch`）/ `browser`（会话隧道，过 Cloudflare）/ `impersonate`（Chrome TLS 指纹）/ `ego`（本机 Chromium，macOS）/ `playwright`（服务器用 headless Chromium，需 `uv sync --extra browser` + `python -m playwright install --with-deps chromium`）。
 
 ## HTML 站流水线（2026-11-09）
 
