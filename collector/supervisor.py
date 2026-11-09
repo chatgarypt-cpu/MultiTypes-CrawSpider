@@ -107,6 +107,11 @@ TASKS = [
     ("www.maisondelaculture.pf", "posts"),
     ("www.postcourier.com.pg", "posts"),
     ("pina.com.fj", "posts"),
+    # C 组（2026-11-09 补入口后加入；站小，放队尾）
+    ("www.upf.pf", "posts"),
+    ("www.marianas.edu", "posts"),
+    ("www.palauconservation.org", "posts"),
+    ("www.adck.nc", "posts"),
 ]
 
 

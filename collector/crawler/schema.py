@@ -25,12 +25,14 @@ REQUIRED = {
 # every key a channel may carry (plus the universally shared ones)
 SHARED = {"domain", "name", "country", "lang", "type", "channel", "base", "via", "sitemap", "feed",
           "url_filter", "link_pattern", "min_text", "note", "notes", "detected", "no_embed",
-          "pages", "page_step", "discover_cap", "orderby", "order", "via_posts", "via_pages", "via_media", "wp_per_page", "wp_fields"}
+          "pages", "page_step", "discover_cap", "orderby", "order", "via_posts", "via_pages", "via_media", "wp_per_page", "wp_fields",
+          # html 页面流水线（crawler.htmlpage）：schema=XPath→字段，llm_fields=让可选 LLM 补的空字段
+          "schema", "llm_fields", "llm_override", "noise_gate"}
 OPTIONAL = {
     "wp-api": {"api"},
     "sitemap": set(),
     "rss": set(),
-    "html": {"list_url", "list_urls"},
+    "html": {"list_url", "list_urls", "item_selector"},
     "json-api": {"api_query", "api_page_size", "api_category", "api_items"},
     "json-list": {"api_categories", "api_items", "free_field", "premium_marker"},
 }
@@ -38,6 +40,8 @@ VIA = {"direct", "impersonate", "cloud", "browser", "ego"}
 TYPES = {
     "list_urls": list, "api_categories": list, "pages": int, "page_step": int,
     "api_page_size": int, "no_embed": bool, "min_text": int,
+    "schema": dict, "llm_fields": list, "llm_override": bool, "noise_gate": bool,
+    "item_selector": str,
 }
 REGEX_KEYS = ("link_pattern", "url_filter")
 

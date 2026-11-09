@@ -19,9 +19,9 @@
   country: Palau, Republic of
   lang: en-US
   type: 智库
-  channel: rss
+  channel: wp-api
   base: https://www.palauconservation.org
-  feed: /feed/
+  note: "2026-11 实测 WP REST X-WP-Total=11（站小、更新停在 2023）；RSS 只有 10 条窗口，改 wp-api 拿全 posts/pages/media"
 - domain: www.belaunationalmuseum.net
   name: Belau National Museum
   country: Palau, Republic of
@@ -29,6 +29,7 @@
   type: 智库
   channel: html
   base: https://www.belaunationalmuseum.net
+  note: "2026-11 实测站点已被主机商挂起（cgi-sys/suspendedpage.cgi），无内容可采"
 - domain: www.palau.edu
   name: Palau Community College
   country: Palau, Republic of
@@ -83,6 +84,7 @@
   type: 智库
   channel: html
   base: https://www.redcross.org.pg
+  note: "2026-11 实测首页 404 且证书域名不匹配；需人工确认新域名后再采"
 - domain: www.upng.ac.pg
   name: University of Papua New Guinea
   country: Papua New Guinea
@@ -90,6 +92,13 @@
   type: 智库
   channel: html
   base: https://www.upng.ac.pg
+  list_urls:
+  - /announcements?start={page}
+  page_step: 6
+  pages: 60
+  link_pattern: '/announcements/\d+-'
+  noise_gate: true
+  via: direct
 - domain: www.pngimr.org.pg
   name: PNG Institute of Medical Research
   country: Papua New Guinea
@@ -133,6 +142,7 @@
   type: 智库
   channel: html
   base: https://minapacific.org
+  note: "文章链接是 javascript:void(0)（老 ASP 站），静态 HTML 拿不到详情页；需要浏览器渲染或接口方案"
 - domain: dcrm.gov.mp
   name: CNMI Division of Coastal Resources Management
   country: Commonwealth of the Northern Mariana Islands
@@ -145,9 +155,16 @@
   country: Commonwealth of the Northern Mariana Islands
   lang: en-US
   type: 智库
-  channel: rss
+  channel: html
   base: https://www.marianas.edu
-  feed: /feed
+  list_urls:
+  - /proanews?start={page}
+  page_step: 6
+  pages: 30
+  link_pattern: '/proanews/[^"?#]+$'
+  noise_gate: true
+  via: direct
+  note: "2026-11 实测 /proanews 列表分页 start=6/12/…，RSS 只有 10 条窗口；分类页 /proanews/campus-advisories 由 noise_gate 丢弃"
 - domain: www.fisheries.noaa.gov
   name: NOAA Pacific Islands Fisheries Science Center
   country: Commonwealth of the Northern Mariana Islands
@@ -193,15 +210,23 @@
   channel: sitemap
   base: https://www.coralgardeners.org
   sitemap: /sitemap.xml
-  via: browser
+  via: direct
+  note: "2026-11 实测直连可拿到 sitemap；Browserbase 额度耗尽后浏览器出口不可用，改 direct"
 - domain: www.upf.pf
   name: Université de la Polynésie Française
   country: French Polynesia
   lang: fr-FR
   type: 智库
-  channel: rss
+  channel: html
   base: https://www.upf.pf
-  feed: /rss.xml
+  list_urls:
+  - /toutes-les-actualites?page={page}
+  page_step: 1
+  pages: 6
+  link_pattern: '/actualites/[^"?#]+$'
+  noise_gate: true
+  via: direct
+  note: "2026-11 实测 /toutes-les-actualites 分页 ?page=0..4，每页 31 条；RSS /rss.xml 已 404、只有首页窗口"
 - domain: www.ilm.pf
   name: Institut Louis Malardé
   country: French Polynesia
@@ -239,13 +264,14 @@
   channel: sitemap
   base: https://fijisun.com.fj
   sitemap: /sitemap.xml
-- domain: www.fbc.com.fj
-  name: Fiji Broadcasting Corporation
+- domain: www.fbcnews.com.fj
+  name: FBC News
   country: Fiji Islands, Republic of the
   lang: en-US
   type: 新闻
-  channel: html
-  base: https://www.fbc.com.fj
+  channel: wp-api
+  base: https://www.fbcnews.com.fj
+  note: "www.fbc.com.fj 只是跳转hub（3.7KB 落地页）；实际新闻在 fbcnews.com.fj，WordPress REST 实测 X-WP-Total=71915"
 - domain: www.fijione.tv
   name: Fiji One Television
   country: Fiji Islands, Republic of the
@@ -397,6 +423,14 @@
   type: 政府网站
   channel: html
   base: https://www.gov.nu
+  list_urls:
+  - /media-releases
+  - /media-releases/page:{page}
+  pages: 20
+  link_pattern: '/media-releases/(?!page:)[^/]+$'
+  noise_gate: true
+  schema:
+    title: "//h1/text()"                    # <title> 带 "The Government of Niue |" 前缀，用 h1 覆盖
 - domain: www.norfolkisland.gov.nf
   name: Norfolk Island Regional Council
   country: Norfolk Island
@@ -456,6 +490,7 @@
   type: 智库
   channel: html
   base: https://www.wibdi.ws
+  note: "2026-11 实测首页只剩登录页/2.9KB 空壳，站点内容已下线"
 - domain: www.nus.edu.ws
   name: National University of Samoa
   country: Samoa, Independent State of
@@ -504,6 +539,7 @@
   type: 新闻
   channel: html
   base: https://www.tonga-broadcasting.net
+  note: "2026-11 实测证书过期且首页 302 到 /login/，站点内容已下线"
 - domain: matangitonga.to
   name: Matangi Tonga
   country: Tonga, Kingdom of
@@ -529,7 +565,8 @@
   type: 政府网站
   channel: html
   base: https://www.tokelau.org.nz
-  via: browser
+  via: direct
+  note: "2026-11 实测 CloudFront 403（本机 ego 浏览器同样被挡，疑按出口 IP 拦）；先 direct 快速失败，换出口后再试"
 - domain: www.wallis-et-futuna.gouv.fr
   name: Préfecture des Îles Wallis-et-Futuna
   country: Wallis and Futuna
@@ -549,7 +586,8 @@
   type: 新闻
   channel: html
   base: https://www.lefigaro.fr
-  via: browser
+  via: direct
+  note: "2026-11 实测 403（Paywall/反爬），本机浏览器同样 Access Denied；不在无人值守范围"
 - domain: www.croix-rouge.fr
   name: Croix-Rouge Française
   country: Wallis and Futuna
@@ -608,6 +646,7 @@
   channel: rss
   base: https://centretjibaou.nc
   feed: /rss.xml
+  note: "2026-11 实测 Drupal 站：无 sitemap / JSON:API（404）、/node 列表无可抓链接、feed 恒定最近 10 条；暂无更好入口，保留 RSS 窗口"
 - domain: dimenc.gouv.nc
   name: Direction de l’Industrie, des Mines et de l’Énergie
   country: Nouvelle-Calédonie
@@ -629,7 +668,8 @@
   type: 智库
   channel: wp-api
   base: https://www.maisondelaculture.pf
-  via: cloud
+  via: direct
+  note: "2026-11 实测直连 200；Browserbase 额度耗尽，cloud 出口改 direct"
 - domain: www.mecdm.gov.sb
   name: Solomon Islands MECDM
   country: Solomon islands

@@ -8,8 +8,15 @@ import requests, trafilatura
 from crawler.config import ROOT, DATA, DB, UA, COLS, MEDIA_COLS, WORKERS
 
 # ---------- text helpers ----------
+# WP 页面构建器（WPBakery/Elementor/Divi 等）的短代码会原样出现在 REST 的
+# content.rendered 里（[vc_row][vc_column_text]…），不清掉就会混进 text 列。
+# 只匹配已知构建器前缀，普通方括号文本（[Photo: …]）不受影响。
+SHORTCODE = re.compile(r"\[/?(?:vc_|et_pb_|fusion_|su_|themify_|caption|gallery|embed|video|audio|playlist)[^\]]*\]", re.I)
+
+
 def clean(h):
     if not h: return ""
+    h = SHORTCODE.sub(" ", h)
     h = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", h)
     h = re.sub(r"(?i)<br\s*/?>", "\n", h)
     h = re.sub(r"(?i)</(p|div|h\d|li|blockquote)>", "\n\n", h)
