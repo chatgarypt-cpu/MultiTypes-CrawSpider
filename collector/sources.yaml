@@ -464,6 +464,7 @@
   api_url: '{base}/category/{category_name}/{id}'
   premium_marker: id="impression-panel"
   pages: 100000
+  max_pages_per_run: 300     # 每轮最多翻 300 页（约 2020 历史页），避免长期占并发槽，下一轮接着翻
 - domain: radiosamoa.ws
   name: Radio Samoa 2AP
   country: Samoa, Independent State of
