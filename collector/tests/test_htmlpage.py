@@ -137,3 +137,17 @@ def test_html_urls_item_selector_and_assets():
               <a href="/other">other</a>"""
     urls = html_urls(site, FakeFetcher({"https://example.test/announcements": page}), 100)
     assert urls == ["https://example.test/announcements/1-one"]
+
+
+def test_noise_gate_threshold_is_per_site(monkeypatch):
+    """noise_gate 支持数字阈值：upng 这类文章页 link_ratio≈0.57，默认 0.35 会误杀。"""
+    from crawler import htmlpage
+    monkeypatch.setattr(htmlpage, "markdown", lambda body, url="": "short")
+    monkeypatch.setattr(htmlpage, "link_ratio", lambda body: 0.57)
+    row = {"url": "https://u.test/a", "text": "x"}
+    site = {"domain": "u.test", "channel": "html"}
+    assert htmlpage.enrich(dict(row), "<html/>", "https://u.test/a", site) is None      # 默认 0.35 误杀
+    site_gate = {"domain": "u.test", "channel": "html", "noise_gate": 0.65}
+    assert htmlpage.enrich(dict(row), "<html/>", "https://u.test/a", site_gate) is not None
+    site_off = {"domain": "u.test", "channel": "html", "noise_gate": False}
+    assert htmlpage.enrich(dict(row), "<html/>", "https://u.test/a", site_off) is not None

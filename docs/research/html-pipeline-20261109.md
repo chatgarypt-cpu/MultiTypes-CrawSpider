@@ -105,3 +105,40 @@
   本次只把能直连的站改 `direct`，`tokelau`/`lefigaro` 保持被挡状态并写 `note`。
 - **死站/需人工确认**：belaunationalmuseum、redcross.org.pg、wibdi、tonga-broadcasting、
   minapacific（ASP + JS 链接）。建议在下一次交付前确认新域名，避免队列反复重试。
+
+## 验收补充（2026-11-09，审查项 2 之后）
+
+### UPNG：动态分页与 no_text 的真因
+
+- 分页：`/announcements` 的 pager 为 `start=0,6,12,18,24,30`（共 6 页、约 36 条公告）。原配置
+  `pages: 60` 过度；缩到 12 页仍覆盖全部（offset 0..66 ⊇ 0..30），现改为 **6 页**。
+- **13 条 `no_text` 不是抓取失败，是闸门误杀**：UPNG 文章页正文短（Markdown ≈894 字）且导航
+  链接多（`link_ratio≈0.57`），默认 `noise_gate` 阈值 0.35 把真文章当列表页丢掉；而列表页
+  `link_ratio≈0.73`。修复：`noise_gate` 支持**按站数字阈值**（`true/false` 仍表示开关），
+  UPNG 设 `noise_gate: 0.65`。
+- 重跑结果：24 → **35 行**（+11 篇真公告），剩 2 条 `no_text` 是分类页 `221-academic` 和一条
+  无正文公告，属预期丢弃；游标 `complete` 且 `reasons.no_text=2` 可解释。
+- 教训：**"游标 complete" 之前先看 `reasons`**；`no_text` 既可能是列表过滤，也可能是抽取/
+  闸门误杀，需要抽样核对。
+
+### gov.nu：XPath 选择器复用验证
+
+- `schema.title: //h1/text()` 在 8/8 篇文章上与 h1 完全一致；站点 `<title>`/`og:title` 带
+  `The Government of Niue |` 前缀，所以 schema 覆盖是必要的。
+- 日期不需要 schema：`extract_best` 已能从 meta/JSON-LD 取到 `created_at`（6/6 样本有值）。
+- 抽样验收命令（新增，只读、不写库）：
+
+```bash
+uv run python collector/collect.py --check-site www.gov.nu          # 发现 138 条
+uv run python collector/collect.py --check-extract www.gov.nu --samples 6
+# → checked 6 ok 6，schema_ok=True，date/title 均有值
+```
+
+### Agent 生成站点规则的落地流程（采纳建议）
+
+1. `--site-url <入口> --detect` 生成候选规则（或由 Agent 读站点 DOM 生成 `list_urls/link_pattern/
+   item_selector/schema`）；
+2. `--check-site <domain>` 看发现条数是否合理、分页是否翻完；
+3. `--check-extract <domain> --samples N` 验证正文/标题/日期/schema 在**未参与生成**的样本上稳定；
+4. 通过后写入 `sources.yaml`，小批量 `--limit 5` 实跑，再交给 supervisor；
+5. 用 `verify_coverage` 的同范围口径证明采齐（缺口写进 `missing`）。

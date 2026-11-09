@@ -99,12 +99,12 @@
   list_urls:
   - /announcements?start={page}
   page_step: 6
-  pages: 12
+  pages: 6                 # 实测分页 start=0,6,...,30 共 6 页（36 条公告），12 页是浪费
   link_pattern: '/announcements/\d+-'
-  noise_gate: true
+  noise_gate: 0.65         # 文章页导航链接多（link_ratio≈0.57），默认 0.35 会误杀；列表页≈0.73
   via: ego
   ego_wait_ms: 3000
-  note: "2026-11-09 直连会被 Cloudflare JS 挑战（One moment, please）；改 via: ego 本地浏览器，加载后等 3s，实测 1.5s 后列表 22 条链接可见"
+  note: "2026-11-09 直连会被 Cloudflare JS 挑战（One moment, please）；改 via: ego 本地浏览器，加载后等 3s。分页 6 页、noise_gate 0.65 是按实测 link_ratio 调的（文章 0.57 / 列表 0.73）"
 - domain: www.pngimr.org.pg
   name: PNG Institute of Medical Research
   country: Papua New Guinea
