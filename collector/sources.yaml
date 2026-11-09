@@ -125,6 +125,10 @@
   channel: sitemap
   base: https://www.mvariety.com
   sitemap: /sitemap.xml
+  robots: false
+  link_pattern: '/article_[0-9a-fA-F-]+\.html$'   # 只要文章页，跳过分类/专题列表
+  noise_gate: true                                 # 万一有列表页混入，按链接密度丢掉
+  note: "robots.txt 是 User-agent: * Disallow: /；2026-11-09 用户明确要求不按 robots 限制、直接采"
 - domain: www.saipantribune.com
   name: Saipan Tribune
   country: Commonwealth of the Northern Mariana Islands
