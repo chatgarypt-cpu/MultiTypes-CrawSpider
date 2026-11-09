@@ -124,6 +124,7 @@ PY=".venv/bin/python"                         # uv sync 生成；旧环境见上
 "$PY" collector/cli.py status                 # 进度总览
 "$PY" collector/cli.py check-site <domain>    # 干跑发现，不入库
 "$PY" collector/collect.py --check-extract <domain> --samples 8   # 干跑发现+抽样抽取验收
+"$PY" collector/backfill_gaps.py --site <domain> --kind posts     # 按源站清单补缺口（wp-api）
 "$PY" collector/cli.py paused                 # 查看暂停/守护状态
 "$PY" collector/cli.py run                    # 常驻守护（= collector/supervisor.py）
 "$PY" collector/cli.py deliverables           # 导出 CSV + 生成交付包
