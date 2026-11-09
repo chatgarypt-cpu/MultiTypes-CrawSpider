@@ -97,7 +97,9 @@ def site_row(d):
             "posts": cur.get("total_posts"), "done": cur.get("done", False),
             "updated": (cur.get("updated") or "")[:19], "mb": round(chars / 1e6, 2),
             "pages_n": kind_count("pages")["n"], "media_n": kind_count("media")["n"],
-            "channel": cfg.get("channel", ""), "needs_config": bool(cfg.get("channel") == "html" and not cfg.get("list_url")),
+            "channel": cfg.get("channel", ""),
+            "needs_config": bool(cfg.get("channel") == "html"
+                                 and not (cfg.get("list_url") or cfg.get("list_urls"))),
             "kinds": {"posts": {"n": n, "page": cur.get("next_page", 0), "pages": cur.get("total_pages"),
                                 # done/status 必须带上：前端"不完整"判定依赖每类的 done，
                                 # 之前 posts 缺 done 导致 30 个已完成的非 WP 站被误判为不完整

@@ -48,6 +48,17 @@ STATE_EVERY = int(os.environ.get("CRAWL_STATE_EVERY", "30"))
 # 优先级：先最大缺口，再按缺量从大到小（与旧 supervise.py 一致）
 TASKS = [
     ("www.spc.int", "posts"),
+    # 2026-11-09 补采：spc 只采了 1/3（2,592/约7,700 blog）；其余是核对发现的缺口/新入口
+    ("fijisun.com.fj", "posts"),
+    ("www.cookislandsnews.com", "pages"),
+    ("www.nus.edu.ws", "pages"),
+    ("www.palaugov.pw", "pages"),
+    ("www.mvariety.com", "posts"),
+    ("www.samoaobserver.ws", "posts"),
+    ("www.gov.nu", "posts"),
+    ("www.upng.ac.pg", "posts"),
+    ("www.coralgardeners.org", "posts"),
+    ("www.mecdm.gov.sb", "posts"),
     ("www.cookislandsnews.com", "posts"),
     ("matangitonga.to", "posts"),
     ("www.wpcouncil.org", "posts"),
@@ -112,6 +123,10 @@ TASKS = [
     ("www.marianas.edu", "posts"),
     ("www.palauconservation.org", "posts"),
     ("www.adck.nc", "posts"),
+    ("gov.fm", "posts"),
+    # 大站/慢站放最后：fbcnews 7.2 万条；dailypost 需等 429 冷却（CRAWL_SKIP 控制）
+    ("www.fbcnews.com.fj", "posts"),
+    ("dailypost.vu", "posts"),
 ]
 
 
