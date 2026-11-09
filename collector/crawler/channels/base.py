@@ -28,7 +28,7 @@ def _count(reasons, run_reasons, key):
     run_reasons[key] += 1
 
 
-def collect_urls(site, urls, limit, log, fetcher, kind="posts"):
+def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count=None):
     domain = site["domain"]
     channel = site.get("channel", "")
     cur = cursor.load(domain, kind)
@@ -43,17 +43,22 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts"):
     added = q.add_many(urls, channel=channel) if urls else 0
     pending_start = q.stats().get("unprocessed", 0)
     discovered = added + pending_start
+    if discovered_count is None:
+        discovered_count = len(urls)
 
     if pending_start == 0:
-        # 没有队列工作：发现 0 条 URL 或全部已知。发现失败绝不能当"已采完"。
-        already = q.stats().get("done", 0)
-        reason = "discovery_empty" if (urls or not already) else "nothing_new"
+        # 队列里没有待办。两种情况必须分开：
+        #   发现阶段拿到 0 条 URL（504/挑战页/正则失效）→ interrupted，绝不能当"已采完"（wallis 事故）
+        #   发现成功、但所有 URL 都已在盘上（nothing_new）→ complete（老游标缺 done 的站靠这条收尾）
+        if discovered_count == 0:
+            status, reason = "interrupted", "discovery_empty"
+        else:
+            status, reason = "complete", "nothing_new"
         reasons[reason] += 1
-        status = "interrupted"
         if cur["status"] in ("partial", "blocked", "paused"):
             status = cur["status"]             # 保留已知缺量/阻断信息，别降级成"重来"
         cur = cursor.save(domain, kind, status=status, reasons=dict(reasons),
-                          discovered=0, next_page=1, total_pages=1,
+                          discovered=discovered_count, next_page=1, total_pages=1,
                           last_reason=reason, saved=cur.get("saved", 0))
         log.info("no work domain=%s reason=%s status=%s queue=%s", domain, reason, status,
                  q.stats())
@@ -130,7 +135,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts"):
         status = "blocked"                     # 403/登录墙：整批都拿不到
         last_reason = "http_401" if run_reasons.get("http_401") else "http_403"
 
-    fields = dict(status=status, reasons=dict(reasons), discovered=discovered,
+    fields = dict(status=status, reasons=dict(reasons), discovered=max(discovered, discovered_count or 0),
                   saved=total_saved, next_page=1, total_pages=1, queue=st,
                   dead_letters=dead, skipped=st.get("skipped", 0))
     if last_reason:
