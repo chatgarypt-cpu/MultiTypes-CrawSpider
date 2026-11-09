@@ -136,13 +136,18 @@ def now_iso() -> str:
 
 
 def read_skip(path=None) -> set[str]:
-    """解析 data/CRAWL_SKIP（`domain:kind` 或 `# 注释`）。"""
+    """解析 data/CRAWL_SKIP（`domain:kind` 或 `# 注释`；支持行尾注释）。"""
     p = Path(path) if path else SKIP
     try:
         lines = p.read_text(encoding="utf-8").splitlines()
     except OSError:
         return set()
-    return {ln.strip() for ln in lines if ln.strip() and not ln.lstrip().startswith("#")}
+    out = set()
+    for ln in lines:
+        ln = ln.split("#", 1)[0].strip()      # 行尾注释：www.x:posts  # 原因
+        if ln:
+            out.add(ln)
+    return out
 
 
 def _count(path: Path) -> int:
