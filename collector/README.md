@@ -129,3 +129,7 @@ PY=".venv/bin/python"                         # uv sync 生成；旧环境见上
 ```
 
 安全开关：`data/CRAWL_PAUSED`（全局暂停）、`data/CRAWL_SKIP`（按 `domain:kind` 跳过）。
+
+配置里的 `disabled: true` + `disabled_reason` 表示"人工确认不采"（站点下线/无列表入口/反爬），
+批量采集与 supervisor 都会跳过它，看板单独归类为"缺入口或不可访问"；`collect.py --site X` 仍可临时单独跑。
+supervisor 的任务表改为从 `sources.yaml` 派生（wp-api 站自动带 pages/media），`CRAWL_TASKS=fixed` 可回退旧硬编码清单。
