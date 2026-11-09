@@ -38,7 +38,8 @@ OPTIONAL = {
     "rss": set(),
     "html": {"list_url", "list_urls", "item_selector"},
     "json-api": {"api_query", "api_page_size", "api_category", "api_items"},
-    "json-list": {"api_categories", "api_items", "free_field", "premium_marker"},
+    "json-list": {"api_categories", "api_items", "free_field", "premium_marker",
+                  "scan_mode", "known_pages_stop", "max_pages_per_run"},
 }
 VIA = {"direct", "impersonate", "cloud", "browser", "ego", "playwright"}
 TYPES = {
@@ -47,6 +48,7 @@ TYPES = {
     "schema": dict, "llm_fields": list, "llm_override": bool,
     "item_selector": str, "robots": bool, "ego_wait_ms": int,
     "playwright_wait_ms": int, "block_resources": bool, "headless": bool,
+    "scan_mode": str, "known_pages_stop": int, "max_pages_per_run": int,
     "disabled": bool, "disabled_reason": str,
 }
 REGEX_KEYS = ("link_pattern", "url_filter")

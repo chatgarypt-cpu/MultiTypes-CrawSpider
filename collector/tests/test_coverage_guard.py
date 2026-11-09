@@ -71,7 +71,7 @@ def local_urls(tmp_path, monkeypatch):
 def test_sitemap_normal_case_reports_missing_urls(monkeypatch, local_urls):
     upstream = [f"https://site.test/2026/01/post-{i}" for i in range(10)]
     local_urls(upstream[:8])                                  # 采了 8 / 10
-    monkeypatch.setattr(vc, "sitemap_urls", lambda site: upstream)
+    monkeypatch.setattr(vc, "sitemap_urls", lambda site, state=None: upstream)
     site = {"domain": "site.test", "channel": "sitemap", "base": "https://site.test"}
     rec = vc.verify_site(site, {"posts": 8, "pages": 0, "media": 0})
     assert rec["verdict"] == "有缺口" and rec["coverage"] == 0.8
@@ -82,7 +82,7 @@ def test_sitemap_normal_case_reports_missing_urls(monkeypatch, local_urls):
 
 def test_sitemap_scope_anomaly_is_not_verified(monkeypatch, local_urls):
     upstream = [f"https://site.test/2026/01/post-{i}" for i in range(24)]
-    monkeypatch.setattr(vc, "sitemap_urls", lambda site: upstream)
+    monkeypatch.setattr(vc, "sitemap_urls", lambda site, state=None: upstream)
     site = {"domain": "site.test", "channel": "sitemap", "base": "https://site.test"}
     rec = vc.verify_site(site, {"posts": 5043, "pages": 0, "media": 0})
     assert rec["coverage"] is None and rec["verdict"] == "口径异常"
@@ -96,7 +96,7 @@ def test_sitemap_scope_anomaly_is_not_verified(monkeypatch, local_urls):
 def test_sitemap_without_locs_is_anomaly_not_verified(monkeypatch, tmp_path):
     """sitemap 通道取不到 loc => expected 缺失，按口径异常处理，不能算核对过。"""
     monkeypatch.setattr(vc, "DATA", str(tmp_path))
-    monkeypatch.setattr(vc, "sitemap_urls", lambda site: [])
+    monkeypatch.setattr(vc, "sitemap_urls", lambda site, state=None: [])
     site = {"domain": "site.test", "channel": "sitemap", "base": "https://site.test"}
     rec = vc.verify_site(site, {"posts": 5, "pages": 0, "media": 0})
     assert rec["coverage"] is None and rec["verdict"] == "口径异常"
@@ -107,7 +107,7 @@ def test_sitemap_without_locs_is_anomaly_not_verified(monkeypatch, tmp_path):
 def test_rss_without_sitemap_is_unverifiable(monkeypatch, tmp_path):
     """rss/html 本就没有独立总量源：按 unverifiable 记，计入"已核对（unverifiable）"。"""
     monkeypatch.setattr(vc, "DATA", str(tmp_path))
-    monkeypatch.setattr(vc, "sitemap_urls", lambda site: [])
+    monkeypatch.setattr(vc, "sitemap_urls", lambda site, state=None: [])
     site = {"domain": "site.test", "channel": "rss", "base": "https://site.test", "feed": "/feed/"}
     rec = vc.verify_site(site, {"posts": 5, "pages": 0, "media": 0})
     assert rec["coverage"] is None and rec["verdict"] == "不可验证"

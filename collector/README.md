@@ -63,6 +63,10 @@ uv run python collector/serve.py      # http://127.0.0.1:8787/
 | `sitemap` | sitemap.xml（支持 `url_filter`） | 文章 |
 | `rss` | feed 条目 | 文章 |
 | `html` | 列表页 + `link_pattern`（或 `item_selector` XPath；未配置则跳过） | 文章 |
+| `json-list` | 列表 JSON `api_list`（分页 + 可选 `api_categories`）→ 详情页 | 文章 |
+
+`json-list` 支持 `scan_mode: full|incremental`（增量只看前几页新内容）、`known_pages_stop`、
+`max_pages_per_run`（单轮翻页上限，避免长期占并发槽）；列表请求复用连接池并按域限速。
 
 出口：`direct`（默认）/ `cloud`（Browserbase `/v1/fetch`）/ `browser`（会话隧道，过 Cloudflare）/ `impersonate`（Chrome TLS 指纹）/ `ego`（本机 Chromium，macOS）/ `playwright`（服务器用 headless Chromium，需 `uv sync --extra browser` + `python -m playwright install --with-deps chromium`）。
 
