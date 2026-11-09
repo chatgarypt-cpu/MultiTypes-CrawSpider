@@ -7,13 +7,12 @@
 ```bash
 cd /Users/gary/项目开发/REA_CrawlSpider
 
+# 依赖：仓库根 pyproject.toml + uv（首次 uv sync 建 .venv）
 # 单篇文章
-uv run --with requests --with pyyaml --with trafilatura --with curl_cffi \
-  python3 collector/collect.py --url "https://example.com/news/xxx.html"
+uv run python collector/collect.py --url "https://example.com/news/xxx.html"
 
 # 整站：给它一个首页/列表页，自动识别用哪种规则（WordPress API / sitemap / RSS / HTML 列表）
-uv run --with requests --with pyyaml --with trafilatura --with curl_cffi \
-  python3 collector/collect.py --site-url "https://example.com" --limit 100
+uv run python collector/collect.py --site-url "https://example.com" --limit 100
 
 # 只看它识别出了什么规则，不抓
 ... collector/collect.py --site-url "https://example.com" --detect
@@ -41,7 +40,7 @@ output/csv/<域名>.csv          # 31 列目标格式
 启动服务（只需一次）：
 
 ```bash
-nohup uv run --with requests --with pyyaml python3 collector/serve.py > data/serve.log 2>&1 &
+nohup uv run python collector/serve.py > data/serve.log 2>&1 &
 ```
 
 然后打开：
