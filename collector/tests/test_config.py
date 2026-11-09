@@ -137,10 +137,58 @@ def test_validate_file_clean_has_no_errors(tmp_path):
 
 
 # ---------- 发现入口 / 正则 mismatch ----------
-def test_html_missing_discovery_entry_warns():
+def test_html_missing_discovery_entry_is_error():
+    """html 无 list_url/list_urls 且未 disabled = 配置错误，不再只是 warning。"""
     errors, warns = schema.validate_site({"domain": "h.test", "channel": "html", "base": "https://h.test"})
+    assert any("list_url/list_urls" in e for e in errors)
+    assert not any("list_url/list_urls" in w for w in warns)
+
+
+def test_html_missing_entry_but_disabled_is_classified():
+    """不可采的 html 站显式 disabled 后：0 error，warning 是分类说明而非"缺入口"。"""
+    site = {"domain": "h.test", "channel": "html", "base": "https://h.test",
+            "disabled": True, "disabled_reason": "站点已下线"}
+    errors, warns = schema.validate_site(site)
     assert errors == []
-    assert any("list_url/list_urls" in w for w in warns)
+    assert any("disabled site (缺列表入口)" in w and "站点已下线" in w for w in warns)
+    assert not any("discovery entry missing" in w for w in warns)
+
+
+def test_disabled_with_list_entry_classified_as_unreachable():
+    site = {"domain": "h.test", "channel": "html", "base": "https://h.test",
+            "list_urls": ["/"], "disabled": True, "disabled_reason": "403 反爬"}
+    errors, warns = schema.validate_site(site)
+    assert errors == []
+    assert any("disabled site (不可访问/不采)" in w for w in warns)
+
+
+def test_disabled_keys_are_known_not_typos():
+    site = {"domain": "h.test", "channel": "html", "base": "https://h.test",
+            "list_urls": ["/"], "disabled": True, "disabled_reason": "已下线"}
+    errors, warns = schema.validate_site(site)
+    assert errors == []
+    assert not any("unknown key" in w for w in warns)
+
+
+def test_disabled_without_reason_still_classified():
+    site = {"domain": "h.test", "channel": "html", "base": "https://h.test", "disabled": True}
+    errors, warns = schema.validate_site(site)
+    assert any("disabled site" in w and "未写原因" in w for w in warns)
+
+
+def test_disabled_reason_without_disabled_warns():
+    site = {"domain": "h.test", "channel": "html", "base": "https://h.test",
+            "list_urls": ["/"], "disabled_reason": "忘了写 disabled"}
+    errors, warns = schema.validate_site(site)
+    assert errors == []
+    assert any("disabled_reason is set but disabled is not true" in w for w in warns)
+
+
+def test_disabled_wrong_type_is_error():
+    site = {"domain": "h.test", "channel": "html", "base": "https://h.test",
+            "list_urls": ["/"], "disabled": "true"}
+    errors, warns = schema.validate_site(site)
+    assert any("disabled must be bool" in e for e in errors)
 
 
 def test_sitemap_missing_discovery_entry_is_error_and_warning():

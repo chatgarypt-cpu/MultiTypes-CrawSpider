@@ -13,6 +13,12 @@ type Site = {
   pages_n: number
   media_n: number
   kinds: { posts: KindState; pages: KindState; media: KindState }
+  needs_config: boolean
+  disabled: boolean
+  disabled_reason: string
+  verified: boolean
+  coverage: number | null
+  coverage_verdict: string
 }
 type Status = {
   generated: string
@@ -80,11 +86,12 @@ function useConfig() {
   return { saved, draft, setDraft, apply, pending }
 }
 
-type Health = 'running' | 'blocked' | 'incomplete' | 'done' | 'config' | 'idle'
+type Health = 'running' | 'blocked' | 'incomplete' | 'done' | 'config' | 'disabled' | 'idle'
 
 function healthOf(site: Site, running: string[], blocked: string[]): Health {
   if (running.includes(site.domain)) return 'running'
   if (blocked.includes(site.domain)) return 'blocked'
+  if (site.disabled) return 'disabled'
   if (site.needs_config && site.saved === 0) return 'config'
   const kinds = [site.kinds.posts, site.kinds.pages, site.kinds.media]
   if (kinds.some((k) => k.pages && !k.done && k.page <= k.pages)) return 'incomplete'
@@ -98,6 +105,7 @@ const HEALTH_LABEL: Record<Health, string> = {
   incomplete: '不完整',
   done: '已结束',
   config: '待配置',
+  disabled: '已禁用',
   idle: '待采',
 }
 
@@ -138,8 +146,19 @@ function Figures({ data }: { data: Status | null }) {
   )
 }
 
-function Badge({ health }: { health: Health }) {
-  return <span className="status" data-kind={health}>{HEALTH_LABEL[health]}</span>
+function Badge({ health, title }: { health: Health; title?: string }) {
+  return <span className="status" data-kind={health} title={title}>{HEALTH_LABEL[health]}</span>
+}
+
+// 覆盖率核对与"任务结束"是两件事：cursor done 只说明翻页结束，覆盖率核对看外部总量。
+function CoverageBadge({ site }: { site: Site }) {
+  const verdict = site.coverage_verdict || '未核对'
+  const pct = site.coverage != null ? ` ${Math.round(site.coverage * 100)}%` : ''
+  if (verdict === '已核对') return <span className="coverage" data-kind="ok">已核对{pct}</span>
+  if (verdict === '不可验证') return <span className="coverage" data-kind="ok" title="无独立上游总量，按「不可验证」计入已核对">已核对·无源</span>
+  if (verdict === '覆盖率不足') return <span className="coverage" data-kind="warn">未达标{pct}</span>
+  if (verdict === '口径异常') return <span className="coverage" data-kind="bad" title="上游总量与本地不是同一范围，不认核对">口径异常</span>
+  return <span className="coverage" data-kind="none">未核对</span>
 }
 
 function SiteTable({ rows, running, blocked, compact = false }: {
@@ -157,6 +176,7 @@ function SiteTable({ rows, running, blocked, compact = false }: {
             <th scope="col" className="num">页面 / 媒体</th>
             <th scope="col" className="num">大小</th>
             <th scope="col">状态</th>
+            <th scope="col">覆盖率</th>
             {compact ? null : <th scope="col" className="num">更新</th>}
             <th scope="col" aria-label="打开 CSV" />
           </tr>
@@ -185,7 +205,8 @@ function SiteTable({ rows, running, blocked, compact = false }: {
                 <td className="num">{nf.format(site.saved)}</td>
                 <td className="num muted">{nf.format(site.pages_n)} / {nf.format(site.media_n)}</td>
                 <td className="num muted">{formatMb(site.mb)}</td>
-                <td><Badge health={health} /></td>
+                <td><Badge health={health} title={site.disabled ? site.disabled_reason : undefined} /></td>
+                <td><CoverageBadge site={site} /></td>
                 {compact ? null : <td className="num muted">{formatTime(site.updated)}</td>}
                 <td className="open" aria-hidden="true">打开 CSV</td>
               </tr>
@@ -232,10 +253,19 @@ export default function App() {
   const active = useMemo(() => sites.filter((s) => running.includes(s.domain)), [sites, running])
   const finished = useMemo(() => sites.filter((s) => !running.includes(s.domain)), [sites, running])
   const counts = useMemo(() => {
-    const c: Record<Health, number> = { running: 0, blocked: 0, incomplete: 0, done: 0, config: 0, idle: 0 }
+    const c: Record<Health, number> = { running: 0, blocked: 0, incomplete: 0, done: 0, config: 0, disabled: 0, idle: 0 }
     for (const s of sites) c[healthOf(s, running, blocked)]++
     return c
   }, [sites, running, blocked])
+  // 外部核对口径与"任务结束"分开：verified = coverage>=95% 或不可验证
+  const coverageCounts = useMemo(() => {
+    let verified = 0, unavailable = 0
+    for (const s of sites) {
+      if (s.verified) verified++
+      if (s.disabled || s.needs_config) unavailable++
+    }
+    return { verified, unavailable }
+  }, [sites])
 
   const totalPages = Math.max(1, Math.ceil(finished.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -289,8 +319,9 @@ export default function App() {
               <div className="summary-item"><span className="summary-n">{counts.running}</span><span className="summary-k">运行中</span></div>
               <div className="summary-item"><span className="summary-n">{counts.incomplete}</span><span className="summary-k">不完整</span></div>
               <div className="summary-item"><span className="summary-n">{counts.blocked}</span><span className="summary-k">有阻碍</span></div>
-              <div className="summary-item"><span className="summary-n">{counts.done}</span><span className="summary-k">已结束</span></div>
-              <div className="summary-item"><span className="summary-n">{counts.config}</span><span className="summary-k">待配置</span></div>
+              <div className="summary-item"><span className="summary-n">{counts.done}</span><span className="summary-k">任务结束</span></div>
+              <div className="summary-item"><span className="summary-n">{coverageCounts.verified}</span><span className="summary-k">覆盖率已核对</span></div>
+              <div className="summary-item"><span className="summary-n">{coverageCounts.unavailable}</span><span className="summary-k">缺入口/不可访问</span></div>
               <div className="summary-item"><span className="summary-n">{counts.idle}</span><span className="summary-k">待采</span></div>
             </div>
             <div className="table-head"><h2>进度最快</h2><p>按文章数排序，前 8 个站点</p></div>

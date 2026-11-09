@@ -28,11 +28,15 @@ def tasks_running():
         return 0
 
 def running_domains():
-    out = subprocess.run(["pgrep", "-f", "collect.py --site"], capture_output=True, text=True)
-    pids = [l.strip() for l in out.stdout.splitlines() if l.strip()]
-    if not pids: return []
-    ps = subprocess.run(["ps", "-o", "command=", "-p", ",".join(pids)], capture_output=True, text=True)
-    return sorted({m.group(1) for m in re.finditer(r"--site (\S+)", ps.stdout)})
+    # 沙箱/极简容器里 ps 可能被禁：进程探测失败不能让整个状态流挂掉，降级为"不知道在跑谁"
+    try:
+        out = subprocess.run(["pgrep", "-f", "collect.py --site"], capture_output=True, text=True)
+        pids = [l.strip() for l in out.stdout.splitlines() if l.strip()]
+        if not pids: return []
+        ps = subprocess.run(["ps", "-o", "command=", "-p", ",".join(pids)], capture_output=True, text=True)
+        return sorted({m.group(1) for m in re.finditer(r"--site (\S+)", ps.stdout)})
+    except Exception:
+        return []
 
 def blocked_domains():
     try:
@@ -47,6 +51,65 @@ def concurrency():
         return 4
 
 _COUNT_CACHE = {}
+_COVERAGE_CACHE = {"sig": None, "map": {}}
+# verify_coverage.py 的口径：coverage >= 1.5（本地远大于上游）视为口径异常，不算核对过
+COVERAGE_ANOMALY = 1.5
+
+
+def latest_coverage():
+    """最新 data/coverage-*.json 的 {domain: record}（只读，无快照/坏文件都返回 {}）。
+
+    覆盖率快照不会每秒变，用 (path, mtime, size) 缓存解析结果。
+    """
+    try:
+        cands = sorted(glob.glob(os.path.join(DATA, "coverage-*.json")),
+                       key=lambda p: os.stat(p).st_mtime, reverse=True)
+    except OSError:
+        return {}
+    if not cands:
+        return {}
+    try:
+        st = os.stat(cands[0])
+        sig = (cands[0], st.st_mtime_ns, st.st_size)
+    except OSError:
+        return {}
+    if _COVERAGE_CACHE.get("sig") == sig:
+        return _COVERAGE_CACHE["map"]
+    out = {}
+    try:
+        with open(cands[0], encoding="utf-8") as f:
+            payload = json.load(f)
+        for rec in (payload.get("report") or []) if isinstance(payload, dict) else []:
+            if isinstance(rec, dict) and rec.get("domain"):
+                out[rec["domain"]] = rec
+    except Exception:
+        out = {}
+    _COVERAGE_CACHE.update(sig=sig, map=out)
+    return out
+
+
+def coverage_flags(dom):
+    """每站覆盖率三类判定：已核对（>=95% 或不可验证）/ 未核对 / 口径异常（旧快照也按同一阈值兜底）。"""
+    rec = latest_coverage().get(dom)
+    if not rec:
+        return {"coverage": None, "verified": False, "coverage_verdict": "未核对"}
+    cov = rec.get("coverage")
+    verdict = rec.get("verdict") or ""
+    source = str(rec.get("source") or "")
+    if not verdict:                              # 旧快照没有 verdict 字段，按同一口径推断
+        if isinstance(cov, (int, float)) and cov >= COVERAGE_ANOMALY:
+            verdict = "口径异常"
+        elif cov is None and source.startswith("unverifiable"):
+            verdict = "不可验证"
+    if verdict == "口径异常" or (isinstance(cov, (int, float)) and cov >= COVERAGE_ANOMALY):
+        return {"coverage": None, "verified": False, "coverage_verdict": "口径异常"}
+    if verdict == "不可验证":
+        return {"coverage": None, "verified": True, "coverage_verdict": "不可验证"}
+    if isinstance(cov, (int, float)) and cov >= 0.95:
+        return {"coverage": cov, "verified": True, "coverage_verdict": "已核对"}
+    if isinstance(cov, (int, float)):
+        return {"coverage": cov, "verified": False, "coverage_verdict": "覆盖率不足"}
+    return {"coverage": None, "verified": False, "coverage_verdict": "未核对"}
 
 
 def count_lines(path):
@@ -72,6 +135,8 @@ def site_row(d):
     cfg = source_cfg().get(os.path.basename(d), {})
     os.makedirs(d, exist_ok=True)
     dom = os.path.basename(d)
+    disabled = cfg.get("disabled") is True
+    cov = coverage_flags(dom)
     cur = {}
     cp = os.path.join(d, "cursor.json")
     if os.path.exists(cp):
@@ -98,8 +163,13 @@ def site_row(d):
             "updated": (cur.get("updated") or "")[:19], "mb": round(chars / 1e6, 2),
             "pages_n": kind_count("pages")["n"], "media_n": kind_count("media")["n"],
             "channel": cfg.get("channel", ""),
-            "needs_config": bool(cfg.get("channel") == "html"
+            # 三类必须分开：任务结束（done，前端另有"不完整"判定）、覆盖率已核对（verified）、
+            # 缺入口或不可访问（needs_config / disabled）。disabled 站不再算"待配置"。
+            "coverage": cov["coverage"], "verified": cov["verified"],
+            "coverage_verdict": cov["coverage_verdict"],
+            "needs_config": bool(not disabled and cfg.get("channel") == "html"
                                  and not (cfg.get("list_url") or cfg.get("list_urls"))),
+            "disabled": disabled, "disabled_reason": cfg.get("disabled_reason", ""),
             "kinds": {"posts": {"n": n, "page": cur.get("next_page", 0), "pages": cur.get("total_pages"),
                                 # done/status 必须带上：前端"不完整"判定依赖每类的 done，
                                 # 之前 posts 缺 done 导致 30 个已完成的非 WP 站被误判为不完整

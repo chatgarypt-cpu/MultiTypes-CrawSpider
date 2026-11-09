@@ -29,6 +29,8 @@
   type: 智库
   channel: html
   base: https://www.belaunationalmuseum.net
+  disabled: true
+  disabled_reason: "站点被主机商挂起（cgi-sys/suspendedpage.cgi），无内容可采"
   note: "2026-11 实测站点已被主机商挂起（cgi-sys/suspendedpage.cgi），无内容可采"
 - domain: www.palau.edu
   name: Palau Community College
@@ -84,6 +86,8 @@
   type: 智库
   channel: html
   base: https://www.redcross.org.pg
+  disabled: true
+  disabled_reason: "首页 404 且证书域名不匹配，无有效入口"
   note: "2026-11 实测首页 404 且证书域名不匹配；需人工确认新域名后再采"
 - domain: www.upng.ac.pg
   name: University of Papua New Guinea
@@ -148,6 +152,8 @@
   type: 智库
   channel: html
   base: https://minapacific.org
+  disabled: true
+  disabled_reason: "老 ASP 站，文章链接为 javascript:void(0)，静态 HTML 无详情入口"
   note: "文章链接是 javascript:void(0)（老 ASP 站），静态 HTML 拿不到详情页；需要浏览器渲染或接口方案"
 - domain: dcrm.gov.mp
   name: CNMI Division of Coastal Resources Management
@@ -480,6 +486,8 @@
   type: 智库
   channel: html
   base: https://www.wibdi.ws
+  disabled: true
+  disabled_reason: "站点内容已下线，首页仅剩登录空壳"
   note: "2026-11 实测首页只剩登录页/2.9KB 空壳，站点内容已下线"
 - domain: www.nus.edu.ws
   name: National University of Samoa
@@ -529,6 +537,8 @@
   type: 新闻
   channel: html
   base: https://www.tonga-broadcasting.net
+  disabled: true
+  disabled_reason: "证书过期且首页 302 到 /login/，站点内容已下线"
   note: "2026-11 实测证书过期且首页 302 到 /login/，站点内容已下线"
 - domain: matangitonga.to
   name: Matangi Tonga
@@ -556,6 +566,8 @@
   channel: html
   base: https://www.tokelau.org.nz
   via: direct
+  disabled: true
+  disabled_reason: "CloudFront 403（疑按出口 IP 拦截），本机不可访问"
   note: "2026-11 实测 CloudFront 403（本机 ego 浏览器同样被挡，疑按出口 IP 拦）；先 direct 快速失败，换出口后再试"
 - domain: www.wallis-et-futuna.gouv.fr
   name: Préfecture des Îles Wallis-et-Futuna
@@ -577,6 +589,8 @@
   channel: html
   base: https://www.lefigaro.fr
   via: direct
+  disabled: true
+  disabled_reason: "403/Paywall 反爬，不在无人值守采集范围"
   note: "2026-11 实测 403（Paywall/反爬），本机浏览器同样 Access Denied；不在无人值守范围"
 - domain: www.croix-rouge.fr
   name: Croix-Rouge Française
