@@ -77,11 +77,24 @@ def _known_entity(path):
     return ent
 
 
+def _append_lines(path, lines):
+    """追加写一组行并 flush；出错时由调用方回滚到原文件长度。"""
+    with open(path, "a", encoding="utf-8") as f:
+        for line in lines:
+            f.write(line)
+        f.flush()
+
+
 def append_rows(domain, rows, kind="posts"):
     """Append rows to the store, skipping URLs we already have (same domain+kind).
 
     Returns the number of rows actually written, so callers can report real progress
     (and so a duplicate batch is visibly 0 instead of inflating the counters).
+
+    articles.jsonl 与 urls.txt 必须同进同退：任一步写入失败就把两个文件都回滚到
+    写入前长度后抛异常。调用方（channels/base.py）只有在本函数成功返回后才把队列
+    行标 done，所以"写盘失败 → 行仍是 unprocessed → 下次重跑补齐"，也不会出现
+    "urls.txt 有记录但正文缺失"导致重跑被去重跳过（2026-11 审查问题 1）。
     """
     ap, up, _ = _paths(domain, kind)
     cols = MEDIA_COLS if kind == "media" else COLS
@@ -97,15 +110,19 @@ def append_rows(domain, rows, kind="posts"):
             fresh.append(r)
         if not fresh:
             return 0
+        ap_size = os.path.getsize(ap) if os.path.exists(ap) else 0
+        up_size = os.path.getsize(up) if os.path.exists(up) else 0
         try:
-            with open(ap, "a", encoding="utf-8") as f:
-                for r in fresh:
-                    f.write(json.dumps({k: r.get(k, "") for k in cols}, ensure_ascii=False) + "\n")
-            with open(up, "a", encoding="utf-8") as f:
-                for r in fresh:
-                    f.write((r.get("url") or "").strip() + "\n")
+            _append_lines(ap, [json.dumps({k: r.get(k, "") for k in cols}, ensure_ascii=False) + "\n"
+                               for r in fresh])
+            _append_lines(up, [(r.get("url") or "").strip() + "\n" for r in fresh])
         except Exception:
-            _KNOWN.pop(up, None)          # a half-written batch: force a clean re-read
+            for path, size in ((ap, ap_size), (up, up_size)):
+                try:
+                    os.truncate(path, size)
+                except OSError:
+                    pass
+            _KNOWN.pop(up, None)          # 内存里的 known 缓存已提前加过 key，弃掉重读
             raise
         # Our own append changed the stat; record it so the next call does not reload.
         _KNOWN[up]["sig"] = _stat_sig(up)
