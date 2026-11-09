@@ -61,7 +61,7 @@ python3 skills/web-reverse-crawl/scripts/test_infer_api.py
 
 ## 采集器（collector/）
 
-`sources.yaml` 站点（当前 76 个）的批量采集，代码在 `collector/`，说明见 [collector/README.md](collector/README.md)。
+`sources.yaml` 站点（当前 74 个）的批量采集，代码在 `collector/`，说明见 [collector/README.md](collector/README.md)。
 
 - 依赖在根 [pyproject.toml](pyproject.toml)，用 uv 管理：`uv sync` 建 `.venv`，命令 `uv run python collector/collect.py ...`，测试 `uv run pytest`；
 - 运行数据在 `data/`（每站 jsonl、游标、日志、队列状态），交付 CSV 在 `output/csv/`；

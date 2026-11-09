@@ -377,14 +377,6 @@
   type: 政府网站
   channel: wp-api
   base: https://mmr.gov.ck
-- domain: www.kpress.info
-  name: The Kaselehlie Press
-  country: Micronesia, Federated States of
-  lang: en-US
-  type: 新闻
-  channel: sitemap
-  base: http://www.kpress.info
-  sitemap: /sitemap.xml
 - domain: www.nuclearclaimstribunal.com
   name: Nuclear Claims Tribunal
   country: Marshall Island, Republic of
@@ -401,14 +393,6 @@
   channel: sitemap
   base: https://www.cmi.edu
   sitemap: /sitemap.xml
-- domain: www.fsmgov.org
-  name: FSM Government
-  country: Micronesia, Federated States of
-  lang: en-US
-  type: 政府网站
-  channel: wp-api
-  base: https://gov.fm
-  via: direct
 - domain: www.comfsm.fm
   name: College of Micronesia-FSM
   country: Micronesia, Federated States of
