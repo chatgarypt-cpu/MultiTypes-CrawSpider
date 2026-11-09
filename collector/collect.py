@@ -27,7 +27,7 @@ requests = _requests
 json = _json
 
 
-def check_site(site, cap=None):
+def check_site(site, cap=None, samples=3):
     """Dry-run discovery only: fetch listing/sitemap/feed, return count + first URLs.
 
     只跑发现阶段（discover）：不写 cursor、不入库、不抓正文。
@@ -58,7 +58,7 @@ def check_site(site, cap=None):
         result["pages"] = hdr.get("x-wp-totalpages")
         if str(total or "").isdigit():
             result["discovered"] = int(total)
-            result["sample"] = [u for u in urls if u][:3]
+            result["sample"] = [u for u in urls if u][:samples]
             return result
     elif channel == "json-api":
         base = site["base"].rstrip("/")
@@ -86,10 +86,60 @@ def check_site(site, cap=None):
         return dict(result, error=f"check-site unsupported for channel {channel!r}")
     urls = [u for u in urls if u]
     result["discovered"] = len(urls)
-    result["sample"] = urls[:3]
+    result["sample"] = urls[:samples]
     if cap and len(urls) >= cap:
         result["capped"] = cap
     return result
+
+
+def check_extract(site, samples=8):
+    """干跑：发现阶段取样本 URL，逐条抓取+抽取，报告字段是否可用（不写库、不写游标）。
+
+    给"Agent 生成/修改站点规则"用：先 check-site 看发现条数，再 check-extract 看正文/
+    标题/日期/schema 是否稳定，验证过再写进 sources.yaml 批量跑。
+    """
+    from crawler import htmlpage
+    from crawler.extract import extract_best
+    from crawler.web import Fetcher
+
+    site = dict(site, via=site.get("via_posts") or site.get("via"))
+    discovered = check_site(site, samples=samples)
+    urls = [u for u in (discovered.get("sample") or []) if u]
+    out = {"domain": site.get("domain"), "channel": site.get("channel"),
+           "discovered": discovered.get("discovered"), "error": discovered.get("error"),
+           "checked": 0, "ok": 0, "rows": []}
+    if not urls:
+        return out
+    fetcher = Fetcher(site)
+    for u, st, body in fetcher.stream_many(urls, workers=1):
+        row = extract_best(u, body, site, min_text=0) if st == 200 else None
+        rec = {"url": u, "http": st, "text_len": 0, "title": "", "created_at": "",
+               "author": "", "extractor": "", "schema_title_ok": None}
+        if row:
+            rec.update(text_len=len(row.get("text") or ""),
+                       title=(row.get("title") or "")[:100],
+                       created_at=(row.get("created_at") or "")[:19],
+                       author=(row.get("user_author_name") or "")[:40],
+                       extractor=row.get("_extractor", ""))
+            schema = (site.get("schema") or {}).get("title")
+            if schema:
+                h1 = htmlpage.xpath_value(body, "//h1/text()")
+                rec["schema_title_ok"] = bool(h1) and rec["title"] == h1
+            out["checked"] += 1
+            out["ok"] += 1
+        out["rows"].append(rec)
+    return out
+
+
+def print_check_extract(result):
+    print(f"check-extract {result['domain']} [{result['channel']}] discovered {result['discovered']}"
+          f"  checked {result['checked']}  ok {result['ok']}")
+    if result.get("error"):
+        print(f"  error: {result['error']}")
+    for r in result["rows"]:
+        print(f"  http={r['http']} text={r['text_len']:5} schema_ok={r['schema_title_ok']} "
+              f"ext={r['extractor'] or '-':10} date={r['created_at'] or '-':19} "
+              f"title={r['title'][:60]!r}")
 
 
 def print_check_site(result):
@@ -112,6 +162,8 @@ def main():
     ap.add_argument("--reset", action="store_true")
     ap.add_argument("--validate", action="store_true")
     ap.add_argument("--check-site", metavar="DOMAIN", help="dry-run discovery only: print count + first 3 URLs")
+    ap.add_argument("--check-extract", metavar="DOMAIN", help="dry-run discovery + fetch/extract samples (no writes)")
+    ap.add_argument("--samples", type=int, default=8, help="--check-extract 抽样条数（默认 8）")
     ap.add_argument("--url", help="crawl one article URL (no need to add it to sources.yaml)")
     ap.add_argument("--site-url", help="point at a site homepage/listing and auto-detect how to crawl it")
     ap.add_argument("--detect", action="store_true", help="only print the detected rule for --site-url")
@@ -155,6 +207,16 @@ def main():
             sys.exit(f"check-site: domain {a.check_site!r} not found in sources.yaml")
         result = check_site(site)
         print_check_site(result)
+        if result.get("error"):
+            sys.exit(1)
+        return
+
+    if a.check_extract:
+        site = next((s for s in sites if s.get("domain") == a.check_extract), None)
+        if site is None:
+            sys.exit(f"check-extract: domain {a.check_extract!r} not found in sources.yaml")
+        result = check_extract(site, a.samples)
+        print_check_extract(result)
         if result.get("error"):
             sys.exit(1)
         return

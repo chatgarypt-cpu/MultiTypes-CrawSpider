@@ -85,7 +85,7 @@ uv run python collector/serve.py      # http://127.0.0.1:8787/
   list_urls: [/media-releases, "/media-releases/page:{page}"]
   pages: 20
   link_pattern: '/media-releases/(?!page:)[^/]+$'
-  noise_gate: true
+  noise_gate: true          # 也可写数字（如 0.65）按站覆盖链接密度阈值
   schema:
     title: "//h1/text()"
   item_selector: "//a[contains(@href,'/media-releases/')]/@href"   # 可选，替代 link_pattern 过滤
@@ -122,6 +122,7 @@ uv run python collector/serve.py      # http://127.0.0.1:8787/
 PY=".venv/bin/python"                         # uv sync 生成；旧环境见上
 "$PY" collector/cli.py status                 # 进度总览
 "$PY" collector/cli.py check-site <domain>    # 干跑发现，不入库
+"$PY" collector/collect.py --check-extract <domain> --samples 8   # 干跑发现+抽样抽取验收
 "$PY" collector/cli.py paused                 # 查看暂停/守护状态
 "$PY" collector/cli.py run                    # 常驻守护（= collector/supervisor.py）
 "$PY" collector/cli.py deliverables           # 导出 CSV + 生成交付包

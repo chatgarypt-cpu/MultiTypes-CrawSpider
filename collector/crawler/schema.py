@@ -44,7 +44,7 @@ VIA = {"direct", "impersonate", "cloud", "browser", "ego"}
 TYPES = {
     "list_urls": list, "api_categories": list, "pages": int, "page_step": int,
     "api_page_size": int, "no_embed": bool, "min_text": int,
-    "schema": dict, "llm_fields": list, "llm_override": bool, "noise_gate": bool,
+    "schema": dict, "llm_fields": list, "llm_override": bool,
     "item_selector": str, "robots": bool, "ego_wait_ms": int,
     "disabled": bool, "disabled_reason": str,
 }
@@ -112,6 +112,10 @@ def validate_site(site):
         typ = TYPES.get(key)
         if typ and key in site and not isinstance(site[key], typ):
             errors.append(f"{domain}: {key} must be {typ.__name__}")
+    # noise_gate 允许 bool 或数字（数字=按站覆盖链接密度阈值，见 crawler/htmlpage.py）
+    ng = site.get("noise_gate")
+    if ng is not None and not isinstance(ng, bool) and not isinstance(ng, (int, float)):
+        errors.append(f"{domain}: noise_gate must be bool or number, got {type(ng).__name__}")
     # 发现入口完整性：宁可在 validate 阶段吵，也不要抓了半天才发现没入口。
     # disabled 是显式的人工分类（站点下线/无列表入口/反爬），不算配置错误；
     # html 站没有 list_url/list_urls 又没 disabled，一律当 error 处理。

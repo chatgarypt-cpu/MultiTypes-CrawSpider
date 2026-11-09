@@ -60,11 +60,35 @@ def link_ratio(body):
     return min(1.0, linked / total)
 
 
-def looks_like_listing(body, md=""):
+GATE_RATIO = 0.35          # 默认链接密度阈值：文字超过 35% 在 <a> 里 → 列表/导航页
+GATE_MD_MAX = 1200         # Markdown 长于此值一律当正文（避免误杀长文章）
+
+
+def gate_setting(site):
+    """(是否启用闸门, 阈值)。`noise_gate` 支持 bool 或数字，数字即按站覆盖链接密度阈值。
+
+    - 缺省：html 通道默认启用，其它通道默认关闭；
+    - true/false：显式开关，用默认阈值 0.35；
+    - 0.65 这类数字：启用并改用该阈值（有些站点文章页导航链接多，默认 0.35 会误杀，
+      如 upng 的文章页 link_ratio≈0.57，而列表页≈0.73）。"""
+    gate = site.get("noise_gate")
+    if gate is None:
+        return site.get("channel") == "html", GATE_RATIO
+    if gate is True:
+        return True, GATE_RATIO
+    if gate is False:
+        return False, GATE_RATIO
+    try:
+        return True, float(gate)
+    except (TypeError, ValueError):
+        return site.get("channel") == "html", GATE_RATIO
+
+
+def looks_like_listing(body, md="", ratio=GATE_RATIO):
     """列表页/导航页判定：正文短且文字主要在链接里。文章页不放行误杀（md 足够长就放过）。"""
-    if len(md or "") >= 1200:
+    if len(md or "") >= GATE_MD_MAX:
         return False
-    return link_ratio(body) > 0.35
+    return link_ratio(body) > ratio
 
 
 # ---------- 结构化提取：XPath schema ----------
@@ -158,12 +182,9 @@ def llm_enrich(row, md, site):
 def enrich(row, body, url, site):
     """抽取到手的一行 → 过闸门 + schema + 可选 LLM。被判定为列表页时返回 None。"""
     site = site or {}
-    # html 通道默认开闸门；`noise_gate: false` 可按站关掉
-    gate = site.get("noise_gate")
-    if gate is None:
-        gate = site.get("channel") == "html"
+    gate, ratio = gate_setting(site)          # html 默认开；noise_gate 可 false/数字
     md = markdown(body, url) if (gate or site.get("llm_fields")) else ""
-    if gate and looks_like_listing(body, md):
+    if gate and looks_like_listing(body, md, ratio):
         return None
     if site.get("schema"):
         apply_schema(row, body, site)
