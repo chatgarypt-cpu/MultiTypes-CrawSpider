@@ -12,10 +12,11 @@ def run(site, limit, log, fetcher, kind="posts"):
     q = RequestQueue(site["domain"], kind)
     q.seed_done(load_known(site["domain"], kind), channel=site.get("channel", ""))
     buf = []
+    discovered = 0
     for u in iter_sitemap_urls(site, fetcher, cap):
-        buf.append(u)
+        buf.append(u); discovered += 1
         if len(buf) >= CHUNK:
             q.add_many(buf, channel="sitemap"); buf = []
     if buf:
         q.add_many(buf, channel="sitemap")
-    return collect_urls(site, [], limit, log, fetcher, kind)
+    return collect_urls(site, [], limit, log, fetcher, kind, discovered_count=discovered)

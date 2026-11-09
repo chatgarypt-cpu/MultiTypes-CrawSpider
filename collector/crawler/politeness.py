@@ -11,6 +11,7 @@ robots.txt:
 """
 import json
 import os
+import re
 import threading
 import time
 from urllib.parse import urlsplit
@@ -78,10 +79,32 @@ class DomainLimiter:
                 self.rate[domain] = min(MAX_RATE, self.rate.get(domain, self._default) * 1.5)
 
 
-def _prefix(pattern):
-    """Prefix that a robots path pattern can match before its first wildcard."""
-    base = str(pattern).split("*", 1)[0]
-    return base[:-1] if base.endswith("$") else base
+_RULE_RE = {}
+
+
+def _rule_regex(pattern):
+    """robots 路径模式 → 正则：`*` 任意串，结尾 `$` 锚定，其余按字面匹配（前缀语义）。"""
+    pat = str(pattern)
+    hit = _RULE_RE.get(pat)
+    if hit is not None:
+        return hit
+    anchored = pat.endswith("$")
+    if anchored:
+        pat = pat[:-1]
+    rx = "^" + ".*".join(re.escape(part) for part in pat.split("*"))
+    if anchored:
+        rx += "$"
+    compiled = re.compile(rx)
+    _RULE_RE[pat] = compiled
+    return compiled
+
+
+def _rule_matches(path, pattern):
+    """robots 规则是否命中该 path（`*` 通配、`$` 结尾锚定）。"""
+    try:
+        return _rule_regex(pattern).match(path) is not None
+    except Exception:
+        return False
 
 
 def parse_robots(text):
@@ -129,12 +152,23 @@ def parse_robots(text):
 
 
 def _allowed_path(path, rules):
-    """Longest-match robots rule for one path; Allow wins ties (robots spec)."""
-    allows = [p for kind, p in rules if kind == "allow" and p]
-    disallows = [p for kind, p in rules if kind == "disallow" and p]
-    best_allow = max((a for a in allows if path.startswith(_prefix(a))), key=lambda a: len(_prefix(a)), default="")
-    best_disallow = max((d for d in disallows if path.startswith(_prefix(d))), key=lambda d: len(_prefix(d)), default="")
-    if best_allow and len(_prefix(best_allow)) >= len(_prefix(best_disallow)):
+    """Longest-match robots rule for one path; Allow wins ties (robots spec).
+
+    注意：不能只看通配符前的字符串前缀 —— 像 ``/*search=*`` 的前缀是 ``/``，
+    那样会把全站都判成禁止（croix-rouge/noaa 事故）。这里做真正的 ``*`` 通配匹配，
+    以规则模式长度作为"更具体"的判据。
+    """
+    best_allow, best_disallow = "", ""
+    for kind, pattern in rules:
+        if not pattern or not _rule_matches(path, pattern):
+            continue
+        if kind == "allow":
+            if len(pattern) > len(best_allow):
+                best_allow = pattern
+        else:
+            if len(pattern) > len(best_disallow):
+                best_disallow = pattern
+    if best_allow and len(best_allow) >= len(best_disallow):
         return True
     return not best_disallow
 
