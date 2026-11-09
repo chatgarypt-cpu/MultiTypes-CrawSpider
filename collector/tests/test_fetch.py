@@ -298,3 +298,30 @@ def test_stream_many_robots_false_still_fetches(monkeypatch):
     monkeypatch.setattr(web, "get_text", lambda url, headers=None, timeout=None: (200, "<html>ok</html>"))
     fetcher = web.Fetcher({"domain": "a.test", "base": "https://a.test", "robots": False})
     assert list(fetcher.stream_many(["https://a.test/x"], workers=2)) == [("https://a.test/x", 200, "<html>ok</html>")]
+
+
+# ---------- via: playwright（服务器浏览器路径） ----------
+def test_fetcher_playwright_branch(monkeypatch):
+    import crawler.browser_playwright as pw
+
+    seen = {}
+
+    def fake(urls, wait_ms=None, headless=True, block_resources=False, user_agent=None):
+        seen.update(wait_ms=wait_ms, headless=headless, block=block_resources, ua=user_agent)
+        return [(u, 200, "<html>ok</html>") for u in urls]
+
+    monkeypatch.setattr(pw, "fetch_many", fake)
+    f = web.Fetcher({"domain": "a.test", "base": "https://a.test", "via": "playwright",
+                     "playwright_wait_ms": 2500, "block_resources": True})
+    out = f.get_many(["https://a.test/x"])
+    assert out == [("https://a.test/x", 200, "<html>ok</html>")]
+    assert seen["wait_ms"] == 2500 and seen["block"] is True and seen["ua"]
+
+
+def test_playwright_config_validates():
+    from crawler import schema
+    site = {"domain": "p.test", "channel": "html", "base": "https://p.test",
+            "list_urls": ["/"], "via": "playwright", "playwright_wait_ms": 3000,
+            "block_resources": True, "headless": True}
+    errors, _warnings = schema.validate_site(site)
+    assert errors == []

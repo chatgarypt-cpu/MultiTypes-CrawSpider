@@ -113,3 +113,28 @@ cd /Users/gary/项目开发/REA_CrawlSpider
 "演练场（ignore)/.venv/bin/python" collector/cli.py paused
 cat data/health.json
 ```
+
+---
+
+## Linux 服务器（脱离 ego 依赖）
+
+`ego` 是本机 macOS 浏览器（`ego-browser` CLI + 持久 profile），Linux 服务器上没有。需要浏览器的
+站点改用 Playwright 通道（`via: playwright`，2026-11-09 实测可过 Cloudflare JS 挑战，与 ego 产出
+正文一致）：
+
+```bash
+cd "$REPO"
+uv sync --extra browser                          # 安装 playwright（可选依赖，不进默认安装）
+python -m playwright install --with-deps chromium  # 装 Chromium + 系统依赖（Linux 需要）
+# 站点配置示例
+#   via: playwright
+#   playwright_wait_ms: 3000     # CF 挑战页通常 2-3s
+#   block_resources: false       # 仅文本抽取时可试 true；实测无稳定提速
+```
+
+- 本机验证可复用已有 Chromium：`PLAYWRIGHT_EXECUTABLE=/path/to/chrome ...`。
+- `via: ego` 的站点在服务器上要逐个改成 `via: playwright`；ego 只保留作本地侦察/对照。
+- Cloudflare Turnstile 级风控未验证；如遇到再评估 Patchright / playwright-stealth 或远程浏览器服务。
+- 守护进程用 systemd（或 supervisord）替代 launchd：入口仍是
+  `"$REPO/.venv/bin/python" collector/supervisor.py`，环境变量 `CRAWL_RATE/CRAWL_MAX_RATE/SITE_WORKERS` 同本机。
+- A/B 数据与取舍见 [docs/research/ab-20261109.md](../docs/research/ab-20261109.md)。

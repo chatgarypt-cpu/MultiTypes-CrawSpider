@@ -29,7 +29,7 @@ SHARED = {"domain", "name", "country", "lang", "type", "channel", "base", "via",
           # html 页面流水线（crawler.htmlpage）：schema=XPath→字段，llm_fields=让可选 LLM 补的空字段
           "schema", "llm_fields", "llm_override", "noise_gate",
           # robots: false = 该站不按 robots.txt 限制（用户显式决定）；ego_wait_ms = 浏览器加载后等待
-          "robots", "ego_wait_ms",
+          "robots", "ego_wait_ms", "playwright_wait_ms", "block_resources", "headless",
           # 人工确认不可采（无列表入口/站点下线/反爬）：不算配置错误，单独归类
           "disabled", "disabled_reason"}
 OPTIONAL = {
@@ -40,12 +40,13 @@ OPTIONAL = {
     "json-api": {"api_query", "api_page_size", "api_category", "api_items"},
     "json-list": {"api_categories", "api_items", "free_field", "premium_marker"},
 }
-VIA = {"direct", "impersonate", "cloud", "browser", "ego"}
+VIA = {"direct", "impersonate", "cloud", "browser", "ego", "playwright"}
 TYPES = {
     "list_urls": list, "api_categories": list, "pages": int, "page_step": int,
     "api_page_size": int, "no_embed": bool, "min_text": int,
     "schema": dict, "llm_fields": list, "llm_override": bool,
     "item_selector": str, "robots": bool, "ego_wait_ms": int,
+    "playwright_wait_ms": int, "block_resources": bool, "headless": bool,
     "disabled": bool, "disabled_reason": str,
 }
 REGEX_KEYS = ("link_pattern", "url_filter")
