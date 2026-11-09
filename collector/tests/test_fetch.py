@@ -281,3 +281,20 @@ def test_domain_limiter_honours_crawl_delay(monkeypatch):
     assert sleeps == []
     limiter.acquire("http://slow.test/b", min_interval=3.0)
     assert len(sleeps) == 1 and abs(sleeps[0] - 3.0) < 1e-6
+
+
+# ---------- robots 按站覆盖（sources.yaml: robots: false） ----------
+def test_stream_many_blocks_robots_by_default(monkeypatch):
+    monkeypatch.setattr(web.ROBOTS, "allowed", lambda u: False)
+    monkeypatch.setattr(web.ROBOTS, "crawl_delay", lambda u: 5.0)
+    monkeypatch.setattr(web, "get_text", lambda url, headers=None, timeout=None: (200, "<html>ok</html>"))
+    fetcher = web.Fetcher({"domain": "a.test", "base": "https://a.test"})
+    assert list(fetcher.stream_many(["https://a.test/x"], workers=2)) == [("https://a.test/x", -1, "robots")]
+
+
+def test_stream_many_robots_false_still_fetches(monkeypatch):
+    monkeypatch.setattr(web.ROBOTS, "allowed", lambda u: False)
+    monkeypatch.setattr(web.ROBOTS, "crawl_delay", lambda u: 5.0)
+    monkeypatch.setattr(web, "get_text", lambda url, headers=None, timeout=None: (200, "<html>ok</html>"))
+    fetcher = web.Fetcher({"domain": "a.test", "base": "https://a.test", "robots": False})
+    assert list(fetcher.stream_many(["https://a.test/x"], workers=2)) == [("https://a.test/x", 200, "<html>ok</html>")]

@@ -149,6 +149,8 @@ class Fetcher:
         self.ego = site.get("via") == "ego"
         self.cloud = site.get("via") == "cloud"
         self.impersonate = site.get("via") == "impersonate"
+        # 默认遵守 robots；站点显式写 robots: false 才跳过（用户决定，记在 sources.yaml note 里）
+        self.robots = site.get("robots", True) is not False
 
     def get_many(self, urls, timeout=60):
         if not urls: return []
@@ -189,9 +191,9 @@ class Fetcher:
         headers = {"User-Agent": UA, "Accept-Language": "en-US,en;q=0.9"}
 
         def one(u):
-            if not ROBOTS.allowed(u):
+            if self.robots and not ROBOTS.allowed(u):
                 return u, -1, "robots"
-            LIMITER.acquire(u, min_interval=ROBOTS.crawl_delay(u))
+            LIMITER.acquire(u, min_interval=ROBOTS.crawl_delay(u) if self.robots else None)
             try:
                 if self.impersonate and cffi_requests is not None:
                     st, body = self._impersonate_text(u, headers)
