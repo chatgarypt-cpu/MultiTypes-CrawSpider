@@ -62,3 +62,38 @@ def test_previous_partial_not_upgraded(tmp_env, monkeypatch):
     out = base_mod.collect_urls(_site(), [], 0, log, FakeFetcher(),
                                 discovered_count=3)
     assert out["status"] == "partial"
+
+
+def _queue_with_error(tmp_env, domain="s.test", err="http_404 not found"):
+    from crawler.request import RequestQueue
+    q = RequestQueue(domain, "posts")
+    q.add_many(["https://s.test/gone"], channel="sitemap")
+    req = q.next_batch(10)[0]
+    for _ in range(4):
+        q.mark_error([req.key], {req.key: err})
+    return q
+
+
+def test_dead_404_counts_as_complete(tmp_env, monkeypatch):
+    """终态错误全是 404/410（页面已删除）→ complete，而不是永远 partial。"""
+    _queue_with_error(tmp_env)
+    monkeypatch.setattr(base_mod.cursor, "load", lambda d, k="posts": _cursor("partial"))
+    saved = {}
+    monkeypatch.setattr(base_mod.cursor, "save",
+                        lambda d, k="posts", **f: (saved.update(f) or f))
+    log = type("L", (), {"info": lambda *a, **k: None})()
+    out = base_mod.collect_urls(_site(), [], 0, log, FakeFetcher(), discovered_count=1)
+    assert out["status"] == "complete"
+    assert saved.get("last_reason") == "dead_404"
+
+
+def test_dead_429_stays_partial(tmp_env, monkeypatch):
+    """终态错误是 429/5xx（限流/故障）→ 保留 partial，提示还需重试。"""
+    _queue_with_error(tmp_env, err="http_429 Too Many Requests")
+    monkeypatch.setattr(base_mod.cursor, "load", lambda d, k="posts": _cursor("partial"))
+    saved = {}
+    monkeypatch.setattr(base_mod.cursor, "save",
+                        lambda d, k="posts", **f: (saved.update(f) or f))
+    log = type("L", (), {"info": lambda *a, **k: None})()
+    out = base_mod.collect_urls(_site(), [], 0, log, FakeFetcher(), discovered_count=1)
+    assert out["status"] == "partial"

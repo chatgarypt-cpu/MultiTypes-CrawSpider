@@ -28,6 +28,24 @@ def _count(reasons, run_reasons, key):
     run_reasons[key] += 1
 
 
+def _dead_letters(domain, kind):
+    """队列里终态 error 行的错误信息（用于区分 404/410 死链与可重试故障）。"""
+    from crawler.request import RequestQueue
+    q = RequestQueue(domain, kind)
+    try:
+        rows = q.conn.execute(
+            "SELECT error FROM requests WHERE domain=? AND kind=? AND state='error'",
+            (domain, kind)).fetchall()
+    except Exception:
+        return []
+    return [str(r[0] or "") for r in rows]
+
+
+def _gone_404(errors):
+    """死信是否都是 404/410（链接已删除，不是采集失败）。"""
+    return bool(errors) and all(("404" in e) or ("410" in e) for e in errors)
+
+
 def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count=None):
     domain = site["domain"]
     channel = site.get("channel", "")
@@ -50,13 +68,20 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
         # 队列里没有待办。两种情况必须分开：
         #   发现阶段拿到 0 条 URL（504/挑战页/正则失效）→ interrupted，绝不能当"已采完"（wallis 事故）
         #   发现成功、但所有 URL 都已在盘上（nothing_new）→ complete（老游标缺 done 的站靠这条收尾）
+        dead_errs = _dead_letters(domain, kind)
         if discovered_count == 0:
             status, reason = "interrupted", "discovery_empty"
+        elif dead_errs and not _gone_404(dead_errs):
+            status, reason = "partial", "dead_letters"     # 429/5xx 等，仍需重试
         else:
-            status, reason = "complete", "nothing_new"
+            status, reason = "complete", ("dead_404" if dead_errs else "nothing_new")
         reasons[reason] += 1
-        if cur["status"] in ("partial", "blocked", "paused"):
-            status = cur["status"]             # 保留已知缺量/阻断信息，别降级成"重来"
+        if cur["status"] in ("blocked", "paused"):
+            status = cur["status"]             # 保留阻断/暂停信息，别降级成"重来"
+        elif cur["status"] == "partial" and not (dead_errs and _gone_404(dead_errs)):
+            # 之前的 partial 是"有缺量"（空页/短正文等），不能因为本次没新工作就洗成 complete；
+            # 唯一例外：剩下的终态错误全是 404/410（页面已删除）。
+            status, reason = "partial", (cur.get("last_reason") or "kept_partial")
         cur = cursor.save(domain, kind, status=status, reasons=dict(reasons),
                           discovered=discovered_count, next_page=1, total_pages=1,
                           last_reason=reason, saved=cur.get("saved", 0))
@@ -83,7 +108,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
             if status != 200:
                 errors += 1
                 _count(reasons, run_reasons, "http_%s" % status)
-                q.mark_error([key], {key: body if isinstance(body, str) else ""})
+                q.mark_error([key], {key: f"http_{status} {(body if isinstance(body, str) else '')[:200]}"})
                 continue
             row = extract_best(req.url, body, site, min_text=0)
             if row is None:
@@ -120,8 +145,11 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
         status = "paused" if (limit and saved >= limit) else "interrupted"
         last_reason = "limit" if status == "paused" else "pending"
     elif saved:
-        status = "partial" if dead else "complete"
-        last_reason = "dead_letters" if dead else ""
+        dead_errs = _dead_letters(domain, kind)
+        if dead and not _gone_404(dead_errs):
+            status, last_reason = "partial", "dead_letters"
+        else:
+            status, last_reason = "complete", ("dead_404" if dead else "")
     elif pending_start or added:
         # 队列清空但零产出（全是 no_text/403/无效行）：不是"采完了"
         status = "partial"
