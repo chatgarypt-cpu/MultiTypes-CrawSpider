@@ -134,8 +134,12 @@ def html_urls(site, fetcher, limit):
     return out[:limit] if limit else out
 
 
-def iter_sitemap_urls(site, fetcher, cap=0, chunk_children=5):
-    """Yield sitemap URLs incrementally so a 400k-URL sitemap never sits in memory."""
+def iter_sitemap_urls(site, fetcher, cap=0, chunk_children=5, failures=None):
+    """Yield sitemap URLs incrementally so a 400k-URL sitemap never sits in memory.
+
+    failures: 可选 list；非 200 的 sitemap 入口（含子图）会 append {"url","status"}，
+    由 channels/base 决定"可重试"还是"已删除"，避免一个子图 503 时整站被标 complete。
+    """
     base = site["base"]
     sm = site.get("sitemap", "/sitemap.xml")
     seen, queue = set(), [base + sm]
@@ -146,6 +150,8 @@ def iter_sitemap_urls(site, fetcher, cap=0, chunk_children=5):
         batch, queue = queue[:chunk_children], queue[chunk_children:]
         for u, status, body in fetcher.get_many(batch):
             if status != 200:
+                if failures is not None:
+                    failures.append({"url": u, "status": status})
                 continue
             locs = re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", body)
             if re.search(r"<sitemapindex", body, re.I):

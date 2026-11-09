@@ -21,11 +21,34 @@ from crawler.store import append_rows, load_known
 BATCH = int(os.environ.get("QUEUE_BATCH", "200"))
 FLUSH_EVERY = 50
 AUTH_REASONS = ("http_401", "http_403")
+RETRY_COOLDOWN = int(os.environ.get("RETRY_COOLDOWN", "900"))   # 跨运行重试临时故障前的冷却
+RETRYABLE_HTTP = {0, 408, 425, 429, 500, 502, 503, 504}
+GONE_HTTP = {404, 410}
+DISCOVERY_FAILED_MAX = 50        # cursor 里最多记 50 个失败入口，避免撑爆游标
 
 
 def _count(reasons, run_reasons, key):
     reasons[key] += 1
     run_reasons[key] += 1
+
+
+def _split_discovery_failures(failures):
+    """把发现阶段的失败入口分成"可重试"和"已消失（404/410）"两组。"""
+    retryable, gone = [], []
+    for f in failures or []:
+        try:
+            status = int(f.get("status") or 0)
+        except Exception:
+            status = 0
+        if status in GONE_HTTP:
+            gone.append(f)
+        elif str(status).startswith("5") or status in RETRYABLE_HTTP:
+            retryable.append(f)
+    return retryable, gone
+
+
+def _failed_sample(failures):
+    return [{"url": f.get("url", ""), "status": f.get("status")} for f in failures[:DISCOVERY_FAILED_MAX]]
 
 
 def _dead_letters(domain, kind):
@@ -46,18 +69,38 @@ def _gone_404(errors):
     return bool(errors) and all(("404" in e) or ("410" in e) for e in errors)
 
 
-def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count=None):
+def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count=None,
+                 discovery_failures=None):
     domain = site["domain"]
     channel = site.get("channel", "")
+    retryable_disc, gone_disc = _split_discovery_failures(discovery_failures)
+    disc_reasons = Counter("discovery_http_%s" % f.get("status") for f in (discovery_failures or []))
     cur = cursor.load(domain, kind)
     if cur["status"] == "complete":
+        # 已完成站点若本次发现阶段有可重试失败（子 sitemap 503 等），不能继续显示 complete
+        if retryable_disc:
+            reasons = Counter(cur.get("reasons") or {})
+            reasons.update(disc_reasons)
+            reasons["discovery_failed"] += 1
+            cur = cursor.save(domain, kind, status="partial", reasons=dict(reasons),
+                              discovery_failed=_failed_sample(retryable_disc),
+                              last_reason="discovery_failed")
+            log.info("reopen domain=%s reason=discovery_failed failed=%d",
+                     domain, len(retryable_disc))
+            return {"domain": domain, "channel": channel, "skipped": "reopened", "saved": 0,
+                    "status": "partial", "reasons": dict(reasons),
+                    "discovery_failed": _failed_sample(retryable_disc)}
         return {"domain": domain, "channel": channel, "skipped": "done", "saved": 0,
                 "status": "complete", "reasons": dict(cur.get("reasons") or {})}
 
     reasons = Counter(cur.get("reasons") or {})
+    reasons.update(disc_reasons)
     run_reasons = Counter()
     q = RequestQueue(domain, kind)
     q.seed_done(load_known(domain, kind), channel=channel)
+    requeued = q.retry_transient(cooldown=RETRY_COOLDOWN)
+    if requeued:
+        log.info("retry_transient domain=%s requeued=%d", domain, requeued)
     added = q.add_many(urls, channel=channel) if urls else 0
     pending_start = q.stats().get("unprocessed", 0)
     discovered = added + pending_start
@@ -82,19 +125,37 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
             # 之前的 partial 是"有缺量"（空页/短正文等），不能因为本次没新工作就洗成 complete；
             # 唯一例外：剩下的终态错误全是 404/410（页面已删除）。
             status, reason = "partial", (cur.get("last_reason") or "kept_partial")
+        if retryable_disc and status == "complete":
+            # 发现阶段有可重试失败（子 sitemap 503/超时）→ 任务保持不完整，等下次补
+            status, reason = "partial", "discovery_failed"
+            reasons["discovery_failed"] += 1
         cur = cursor.save(domain, kind, status=status, reasons=dict(reasons),
                           discovered=discovered_count, next_page=1, total_pages=1,
-                          last_reason=reason, saved=cur.get("saved", 0))
+                          last_reason=reason, saved=cur.get("saved", 0),
+                          discovery_failed=_failed_sample(retryable_disc))
         log.info("no work domain=%s reason=%s status=%s queue=%s", domain, reason, status,
                  q.stats())
         return {"domain": domain, "channel": channel, "discovered": 0, "saved": 0,
                 "errors": 0, "total": cur.get("saved", 0), "queue": q.stats(),
-                "reasons": dict(reasons), "status": status, "secs": 0.0}
+                "reasons": dict(reasons), "status": status,
+                "discovery_failed": _failed_sample(retryable_disc), "secs": 0.0}
 
     workers = int(os.environ.get("SITE_WORKERS", "4"))
     saved = errors = 0
-    buf = []
+    buf = []                                   # [(queue key, row)]，写盘成功后才标 done
     t0 = time.time()
+
+    def flush():
+        """先把整批写进 articles/urls，成功后才把队列行标 done（审查问题 1）。"""
+        nonlocal saved
+        if not buf:
+            return
+        rows = [row for _, row in buf]
+        written = append_rows(domain, rows, kind)      # 失败会抛异常：buf 不清、不标 done
+        q.mark_done([key for key, _ in buf])
+        saved += written if isinstance(written, int) else len(rows)
+        buf.clear()
+        log.info("saved=%d elapsed=%.0fs queue=%s", saved, time.time() - t0, q.stats())
 
     while True:
         want = (limit - saved - len(buf)) if limit else BATCH
@@ -121,19 +182,13 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
                 q.mark_skipped([key], why)
                 _count(reasons, run_reasons, why or "invalid_row")
                 continue
-            buf.append(row)
-            q.mark_done([key])
+            buf.append((key, row))
             if len(buf) >= FLUSH_EVERY:
-                written = append_rows(domain, buf, kind)
-                saved += written if isinstance(written, int) else len(buf)
-                buf.clear()
-                log.info("saved=%d elapsed=%.0fs queue=%s", saved, time.time() - t0, q.stats())
+                flush()
         if limit and saved + len(buf) >= limit:
             break
 
-    if buf:
-        written = append_rows(domain, buf, kind)
-        saved += written if isinstance(written, int) else len(buf)
+    flush()
 
     st = q.stats()
     unprocessed = st.get("unprocessed", 0)
@@ -162,10 +217,15 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     if saved == 0 and unprocessed == 0 and auth and auth == all_http:
         status = "blocked"                     # 403/登录墙：整批都拿不到
         last_reason = "http_401" if run_reasons.get("http_401") else "http_403"
+    if retryable_disc and status == "complete":
+        # 子 sitemap 503/超时等：其它子图有产出也不能算完整（审查问题 2）
+        status, last_reason = "partial", "discovery_failed"
+        reasons["discovery_failed"] += 1
 
     fields = dict(status=status, reasons=dict(reasons), discovered=max(discovered, discovered_count or 0),
                   saved=total_saved, next_page=1, total_pages=1, queue=st,
-                  dead_letters=dead, skipped=st.get("skipped", 0))
+                  dead_letters=dead, skipped=st.get("skipped", 0),
+                  discovery_failed=_failed_sample(retryable_disc))
     if last_reason:
         fields["last_reason"] = last_reason
     cur = cursor.save(domain, kind, **fields)
@@ -174,4 +234,5 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     return {"domain": domain, "channel": channel, "discovered": discovered,
             "saved": saved, "errors": errors, "total": total_saved, "queue": st,
             "reasons": dict(reasons), "status": status,
+            "discovery_failed": _failed_sample(retryable_disc),
             "secs": round(time.time() - t0, 1)}

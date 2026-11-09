@@ -107,6 +107,38 @@ class RequestQueue:
             [(max_retries, self.domain, self.kind, k) for k in keys])
         self.conn.commit()
 
+    RETRYABLE_MARKERS = ("http_0", "http_408", "http_425", "http_429", "http_5")
+
+    def retry_transient(self, cooldown=900):
+        """把上一轮耗尽的"临时故障"死信重新入队（跨运行恢复）。
+
+        只在错误时间超过 cooldown 后重试，避免每轮立刻打同一个坏端点；404/410/403/
+        robots 这类终态错误不动。每次重新入队会把 retries 清零，于是单次运行内仍
+        按 mark_error 的 3 次上限重试，不会无限循环。
+        """
+        now = time.time()
+        rows = self.conn.execute(
+            "SELECT key, error, updated FROM requests WHERE domain=? AND kind=? AND state='error'",
+            (self.domain, self.kind)).fetchall()
+        retry = []
+        for key, error, updated in rows:
+            if not any(m in (error or "") for m in self.RETRYABLE_MARKERS):
+                continue
+            try:
+                ts = time.mktime(time.strptime(updated, "%Y-%m-%dT%H:%M:%S"))
+            except Exception:
+                ts = 0
+            if now - ts >= cooldown:
+                retry.append(key)
+        if retry:
+            now_s = time.strftime("%Y-%m-%dT%H:%M:%S")
+            self.conn.executemany(
+                "UPDATE requests SET state='unprocessed', retries=0, updated=? "
+                "WHERE domain=? AND kind=? AND key=?",
+                [(now_s, self.domain, self.kind, k) for k in retry])
+            self.conn.commit()
+        return len(retry)
+
     def _set_state(self, keys, state, error=""):
         now = time.strftime("%Y-%m-%dT%H:%M:%S")
         self.conn.executemany(
