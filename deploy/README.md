@@ -10,6 +10,11 @@
 
 > 路径注意：仓库与 venv 路径含中文和空格，脚本里都带引号；仓库搬家后要同步改
 > plist 里的三处路径和 `deploy/collectorctl` 里的 `PY`。
+>
+> 依赖（2026-11 起）：仓库根 `pyproject.toml` + `uv sync` 生成 `.venv`；`collectorctl`
+> 优先用它、找不到再回退 `演练场（ignore)/.venv`。下面的 launchd/cron 仍在用旧
+> `演练场（ignore)/.venv`（依赖一致，可继续跑）；要统一到 `.venv` 需改 plist/crontab
+> 路径并 `launchctl bootout + bootstrap` 重载。
 
 ---
 

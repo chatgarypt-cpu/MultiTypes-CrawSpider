@@ -61,9 +61,10 @@ python3 skills/web-reverse-crawl/scripts/test_infer_api.py
 
 ## 采集器（collector/）
 
-109 个南太平洋信源的批量采集，代码在 `collector/`，说明见 [collector/README.md](collector/README.md)。
+`sources.yaml` 站点（当前 76 个）的批量采集，代码在 `collector/`，说明见 [collector/README.md](collector/README.md)。
 
+- 依赖在根 [pyproject.toml](pyproject.toml)，用 uv 管理：`uv sync` 建 `.venv`，命令 `uv run python collector/collect.py ...`，测试 `uv run pytest`；
 - 运行数据在 `data/`（每站 jsonl、游标、日志、队列状态），交付 CSV 在 `output/csv/`；
-- 看板 `python3 collector/serve.py` → http://127.0.0.1:8787/ （SSE 实时推送，可调并发 1–10）；
+- 看板 `uv run python collector/serve.py` → http://127.0.0.1:8787/ （SSE 实时推送，可调并发 1–10）；
 - 采集对象：文章、页面、媒体元数据；出口支持直连 / Browserbase 云抓取 / 浏览器隧道 / TLS 指纹；
 - 策略与调研记录见 `collector/STRATEGY.md`、`docs/research/crawl-20261027/`。
