@@ -129,6 +129,35 @@ TASKS = [
     ("dailypost.vu", "posts"),
 ]
 
+SOURCES = HERE / "sources.yaml"
+
+
+def load_tasks(sources_path=None) -> list:
+    """从 sources.yaml 生成任务表（不再依赖硬编码清单）。
+
+    - posts 全站都要；wp-api 站再加 pages/media（分页接口独立）；
+    - `disabled: true` 的站跳过（缺入口/不可访问，审查问题 3 的分类）；
+    - sources.yaml 读不到就回退常量 TASKS，保证守护仍能启动；
+    - `CRAWL_TASKS=fixed` 可强制只用硬编码清单（回滚用）。
+    """
+    if os.environ.get("CRAWL_TASKS", "").strip().lower() == "fixed":
+        return list(TASKS)
+    path = Path(sources_path) if sources_path else SOURCES
+    try:
+        import yaml
+        sites = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+    except Exception:
+        return list(TASKS)
+    out = []
+    for s in sites:
+        if not isinstance(s, dict) or not s.get("domain") or s.get("disabled"):
+            continue
+        dom = s["domain"]
+        out.append((dom, "posts"))
+        if s.get("channel") == "wp-api":
+            out += [(dom, "pages"), (dom, "media")]
+    return out or list(TASKS)
+
 
 # ---------------------------------------------------------------- 纯函数/状态
 def now_iso() -> str:
@@ -284,7 +313,7 @@ def start(key, running, data_dir=None, py=None, env=None) -> None:
 # ---------------------------------------------------------------- 主循环
 def main() -> int:
     DATA.mkdir(parents=True, exist_ok=True)
-    queue = list(dict.fromkeys(TASKS))
+    queue = list(dict.fromkeys(load_tasks()))
     running: dict = {}
     completed: list = []
     stalled: list = []
@@ -423,6 +452,14 @@ def main() -> int:
                 log(f"skip {dom} {kind} (cursor done)")
                 continue
             start(key, running)
+
+        # 2.5) 有空闲槽位就独立重排一个 stalled 任务（不再等"队列和进程都空闲"）
+        if stalled and len(running) < MAX_CONCURRENT and time.time() - last_retry >= STALLED_RETRY:
+            key = stalled.pop(0)
+            attempts.pop(key, None)
+            queue.append(key)
+            last_retry = time.time()
+            log(f"requeue stalled {key[0]} {key[1]} (slot free)")
 
         # 3) 落盘进度 + 健康快照
         if time.time() - last_state >= STATE_EVERY:

@@ -27,7 +27,9 @@
 ## 代码修复
 
 - `status.py`：`needs_config` 之前只认 `list_url`（单数），不认 `list_urls`；新配置的 html 站会误显示"待配置"。已修。
-- 未做（记录）：看板"已结束"仍等于 cursor `done`，不等于外部核对；`已核对/未核对` 列留待后续。
+- 已补（2026-11-09 审查第 3 项）：看板把「任务结束(done)」「覆盖率已核对(verified)」「缺入口或不可访问(needs_config/disabled)」
+  分开显示；7 个无入口 html 站加 `disabled/disabled_reason` 分类；verify_coverage 加口径 guard（上游总量异常小 → 口径异常，不算核对过）与缺失清单。
+  现存最新快照仍是 11-07 的旧数据，需择机跑一次 `collectorctl verify` 刷新。
 
 ## 确认口径提醒（避免再次混淆）
 

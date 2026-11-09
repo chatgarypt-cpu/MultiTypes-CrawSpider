@@ -169,6 +169,14 @@ def main():
     elif not a.all:
         sys.exit("need --site or --all")
 
+    # 人工标记 disabled 的站不参与批量/类型采集；显式 --site 仍可单独跑（便于临时验证）
+    if not a.site:
+        skipped_disabled = [s["domain"] for s in sites if s.get("disabled")]
+        sites = [s for s in sites if not s.get("disabled")]
+        if skipped_disabled:
+            print(f"skip {len(skipped_disabled)} disabled site(s): "
+                  + ", ".join(skipped_disabled), flush=True)
+
     for s in sites:
         if a.reset:
             cp = os.path.join(DATA, s["domain"], "cursor.json")
