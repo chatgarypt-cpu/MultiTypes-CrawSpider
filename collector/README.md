@@ -70,6 +70,9 @@ uv run python collector/serve.py      # http://127.0.0.1:8787/
 
 出口：`direct`（默认）/ `cloud`（Browserbase `/v1/fetch`）/ `browser`（会话隧道，过 Cloudflare）/ `impersonate`（Chrome TLS 指纹）/ `ego`（本机 Chromium，macOS）/ `playwright`（服务器用 headless Chromium，需 `uv sync --extra browser` + `python -m playwright install --with-deps chromium`）。
 
+> `ego` 是常驻 app（复用系统 Chrome 单实例，运行期间本地 Chrome 可能打不开）。用完执行
+> `scripts/stop-ego.sh` 关闭；日常采集优先 `playwright`。
+
 ## HTML 站流水线（2026-11-09）
 
 通用的「渲染抓取 → 剪枝降噪 → 结构化提取」三层里，抓取层沿用上面的出口，另外两层在
