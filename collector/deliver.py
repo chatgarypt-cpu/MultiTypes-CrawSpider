@@ -205,7 +205,7 @@ def _status_note(domain, counts, total, coverage, missing, skip_keys) -> tuple[s
     if missing > 0:
         return "有残差", "与独立总量口径有差额，见 residuals.csv"
     if coverage is None:
-        return "无法验证", "无独立总量源"
+        return "入口窗口", "无全站总量（按入口范围采集，非漏采）"
     return "完成", ""
 
 
@@ -262,9 +262,9 @@ def _verdict(channel: str) -> str:
 def build_residuals(coverage_payload, data_dir) -> list[dict]:
     """残差 = 覆盖率快照 expected 与当前 urls 行数的差额；无总量源的站点单独标注。
 
-    只输出有缺口的 kind（missing > 0）；快照里无法验证的站点输出一行
-    verdict=无法验证（expected/missing/ratio 留空）。排序：缺量大的在前，
-    无法验证的在最后。
+    只输出有缺口的 kind（missing > 0）；快照里无独立总量的站点输出一行
+    verdict=入口窗口（expected/missing/ratio 留空）。排序：缺量大的在前，
+    入口窗口的在最后。
     """
     rows = []
     for rec in (coverage_payload or {}).get("report", []):
@@ -293,7 +293,7 @@ def build_residuals(coverage_payload, data_dir) -> list[dict]:
             rows.append({
                 "domain": domain, "kind": "posts", "got": counts["posts"],
                 "expected": "", "missing": "", "ratio": "",
-                "channel": channel, "verdict": "无法验证（无独立总量源）", "sampled": "",
+                "channel": channel, "verdict": "入口窗口（无独立总量源）", "sampled": "",
             })
     rows.sort(key=lambda r: (r["missing"] == "", -(r["missing"] or 0)))
     return rows
@@ -392,7 +392,7 @@ def render_readme(date: str, manifest, residuals, coverage_payload, coverage_pat
         "| 状态 | 站数 |",
         "|---|---|",
     ]
-    for status in ("完成", "有残差", "无法验证", "无数据", "暂停"):
+    for status in ("完成", "有残差", "入口窗口", "无数据", "暂停"):
         if status in by_status:
             lines.append(f"| {status} | {by_status[status]} |")
     lines += [
