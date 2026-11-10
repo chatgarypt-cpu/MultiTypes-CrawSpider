@@ -45,10 +45,15 @@ def list_url(site, kind, page, per=PER):
 
 
 def fetch_pages(site, kind, log):
-    """逐页拉取 REST 列表，yield 每一页的条目（自动使用 rest_route / no_embed 配置）。"""
+    """逐页拉取 REST 列表，yield 每一页的条目（自动使用 rest_route / no_embed 配置）。
+
+    注意：不能用"本页不足 per_page 条"判断结束——fbcnews 的 media 第 1 页只有 91 条、
+    但 X-WP-TotalPages=1925。优先用响应头 X-WP-TotalPages 判断末页。
+    """
+    total_pages = None
     for page in range(1, MAX_PAGES + 1):
         url = list_url(site, kind, page)
-        st, body, _hdr = _get(None, url, timeout=90, headers=headers_for(site))
+        st, body, hdr = _get(None, url, timeout=90, headers=headers_for(site))
         if st != 200:
             log(f"  page {page} http={st} -> stop")
             break
@@ -56,8 +61,15 @@ def fetch_pages(site, kind, log):
         if not isinstance(data, list):
             log(f"  page {page} non-list -> stop")
             break
+        hdr = hdr or {}
+        tp = hdr.get("X-WP-TotalPages") or hdr.get("x-wp-totalpages")
+        if tp and str(tp).isdigit():
+            total_pages = int(tp)
         yield page, data
-        if len(data) < PER:
+        if total_pages:
+            if page >= total_pages:
+                break
+        elif len(data) == 0:
             break
 
 
