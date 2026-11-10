@@ -478,8 +478,8 @@
   lang: en-US
   type: 政府网站
   channel: wp-api
+  api: rest_route           # /wp-json/ 被 WAF 挡 404，?rest_route= 可用（X-WP-Total=151）
   base: https://www.mnre.gov.ws
-  api: rest_route
 - domain: www.wibdi.ws
   name: Women in Business Development Inc.
   country: Samoa, Independent State of
