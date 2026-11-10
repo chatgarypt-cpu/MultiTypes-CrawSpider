@@ -147,7 +147,7 @@ def test_manifest_includes_unconfigured_site_dirs(env):
     gamma = [r for r in manifest if r["domain"] == "gamma.test"]
     assert gamma and gamma[0]["name"] == ""
     assert "未在 sources.yaml 配置" in gamma[0]["note"]
-    assert gamma[0]["status"] == "无法验证"     # 无覆盖率记录
+    assert gamma[0]["status"] == "入口窗口"     # 无覆盖率记录
 
 
 def test_residuals_quantified_and_unverifiable(env):
@@ -172,7 +172,7 @@ def test_residuals_quantified_and_unverifiable(env):
     # 无法验证：expected/missing/ratio 留空，排在最后
     unver = by_key[("delta.test", "posts")]
     assert unver["expected"] == "" and unver["missing"] == ""
-    assert "无法验证" in unver["verdict"]
+    assert "入口窗口" in unver["verdict"]
     assert rows[-1]["domain"] == "delta.test"
     # 残差按缺量从大到小
     quantified = [int(r["missing"]) for r in rows if r["missing"] != ""]
@@ -198,7 +198,7 @@ def test_no_coverage_warns_but_still_writes(env, capsys):
     assert coverage["report"] == [] and coverage["source"] is None
     manifest = read_csv(dd / "site_manifest.csv")
     assert manifest[0]["coverage"] == ""
-    assert manifest[0]["status"] == "无法验证"
+    assert manifest[0]["status"] == "入口窗口"
 
 
 def test_date_without_snapshot_falls_back_to_latest(env, capsys):
