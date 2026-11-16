@@ -2,7 +2,9 @@ name: Publish server package
 
 on:
   push:
+    branches: ['deploy/centos8']
     tags: ['server-v*']
+    paths: ['.github/workflows/publish-server.yml']
 
 permissions:
   contents: write
@@ -19,14 +21,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          if [[ "$GITHUB_REF_TYPE" == branch ]]; then
+            version="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+            tag="server-v$version"
+            git fetch --depth=1 origin "refs/tags/$tag"
+            git switch --detach FETCH_HEAD
+          fi
           if git cat-file -p HEAD | grep '^parent '; then
             echo 'The server tag must point to a standalone release snapshot.' >&2
             exit 1
           fi
           test "$(cat collector/sources.yaml)" = '[]'
-          package="MultiTypes-CrawSpider-$GITHUB_REF_NAME"
+          package="MultiTypes-CrawSpider-$tag"
           output="$(mktemp -d)"
           git archive --format=tar.gz --prefix="$package/" --output="$output/$package.tar.gz" HEAD
           (cd "$output" && sha256sum "$package.tar.gz" > SHA256SUMS)
-          gh release create "$GITHUB_REF_NAME" "$output/$package.tar.gz" "$output/SHA256SUMS" \
-            --verify-tag --title "$GITHUB_REF_NAME" --notes-file deploy/server-release.md
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" "$output/$package.tar.gz" "$output/SHA256SUMS" \
+              --verify-tag --title "$tag" --notes-file deploy/server-release.md
+          fi
