@@ -4,14 +4,15 @@ from urllib.parse import urlsplit, urlunsplit
 
 from crawler.request import canonical_key
 
-# per-kind body threshold: media rows carry no article text, pages are often short
-MIN_TEXT = {"posts": 120, "pages": 60, "media": 0}
+# 2026-11-12 规则：短正文不再丢弃，采元数据即可（url/title/date 等）。
+# 仍保留 per-site min_text 覆盖能力；需要恢复质量门槛时在 sources.yaml 配 min_text。
+MIN_TEXT = {"posts": 0, "pages": 0, "media": 0}
 
 
 def threshold(site, kind):
     if site and site.get("min_text") is not None:
         return int(site["min_text"])
-    return MIN_TEXT.get(kind, 60)
+    return MIN_TEXT.get(kind, 0)
 
 
 def normalize(row, site=None):

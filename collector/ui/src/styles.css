@@ -311,3 +311,51 @@ tbody tr:hover td { background: var(--surface-sunken); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Domain entry and durable web jobs share the existing dashboard tokens. */
+.crawl-panel { margin-bottom: 28px; }
+.eyebrow { font-size: 12px; color: var(--accent); font-weight: 600; }
+.crawl-intro h2 { margin: 8px 0 10px; font-size: 28px; letter-spacing: -.03em; }
+.crawl-intro p, .crawl-submit p, .job-scope, .legacy-heading p { color: var(--text-2); font-size: 13px; line-height: 1.7; }
+.crawl-form { margin-top: 24px; }
+.crawl-form label { display: block; margin-bottom: 10px; font-size: 14px; font-weight: 600; }
+.crawl-form label span { margin-left: 8px; font-size: 12px; color: var(--text-2); font-weight: 400; }
+.crawl-form textarea { display: block; width: 100%; box-sizing: border-box; resize: vertical; min-height: 112px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); font: inherit; line-height: 1.6; color: var(--text); }
+.crawl-form textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.crawl-submit { display: flex; gap: 20px; align-items: center; justify-content: space-between; margin-top: 10px; }
+.crawl-submit p { margin: 0; }
+.crawl-submit .button-primary { flex-shrink: 0; height: 40px; padding: 0 22px; }
+.submission-results { margin-top: 18px; font-size: 13px; }
+.submission-results ul { padding: 0; list-style: none; }
+.submission-results li { display: flex; flex-wrap: wrap; gap: 12px; padding: 6px 0; overflow-wrap: anywhere; }
+.submission-results li[data-invalid="true"], .job-error { color: var(--bad); }
+.job-empty { padding: 28px 0; border-top: 1px solid var(--line); color: var(--text-2); font-size: 14px; }
+.job-list { border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; }
+.crawl-job { padding: 20px 24px; }
+.crawl-job + .crawl-job { border-top: 1px solid var(--line); }
+.job-title { display: flex; gap: 20px; justify-content: space-between; align-items: baseline; }
+.job-title h3 { font-size: 15px; margin: 0; overflow-wrap: anywhere; min-width: 0; }
+.job-state { flex-shrink: 0; color: var(--text-2); font-size: 12px; }
+.job-state[data-state="running"] { color: var(--accent); }
+.job-state[data-state="finished"] { color: var(--ok); }
+.job-state[data-state="failed"], .job-state[data-state="partial"] { color: var(--warn); }
+.job-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 12px 0; color: var(--text-2); font-size: 12px; }
+.job-meta strong { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+.job-error, .crawl-job details { font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.job-actions { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; margin-top: 14px; }
+.job-actions a { color: var(--accent); font-size: 12px; text-decoration: none; overflow-wrap: anywhere; }
+.job-actions a:hover { text-decoration: underline; }
+.legacy-heading { margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--line); }
+.legacy-heading h2 { font-size: 18px; }
+@media (max-width: 600px) {
+  .topbar { flex-wrap: wrap; height: auto; padding-top: 14px; padding-bottom: 14px; }
+  .topbar-right { flex-wrap: wrap; gap: 12px; }
+  .crawl-submit { align-items: stretch; flex-direction: column; gap: 12px; }
+  .crawl-intro h2 { font-size: 24px; }
+  .crawl-job { padding: 18px 16px; }
+  .job-title { gap: 10px; }
+}
+
+.coverage-result { min-width: 140px; max-width: 220px; white-space: normal; }
+.coverage-result small { display: block; font-size: 11px; color: var(--text-3); line-height: 1.5; margin-top: 3px; }
+.coverage-detail { overflow-wrap: anywhere; }

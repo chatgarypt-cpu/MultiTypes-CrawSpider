@@ -1,204 +1,215 @@
 #!/usr/bin/env python3
-"""Static dashboard + control endpoints (concurrency, ad-hoc crawl)."""
-import json, os, shutil, subprocess, sys, time, uuid
-from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+"""Portable dashboard + durable crawl queue. See deploy/README.md."""
+import argparse
+import base64
+import fcntl
+import hmac
+import json
+import mimetypes
+import os
+from pathlib import Path
+import signal
+import threading
+import time
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+from urllib.parse import unquote, urlsplit
+
+from crawler.config import DATA, ROOT
 import status as status_mod
+import web_jobs
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-CFG = os.path.join(ROOT, "data", "queue_config.json")
-JOBS = os.path.join(ROOT, "data", "jobs.json")
-PROCS = {}                                   # job_id -> Popen, so finished children get reaped
-LOGS = os.path.join(ROOT, "data", "jobs")
-UI = os.path.join(ROOT, "ui", "dist")
-
-_STATUS_CACHE = {"at": 0.0, "payload": ""}
+UI = Path(ROOT) / 'ui' / 'dist'
+CFG = Path(DATA) / 'queue_config.json'
+_STATUS_CACHE = {'at': 0, 'payload': ''}
+STATUS_LOCK = threading.Lock()
 
 
-def cached_status(ttl=3.0):
-    """build_status() 要扫全部站点的 urls.txt，很贵；多客户端/高频 SSE 共用一份 3 秒缓存。"""
-    now = time.time()
-    if not _STATUS_CACHE["payload"] or now - _STATUS_CACHE["at"] >= ttl:
-        _STATUS_CACHE["payload"] = json.dumps(status_mod.build_status(), ensure_ascii=False)
-        _STATUS_CACHE["at"] = now
-    return _STATUS_CACHE["payload"]
+def cached_status():
+    with STATUS_LOCK:
+        if time.time() - _STATUS_CACHE['at'] > 3:
+            _STATUS_CACHE.update(at=time.time(), payload=json.dumps(status_mod.build_status(), ensure_ascii=False))
+        return _STATUS_CACHE['payload']
 
-class H(SimpleHTTPRequestHandler):
-    protocol_version = "HTTP/1.1"     # SSE needs keep-alive semantics; HTTP/1.0 closes per response
-    def __init__(self, *a, **kw): super().__init__(*a, directory=ROOT, **kw)
-    def _html(self, text):
-        b = text.encode()
-        self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
 
-    def _json(self, obj):
-        b = json.dumps(obj).encode()
-        self.send_response(200); self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
-    def translate_path(self, path):
-        clean = path.split("?")[0].split("#")[0]
-        if clean.startswith("/ui/"):
-            rel = clean[len("/ui/"):] or "index.html"
-            return os.path.join(UI, rel)
-        if clean.startswith("/csv/"):
-            name = os.path.basename(clean[len("/csv/"):])
-            return os.path.join(ROOT, "data", "csv", name)
-        return super().translate_path(path)
+class H(BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
+
+    def send(self, code, body, mime='application/json; charset=utf-8', headers=None):
+        if not isinstance(body, bytes):
+            body = body.encode()
+        self.send_response(code)
+        self.send_header('Content-Type', mime)
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('Cache-Control', 'no-store')
+        for k, v in (headers or {}).items():
+            self.send_header(k, v)
+        self.end_headers()
+        if self.command != 'HEAD':
+            self.wfile.write(body)
+
+    def json(self, obj, code=200):
+        self.send(code, json.dumps(obj, ensure_ascii=False))
+
+    def authorized(self):
+        password = os.environ.get('CRAWL_WEB_PASSWORD', '')
+        if password:
+            expected = 'Basic ' + base64.b64encode(('admin:' + password).encode()).decode()
+            if not hmac.compare_digest(self.headers.get('Authorization', ''), expected):
+                self.send(401, '需要登录', 'text/plain; charset=utf-8', {'WWW-Authenticate': 'Basic realm="Crawler", charset="UTF-8"'})
+                return False
+        return True
+
+    def file(self, root, relative, download=False):
+        root = root.resolve()
+        path = (root / unquote(relative)).resolve()
+        if not path.is_relative_to(root) or not path.is_file():
+            return self.json({'error': '文件不存在'}, 404)
+        mime = mimetypes.guess_type(path.name)[0] or 'application/octet-stream'
+        if path.suffix == '.log':
+            mime = 'text/plain; charset=utf-8'
+        self.send_response(200)
+        self.send_header('Content-Type', mime)
+        self.send_header('Content-Length', str(path.stat().st_size))
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        if download:
+            self.send_header('Content-Disposition', 'attachment; filename="' + path.name.replace('"', '') + '"')
+        self.end_headers()
+        with path.open('rb') as f:
+            import shutil
+            shutil.copyfileobj(f, self.wfile)
 
     def do_GET(self):
-        if self.path in ("/", "/index.html", "/dashboard.html") or self.path == "/ui":
-            self.send_response(302)
-            self.send_header("Location", "/ui/")
-            self.send_header("Content-Length", "0")
-            self.end_headers()
+        path = urlsplit(self.path).path
+        if path == '/healthz':
+            return self.json({'ok': True, 'ui_ready': (UI / 'index.html').is_file()})
+        if not self.authorized():
             return
-        if self.path == "/api/config":
-            return self._json(read_cfg())
-        if self.path == "/api/jobs":
-            return self.do_GET_jobs()
-        if self.path == "/crawl":
-            return self._html(CRAWL_PAGE)
-        if self.path == "/api/stream":
-            return self._stream()
-        return super().do_GET()
+        if path in ('/', '/ui', '/crawl', '/index.html', '/dashboard.html'):
+            return self.send(302, '', headers={'Location': '/ui/'})
+        if path == '/api/config':
+            return self.json(web_jobs.read(CFG, {'concurrency': 4}))
+        if path == '/api/jobs':
+            with web_jobs.LOCK:
+                return self.json({'jobs': web_jobs.jobs()})
+        if path == '/api/stream':
+            return self.stream()
+        if path.startswith('/api/jobs/'):
+            bits = path.split('/')
+            try:
+                directory = web_jobs.job_dir(bits[3])
+                if len(bits) == 5 and bits[4] == 'log':
+                    return self.file(directory, 'run.log')
+                if len(bits) == 6 and bits[4] == 'files':
+                    return self.file(directory / 'data' / 'csv', bits[5], True)
+            except ValueError:
+                pass
+        if path.startswith('/ui/'):
+            return self.file(UI, path[4:] or 'index.html')
+        if path.startswith('/csv/'):
+            return self.file(Path(DATA) / 'csv', path[5:], True)
+        return self.json({'error': '页面不存在'}, 404)
 
-    def _stream(self):
-        """Server-Sent Events: push status (cached a few seconds) until the client goes away."""
+    def stream(self):
         self.send_response(200)
-        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
-        self.send_header("Cache-Control", "no-cache")
-        self.send_header("X-Accel-Buffering", "no")
+        self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
+        self.send_header('Cache-Control', 'no-cache')
+        self.send_header('X-Accel-Buffering', 'no')
         self.end_headers()
         try:
-            while True:
-                payload = cached_status()
-                self.wfile.write(f"data: {payload}\n\n".encode())
+            while not self.server.stop.is_set():
+                self.wfile.write(f'data: {cached_status()}\n\n'.encode())
                 self.wfile.flush()
-                time.sleep(2)
+                self.server.stop.wait(2)
         except (BrokenPipeError, ConnectionResetError):
-            return
-    def do_GET_jobs(self):
-        return self._json({"jobs": load_jobs()})
+            pass
 
     def do_POST(self):
-        if self.path == "/api/crawl":
-            return self.start_crawl()
-        if self.path != "/api/concurrency":
-            return self.send_error(404)
+        self.close_connection = True  # rejected bodies must not poison a keep-alive connection
+        if not self.authorized():
+            return
+        # JSON-only and same-origin requests prevent cross-site form submissions.
+        origin = self.headers.get('Origin')
+        if origin and urlsplit(origin).netloc != self.headers.get('Host'):
+            return self.json({'error': '不允许跨站提交'}, 403)
+        if self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
+            return self.json({'error': '需要 JSON 请求'}, 415)
         try:
-            n = int(json.loads(self.rfile.read(int(self.headers["Content-Length"])))["n"])
-        except Exception:
-            return self.send_error(400)
-        os.makedirs(os.path.dirname(CFG), exist_ok=True)
-        json.dump({"concurrency": max(1, min(10, n))}, open(CFG, "w"))
-        self._json({"ok": True, **read_cfg()})
-    # ---------- ad-hoc crawl ----------
-    def start_crawl(self):
-        try:
-            body = json.loads(self.rfile.read(int(self.headers["Content-Length"])) or b"{}")
-        except Exception:
-            return self.send_error(400)
-        url = (body.get("url") or "").strip()
-        if not url:
-            return self._json({"ok": False, "error": "url required"})
-        mode = body.get("mode") or "site"          # site | article
-        limit = int(body.get("limit") or 20)
-        job_id = uuid.uuid4().hex[:8]
-        os.makedirs(LOGS, exist_ok=True)
-        log_path = os.path.join(LOGS, job_id + ".log")
-        target = os.path.join(ROOT, "collect.py")
-        args = ["--url", url] if mode == "article" else ["--site-url", url, "--limit", str(limit)]
-        uv = shutil.which("uv")
-        if uv:
-            cmd = [uv, "run", "--quiet", "--with", "requests", "--with", "pyyaml",
-                   "--with", "trafilatura", "--with", "curl_cffi", "python3", target] + args
-        else:
-            cmd = [sys.executable, target] + args
-        env = dict(os.environ, PYTHONPATH=ROOT)
-        with open(log_path, "w") as log:
-            proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, cwd=ROOT, env=env)
-        PROCS[job_id] = proc
-        jobs = load_jobs()
-        jobs[job_id] = {"id": job_id, "url": url, "mode": mode, "limit": limit, "pid": proc.pid,
-                        "status": "running", "started": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                        "log": os.path.relpath(log_path, ROOT)}
-        save_jobs(jobs)
-        self._json({"ok": True, "job": jobs[job_id]})
+            length = int(self.headers.get('Content-Length', 0))
+            if length < 0 or length > 1024 * 1024:
+                self.close_connection = True
+                return self.json({'error': '请求正文不能超过 1 MB，请分次提交'}, 413)
+            body = json.loads(self.rfile.read(length))
+            if not isinstance(body, dict):
+                raise ValueError('请求格式不正确')
+            if self.path == '/api/concurrency':
+                n = body.get('n')
+                if not isinstance(n, int) or isinstance(n, bool) or n < 1:
+                    raise ValueError('并发数必须为正整数')
+                web_jobs.write(CFG, {'concurrency': n})
+                return self.json({'ok': True, 'concurrency': n})
+            if self.path == '/api/crawl':
+                values = body.get('urls', [body.get('url', '')])
+                return self.json({'ok': True, 'results': web_jobs.submit(values)}, 202)
+            if self.path.startswith('/api/jobs/'):
+                parts = self.path.split('/')
+                if len(parts) == 5 and parts[4] == 'resume':
+                    web_jobs.resume(parts[3])
+                    return self.json({'ok': True})
+                if len(parts) == 5 and parts[4] == 'stop':
+                    with web_jobs.LOCK:
+                        directory = web_jobs.job_dir(parts[3])
+                        job = web_jobs.read(directory / 'job.json')
+                        if job.get('status') == 'queued':
+                            job.update(status='interrupted', stage='已停止')
+                            web_jobs.write(directory / 'job.json', job)
+                        elif web_jobs.held(directory / 'worker.lock'):
+                            os.kill(int((directory / 'worker.pid').read_text()), signal.SIGTERM)
+                        else:
+                            raise ValueError('任务不在运行，请稍后刷新')
+                    return self.json({'ok': True})
+            return self.json({'error': '接口不存在'}, 404)
+        except (ValueError, OSError, TypeError) as exc:
+            return self.json({'error': str(exc)}, 400)
 
-    def log_message(self, *a): pass
+    def log_message(self, *args):
+        pass
 
-def load_jobs():
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--host', default=os.getenv('CRAWL_HOST', '127.0.0.1'))
+    parser.add_argument('--port', type=int, default=int(os.getenv('CRAWL_PORT', '8787')))
+    args = parser.parse_args()
+    if args.host not in ('localhost', '127.0.0.1', '::1') and not os.getenv('CRAWL_WEB_PASSWORD'):
+        parser.error('对外监听必须设置 CRAWL_WEB_PASSWORD；登录用户名为 admin')
+    if not (UI / 'index.html').exists():
+        parser.error('前端尚未构建，请先运行 deploy/start-web（或 npm --prefix collector/ui run build）')
+    Path(DATA).mkdir(parents=True, exist_ok=True)
+    lock = open(Path(DATA) / 'web-server.lock', 'a')
     try:
-        jobs = json.load(open(JOBS))
-    except Exception:
-        jobs = {}
-    for j in jobs.values():                     # reconcile with real process state
-        if j.get("status") == "running":
-            proc = PROCS.get(j["id"])
-            try:
-                if proc is not None:
-                    code = proc.poll()
-                    if code is not None:
-                        j["status"] = "finished" if code == 0 else "failed"
-                        j.setdefault("finished", time.strftime("%Y-%m-%dT%H:%M:%S"))
-                else:
-                    os.kill(j["pid"], 0)         # not our child (server restarted): best effort
-            except OSError:
-                j["status"] = "finished"
-                j.setdefault("finished", time.strftime("%Y-%m-%dT%H:%M:%S"))
-            except Exception:
-                pass
-    return jobs
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        parser.error('此数据目录已有网页服务运行，请使用现有服务或选择另一数据目录')
+    server = ThreadingHTTPServer((args.host, args.port), H)
+    server.daemon_threads = True
+    server.stop = threading.Event()
+    threading.Thread(target=web_jobs.scheduler, args=(server.stop,), daemon=True).start()
+    from verify_coverage import refresh_registered
+    threading.Thread(target=refresh_registered, args=(server.stop,), daemon=True).start()
+    print(f'采集页面：http://{args.host}:{server.server_port}/  数据目录：{DATA}', flush=True)
+    def shutdown(*_):
+        server.stop.set()
+        threading.Thread(target=server.shutdown, daemon=True).start()
+    signal.signal(signal.SIGTERM, shutdown)
+    signal.signal(signal.SIGINT, shutdown)
+    try:
+        server.serve_forever()
+    finally:
+        server.stop.set()
+        server.server_close()
+        lock.close()
 
 
-def save_jobs(jobs):
-    os.makedirs(os.path.dirname(JOBS), exist_ok=True)
-    json.dump(jobs, open(JOBS, "w"), ensure_ascii=False, indent=1)
-
-
-def read_cfg():
-    try: return json.load(open(CFG))
-    except Exception: return {"concurrency": 4}
-
-
-
-
-CRAWL_PAGE = """<!doctype html><meta charset="utf-8"><title>启动采集</title>
-<style>body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:760px;margin:48px auto;padding:0 20px;color:#1d1d1f}
-h1{font-size:24px;letter-spacing:-.02em}input,select,button{font:inherit;padding:8px 10px;border:1px solid #d2d2d7;border-radius:8px}
-input{width:100%;box-sizing:border-box}button{background:#0071e3;color:#fff;border:0;padding:9px 16px;border-radius:980px;cursor:pointer}
-.row{display:flex;gap:10px;margin:12px 0}table{width:100%;border-collapse:collapse;margin-top:18px;font-size:13px}
-td,th{text-align:left;padding:7px 8px;border-bottom:1px solid #f0f0f2}pre{background:#f5f5f7;padding:10px;border-radius:8px;overflow:auto;font-size:12px}
-</style>
-<h1>启动采集</h1>
-<div class="row"><input id="url" placeholder="https://example.com 或 https://example.com/article"></div>
-<div class="row">
-  <select id="mode"><option value="site">整站（自动识别 sitemap/RSS/API）</option><option value="article">单篇文章</option></select>
-  <input id="limit" type="number" value="20" style="width:90px" title="整站抓取条数上限">
-  <button onclick="start()">开始</button>
-</div>
-<table id="jobs"><tr><th>任务</th><th>URL</th><th>状态</th><th>开始</th><th>日志</th></tr></table>
-<script>
-async function start(){
-  const url=document.getElementById('url').value.trim();
-  if(!url){alert('请输入网址');return;}
-  const r=await fetch('/api/crawl',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({url,mode:document.getElementById('mode').value,limit:+document.getElementById('limit').value})});
-  const j=await r.json(); if(!j.ok) alert(j.error||'失败'); refresh();
-}
-async function refresh(){
-  const d=await (await fetch('/api/jobs')).json();
-  const t=document.getElementById('jobs');
-  t.innerHTML='<tr><th>任务</th><th>URL</th><th>状态</th><th>开始</th><th>日志</th></tr>';
-  Object.values(d.jobs).sort((a,b)=>b.started.localeCompare(a.started)).forEach(j=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${j.id}</td><td>${j.url}</td><td>${j.status}</td><td>${j.started}</td>
-      <td><a href="/data/${j.log}" target="_blank">log</a></td>`;
-    t.appendChild(tr);
-  });
-}
-refresh(); setInterval(refresh, 5000);
-</script>"""
-
-
-if __name__ == "__main__":
-    ThreadingHTTPServer(("127.0.0.1", 8787), H).serve_forever()
+if __name__ == '__main__':
+    main()

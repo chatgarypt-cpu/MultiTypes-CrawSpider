@@ -5,6 +5,11 @@
   type: 政府网站
   channel: wp-api
   base: https://www.palaugov.pw
+  wp_types:
+    lsvr_document: wp/v2/lsvr_document
+    lsvr_notice: wp/v2/lsvr_notice
+    lsvr_listing: wp/v2/lsvr_listing
+    lsvr_event: wp/v2/lsvr_event
 - domain: islandtimes.org
   name: Island Times
   country: Palau, Republic of
@@ -56,6 +61,9 @@
   channel: wp-api
   base: https://www.thenational.com.pg
 - domain: www.postcourier.com.pg
+  wp_types:
+    archive_pdf: wp/v2/archive_pdf
+    web-story: web-stories/v1/web-story
   name: Post-Courier
   country: Papua New Guinea
   lang: en-US
@@ -71,6 +79,8 @@
   base: https://emtv.com.pg
   via: impersonate
 - domain: www.transparencypng.org.pg
+  wp_types:
+    executive-team: wp/v2/executive-team
   name: Transparency International PNG
   country: Papua New Guinea
   lang: en-US
@@ -98,13 +108,31 @@
   base: https://www.upng.ac.pg
   list_urls:
   - /announcements?start={page}
+  - /news?start={page}
   page_step: 6
-  pages: 6                 # 实测分页 start=0,6,...,30 共 6 页（36 条公告），12 页是浪费
-  link_pattern: '/announcements/\d+-'
-  noise_gate: 0.65         # 文章页导航链接多（link_ratio≈0.57），默认 0.35 会误杀；列表页≈0.73
-  via: ego
-  ego_wait_ms: 3000
-  note: "2026-11-09 直连会被 Cloudflare JS 挑战（One moment, please）；改 via: ego 本地浏览器，加载后等 3s。分页 6 页、noise_gate 0.65 是按实测 link_ratio 调的（文章 0.57 / 列表 0.73）"
+  pages: 10
+  link_pattern: '/(?:announcements|news)/\d+-[^/]+$'
+  noise_gate: 0.65
+  via: camoufox
+  camoufox_wait_ms: 8000
+  headless: true
+  note: "2026-11-12 Cloudflare 卡 Chromium headless；Camoufox 实测 4/4（upng 64KB 真页面），走 camoufox 通道"
+  seed_urls:
+  - /about-upng/university-s-executive-leadership
+  - /about-upng/history
+  - /about-upng/vision-mission-statement
+  - /about-upng/welcome
+  - /about-upng/graduate-profile
+  - /about-upng/career-opportunities
+  - /about-upng/facilities-services/information-communication-technology
+  - /about-upng/facilities-services/library-services
+  - /about-upng/facilities-services/student-services
+  - /about-upng/facilities-services/uniforce-security-services
+  - /about-upng/facilities-services/university-bookshop
+  - /about-upng/facilities-services/public-relations-event-management
+  - /about-upng/facilities-services/physical-facilities-management
+  - /about-upng/facilities-services/health-services
+
 - domain: www.pngimr.org.pg
   name: PNG Institute of Medical Research
   country: Papua New Guinea
@@ -122,7 +150,10 @@
   feed: /index.php/news-events/news?format=feed&type=rss&start={start}
   page_step: 10
   pages: 50
-  via: direct
+  via: impersonate
+  headless: true
+  playwright_wait_ms: 3000
+  note: "2026-11-15 RSS 经 impersonate 可读，复检分页入口返回的 270 条均已保存；无可用 sitemap，不能证明历史全量。"
 - domain: www.mvariety.com
   name: Marianas Variety
   country: Commonwealth of the Northern Mariana Islands
@@ -145,16 +176,6 @@
   via: direct
   api: rest_route
   wp_fields: id,date,modified,link,title,content,author,featured_media,categories
-- domain: minapacific.org
-  name: Marianas Islands Nature Alliance
-  country: Commonwealth of the Northern Mariana Islands
-  lang: en-US
-  type: 智库
-  channel: html
-  base: https://minapacific.org
-  disabled: true
-  disabled_reason: "老 ASP 站，文章链接为 javascript:void(0)，静态 HTML 无详情入口"
-  note: "文章链接是 javascript:void(0)（老 ASP 站），静态 HTML 拿不到详情页；需要浏览器渲染或接口方案"
 - domain: dcrm.gov.mp
   name: CNMI Division of Coastal Resources Management
   country: Commonwealth of the Northern Mariana Islands
@@ -177,6 +198,35 @@
   noise_gate: true
   via: direct
   note: "2026-11 实测 /proanews 列表分页 start=6/12/…，RSS 只有 10 条窗口；分类页 /proanews/campus-advisories 由 noise_gate 丢弃"
+  seed_urls:
+  - https://www.marianas.edu/
+  - https://www.marianas.edu/admissions
+  - https://www.marianas.edu/testingservices
+  - https://www.marianas.edu/tuition-fees
+  - https://www.marianas.edu/cost-attendance
+  - https://www.marianas.edu/fao
+  - https://www.marianas.edu/scholarships
+  - https://www.marianas.edu/schoolofbusiness
+  - https://www.marianas.edu/schoolofed
+  - https://www.marianas.edu/crimjustice
+  - https://www.marianas.edu/lang-humanities
+  - https://www.marianas.edu/liberalarts
+  - https://www.marianas.edu/nursing
+  - https://www.marianas.edu/science-math-health-and-athletics
+  - https://www.marianas.edu/nrm
+  - https://www.marianas.edu/nrm/stowe
+  - https://www.marianas.edu/ssfa
+  - https://www.marianas.edu/pla
+  - https://www.marianas.edu/exploreprograms
+  - https://www.marianas.edu/academic-calendar/2026-fall/
+  - https://www.marianas.edu/advising
+  - https://www.marianas.edu/courseguides
+  - https://www.marianas.edu/catalog
+  - https://www.marianas.edu/courseschedules
+  - https://www.marianas.edu/projectproa
+  - https://www.marianas.edu/lss
+  - https://www.marianas.edu/career
+
 - domain: www.fisheries.noaa.gov
   name: NOAA Pacific Islands Fisheries Science Center
   country: Commonwealth of the Northern Mariana Islands
@@ -186,7 +236,11 @@
   base: https://www.fisheries.noaa.gov
   sitemap: /sitemap.xml
   url_filter: /pacific-islands/
+  disabled: true
+  disabled_reason: "非本地主体（美国 NOAA），按 2026-11-12 规则不采集"
 - domain: www.wpcouncil.org
+  wp_types:
+    tribe_events: wp/v2/tribe_events
   name: Western Pacific Regional Fishery Management Council
   country: Commonwealth of the Northern Mariana Islands
   lang: en-US
@@ -205,15 +259,13 @@
   country: French Polynesia
   lang: fr-FR
   type: 新闻
-  channel: html
+  channel: sitemap
   base: https://la1ere.franceinfo.fr
   via: direct
-  # 只保留太平洋频道（本项目范围）；首页混有全法/加勒比内容，故不抓
-  list_urls:
-  - https://la1ere.franceinfo.fr/polynesie/
-  - https://la1ere.franceinfo.fr/wallisfutuna/
-  - https://la1ere.franceinfo.fr/wallisfutuna/wallis
+  sitemap: /ftv_sitemap.xml
+  url_filter: '/(?:polynesie|wallisfutuna)/[^"]*-\d{5,}\.html$'
   link_pattern: '/(?:polynesie|wallisfutuna)/[^"]*-\d{5,}\.html$'
+  note: "2026-11-12 改全站本地归档：robots 给出 /ftv_sitemap.xml（20 个子图），只筛 Polynésie/Wallis 文章"
 - domain: www.coralgardeners.org
   name: Coral Gardeners
   country: French Polynesia
@@ -234,11 +286,11 @@
   list_urls:
   - /toutes-les-actualites?page={page}
   page_step: 1
-  pages: 6
+  pages: 46
   link_pattern: '/actualites/[^"?#]+$'
   noise_gate: true
-  via: direct
-  note: "2026-11 实测 /toutes-les-actualites 分页 ?page=0..4，每页 31 条；RSS /rss.xml 已 404、只有首页窗口"
+  via: impersonate
+  note: "2026-11-12 实测 /toutes-les-actualites 分页到 page=45（31 条/页，约 1400 条），/fr/actualites 会 403 但列表页和详情页 curl_cffi 可过；改 impersonate、翻满 46 页"
 - domain: www.ilm.pf
   name: Institut Louis Malardé
   country: French Polynesia
@@ -283,7 +335,12 @@
   type: 新闻
   channel: wp-api
   base: https://www.fbcnews.com.fj
-  note: "www.fbc.com.fj 只是跳转hub（3.7KB 落地页）；实际新闻在 fbcnews.com.fj，WordPress REST 实测 X-WP-Total=71915"
+  orderby: id
+  order: asc
+  wp_per_page: 100
+  wp_empty_page_limit: 0
+  wp_empty_retries: 0
+  note: "2026-11-15 REST 深页会返回空数组，但后续页仍可能有记录；按 id asc、每页 100 重新扫描。空页保留为缺口，本轮媒体补采不因连续空页提前停止。"
 - domain: www.fijione.tv
   name: Fiji One Television
   country: Fiji Islands, Republic of the
@@ -318,7 +375,42 @@
     - /news/gender-equality-campaign
     - /index.php/news
   link_pattern: /news/[\w-]+/[\w-]+$
-  via: direct
+  via: playwright
+  headless: true
+  playwright_wait_ms: 3000
+  seed_urls:
+    - /about/our-people
+    - /about/programmes
+    - /about/pillar
+    - /about/pillar/women-in-leadership-democratisation-process
+    - /about/pillar/civil-and-political-rights-womens-human-rights-and-the-law
+    - /about/pillar/human-rights-accountability-mechanisms
+    - /about/pillar/womens-access-to-justice
+    - /about/pillar/women-in-decent-work
+    - /about/pillar/local-to-global-processes
+    - /about/pillar/woman-and-girls-health
+    - /about/pillar/intergenerational-womens-leadership-and-movement-building
+    - /about/pillar/constituencies
+    - /about/partnerships
+    - /about/partnerships/we-rise-coalition
+    - /about/partnerships/ngo-coalition-for-human-rights
+    - /about/partnerships/pacific-feminist-forum
+    - /about/partnerships/fiji-women-s-forum
+    - /about/partnerships/fiji-young-womens-forum
+    - /about/partnerships/fiji-cso-alliance-for-covid-19-humanitarian-response
+    - /publications/annual-reports
+    - /publications/balance
+    - /publications/research-analysis
+    - /publications/research-analysis/access-to-justice
+    - /publications/research-analysis/not-ok-stop-sexual-harassment
+    - /publications/research-analysis/law-for-pacific-women
+    - /publications/research-analysis/fact-sheets
+    - /publications/research-analysis/family-law
+    - /publications/submissions
+    - /publications/outcome-statements
+    - /training-offered/gender-sensitisation-training
+    - /training-offered/sexual-harassment
+  note: "2026-11-12 SiteGround 验证码：ego 等 8-15s 可过；补 about/publications/training 静态详情页"
 - domain: www.usp.ac.fj
   name: The University of the South Pacific
   country: Fiji Islands, Republic of the
@@ -349,17 +441,55 @@
   sitemap: /sitemap.xml
   url_filter: /updates/blog/
   note: "原 rss 通道只拿到 feed 10 条；sitemap index 8 个子图约 7700 条文章，限定英文 /updates/blog/"
+  disabled: true
+  disabled_reason: "非本地主体（区域组织 SPC），按 2026-11-12 规则不采集"
 
 - domain: www.kiribati.gov.ki
   name: Government of Kiribati
   country: Kiribati, Republic of
   lang: en-US
   type: 政府网站
-  channel: rss
+  channel: html
   base: http://www.kiribati.gov.ki
-  via: direct
-  feed: /rss.xml
+  via: ego
+  list_urls:
+  - /
+  - /acts
+  - /events
+  link_pattern: '/(?:information|services|my-government|know-kiribati|act)/[^/?#]+$'
+  noise_gate: false
+  seed_urls:
+  - /information/infrastructure-and-energy
+  - /information/employment
+  - /information/finance-services
+  - /information/environment-and-lands
+  - /information/education
+  - /information/health
+  - /information/law-and-justice
+  - /information/broadcasting
+  - /information/commerce
+  - /information/communication
+  - /information/communication-commission-kiribati
+  - /information/fisheries-and-marine-resources
+  - /information/port
+  - /information/transport
+  - /information/travel-and-tourism
+  - /services/passport-and-visas
+  - /services/loan-scheme
+  - /services/kiribati-solar-company
+  - /services/postal
+  - /services/birth-death-and-marriage-certificate
+  - /services/driving-and-vehicle-licence
+  - /services/kiribati-insurance-corporation
+  - /services/housing
+  - /services/women-youth-sport-social-affairs
+  - /my-government/kiribati-parliament
+  - /know-kiribati/history
+  note: "2026-11-12 普查：Cloudflare JS 挑战，走 ego；站点是政府信息门户（information/services/acts），没有新闻列表，原 RSS 10 条只是窗口"
+
 - domain: pina.com.fj
+  wp_types:
+    pacnews: wp/v2/pacnews
   name: Pacific Islands News Association
   country: Fiji Islands, Republic of the
   lang: en-US
@@ -375,7 +505,40 @@
   base: https://www.melad.gov.ki
   feed: /index.php?option=com_content&view=featured&format=feed&type=rss
   via: direct
+  seed_urls:
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=25&Itemid=101
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=38&Itemid=102
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=54&Itemid=390
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=55&Itemid=391
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=56&Itemid=392
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=58&Itemid=394
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=73&Itemid=393
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=35&Itemid=332
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=41&Itemid=378
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=42&Itemid=379
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=43&Itemid=380
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=44&Itemid=381
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=39&Itemid=338
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=47&Itemid=383
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=48&Itemid=384
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=49&Itemid=385
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=50&Itemid=386
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=52&Itemid=388
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=53&Itemid=389
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=51&Itemid=402
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=34&Itemid=355
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=57&Itemid=399
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=63&Itemid=400
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=64&Itemid=401
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=118&Itemid=529
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=59&Itemid=395
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=60&Itemid=396
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=61&Itemid=397
+  - https://www.melad.gov.ki/index.php?option=com_quix&view=page&id=62&Itemid=398
+
 - domain: www.cookislandsnews.com
+  via: brightdata
+  brightdata_zone: cli_unlocker
   name: Cook Islands News
   country: Cook Islands
   lang: en-US
@@ -422,9 +585,13 @@
   list_urls:
   - /media-releases
   - /media-releases/page:{page}
+  - /media-resources
+  - /projects
+  - /notice-board
   pages: 20
-  link_pattern: '/media-releases/(?!page:)[^/]+$'
-  noise_gate: true
+  link_pattern: '/(?:media-releases/(?!page:)|speeches|projects|notice-board)/[^/]+$'
+  noise_gate: false
+  note: "2026-11-12 普查后放开全部内容栏目：media-releases(10页×12) + speeches + projects(10) + notice-board(16)"
   schema:
     title: "//h1/text()"                    # <title> 带 "The Government of Niue |" 前缀，用 h1 覆盖
 - domain: www.norfolkisland.gov.nf
@@ -435,9 +602,9 @@
   channel: sitemap
   base: https://www.nirc.gov.au
   sitemap: /sitemap.xml
-  url_filter: /Your-council/News-Articles/
-  via: ego
-  note: "www.norfolkisland.gov.nf 301 到 nirc.gov.au；Akamai 只挡非浏览器，走 ego（浏览器内 sitemap 507 条，其中 news 170 条）"
+  via: impersonate
+  coverage_all: true
+  note: "www.norfolkisland.gov.nf 301 到 nirc.gov.au；2026-11-12 实测 curl_cffi chrome 可过 Akamai，改 impersonate；去掉 News-Articles 过滤，全站 sitemap 507 条"
 - domain: www.government.pn
   name: Government of Pitcairn Islands
   country: Pitcairn Islands
@@ -555,10 +722,10 @@
   country: Tonga, Kingdom of
   lang: en-US
   type: 政府网站
-  channel: rss
+  channel: wp-api
   base: https://fisheries.gov.to
-  feed: /feed/
-  via: direct
+  via: impersonate
+  note: "2026-11-12 实测 WP REST 可用（direct 被 WAF 406，impersonate 200）；X-WP-Total=4，站很小，RSS 4 条即全部 posts"
 - domain: www.tokelau.org.nz
   name: Government of Tokelau
   country: Tokelau
@@ -580,8 +747,11 @@
   list_url: https://www.wallis-et-futuna.gouv.fr/Actualites/(offset)/{offset}
   link_pattern: /Actualites/[^/"]+$
   page_step: 10
-  pages: 60
-  via: direct
+  pages: 59
+  via: impersonate
+  http_version: "1.1"
+  note: "2026-11-15 Actualites 列表经 HTTP/1.1 可读，末页 offset=580；部分列表及详情页仍连接重置，保留失败 URL。"
+  # 2026-11-15: live recheck; scoped transport adjustment, see output/reports/six-sites-20261115.
 - domain: www.lefigaro.fr
   name: Le Figaro Pacific
   country: Wallis and Futuna
@@ -601,6 +771,8 @@
   channel: sitemap
   base: https://www.croix-rouge.fr
   sitemap: /sitemap.xml
+  disabled: true
+  disabled_reason: "非本地主体（法国红十字会），按 2026-11-12 规则不采集"
 - domain: dailypost.vu
   name: Vanuatu Daily Post
   country: Vanuatu, Republic of
@@ -608,7 +780,12 @@
   type: 新闻
   channel: sitemap
   base: https://www.dailypost.vu
+  via: impersonate
+  coverage_all: true
+  camoufox_wait_ms: 4000
+  note: "2026-11-15 sitemap 与普通请求已恢复，优先 impersonate；剩余 429/短文在本轮用 Camoufox 单独补采，保留失败清单。"
   sitemap: /sitemap.xml
+  # 2026-11-15: live recheck; scoped transport adjustment, see output/reports/six-sites-20261115.
 - domain: www.vbtc.vu
   name: Vanuatu Broadcasting & Television Corporation
   country: Vanuatu, Republic of
@@ -621,10 +798,17 @@
   country: Vanuatu, Republic of
   lang: en-US
   type: 政府网站
-  channel: rss
+  channel: html
   base: https://www.gov.vu
-  feed: /index.php/events/news?format=feed&type=rss
-  via: direct
+  list_urls:
+  - /index.php/events/news?start={page}
+  - /index.php/events/events
+  - /index.php/resources/development-reports
+  page_step: 4
+  pages: 3
+  link_pattern: '/index\.php/(?:events/(?:news|events)|resources/development-reports)/\d+-[^/]+$'
+  noise_gate: false
+  note: "2026-11-12 普查：Joomla；News 8 条(2页×4) + Events 2 + Development Reports 7；原 rss 只拿 4 条"
 - domain: www.vmgd.gov.vu
   name: Vanuatu Meteorology & Geohazards Department
   country: Vanuatu, Republic of
@@ -652,6 +836,12 @@
   base: https://centretjibaou.nc
   feed: /rss.xml
   note: "2026-11 实测 Drupal 站：无 sitemap / JSON:API（404）、/node 列表无可抓链接、feed 恒定最近 10 条；暂无更好入口，保留 RSS 窗口"
+  seed_urls:
+  - https://centretjibaou.nc/
+  - https://centretjibaou.nc/en-continu
+  - https://centretjibaou.nc/histoire
+  - https://centretjibaou.nc/politique-de-confidentialité
+
 - domain: dimenc.gouv.nc
   name: Direction de l’Industrie, des Mines et de l’Énergie
   country: Nouvelle-Calédonie
@@ -665,7 +855,38 @@
   page_step: 1
   pages: 20
   link_pattern: '/actualites/(?:[^/"]+/){2,}[^/"]+$|/communiques/[^"/?]+$'
+  noise_gate: false
   via: direct
+  seed_urls:
+  - https://dimenc.gouv.nc/la-dimenc/propos-de-la-dimenc
+  - https://dimenc.gouv.nc/service/le-service-de-lenergie
+  - https://dimenc.gouv.nc/service/le-service-de-la-geologie
+  - https://dimenc.gouv.nc/service/le-service-de-lindustrie
+  - https://dimenc.gouv.nc/service/le-laboratoire
+  - https://dimenc.gouv.nc/service/le-service-des-mines-et-des-carrieres
+  - https://dimenc.gouv.nc/service/le-service-administratif-et-financier
+  - https://dimenc.gouv.nc/la-dimenc/nos-partenaires/lobservatoire-du-littoral-de-nouvelle-caledonie
+  - https://dimenc.gouv.nc/la-dimenc/nos-partenaires/le-fonds-nickel
+  - https://dimenc.gouv.nc/la-dimenc/nos-partenaires/lagence-caledonienne-de-lenergie
+  - https://dimenc.gouv.nc/la-dimenc/la-dimenc-fait-le-pari-de-la-qualite
+  - https://dimenc.gouv.nc/la-dimenc/nos-metiers
+  - https://dimenc.gouv.nc/la-dimenc/nos-offres-demplois
+  - https://dimenc.gouv.nc/la-dimenc/explorateur-cartographique
+  - https://dimenc.gouv.nc/actualites
+  - https://dimenc.gouv.nc/energie/lefficacite-energetique
+  - https://dimenc.gouv.nc/energie/le-schema-pour-la-transition-energetique-de-la-nouvelle-caledonie-stenc
+  - https://dimenc.gouv.nc/energie/schema-pour-la-transition-energetique-stenc/les-objectifs-de-la-transition-energetique
+  - https://dimenc.gouv.nc/energie/schema-pour-la-transition-energetique-stenc/les-rapports-dactivite-du-schema-pour-la
+  - https://dimenc.gouv.nc/energie/lobservatoire-de-lenergie
+  - https://dimenc.gouv.nc/energie/efficacite-energetique/etude-energetique
+  - https://dimenc.gouv.nc/energie/efficacite-energetique/letiquette-energetique-appliquee-aux-equipements-electromenagers
+  - https://dimenc.gouv.nc/energie/efficacite-energetique/lefficacite-energetique-appliquee-au-batiment
+  - https://dimenc.gouv.nc/energie/efficacite-energetique/lencadrement-des-messages-publicitaires-en-lien-avec-lenergie
+  - https://dimenc.gouv.nc/energie/efficacite-energetique/transport-et-ecomobilite
+  - https://dimenc.gouv.nc/energie/les-energies-renouvelables
+  - https://dimenc.gouv.nc/energie/energies-renouvelables/lenergie-photovoltaique-des-dispositifs-reglementaires-pour-un
+  - https://dimenc.gouv.nc/energie/energies-renouvelables/la-programmation-pluriannuelle-des-investissements-de-production
+
 - domain: www.maisondelaculture.pf
   name: Maison de la Culture de Tahiti
   country: French Polynesia
@@ -683,9 +904,14 @@
   channel: sitemap
   sitemap: /sitemap.xml
   base: https://www.mecdm.gov.sb
-  via: direct
-  url_filter: /(news|announcements)/[0-9]+-.*\.html$
+  via: impersonate
+  ignore_https_errors: true
+  coverage_all: true
+  note: "2026-11-15 证书仍过期，已仅对此站忽略证书；修复 sitemap HTML 实体读取后可发现链接，但地图标注 2016 年生成，多数旧详情返回 404。"
+  # 2026-11-15: live recheck; scoped transport adjustment, see output/reports/six-sites-20261115.
 - domain: gov.fm
+  wp_types:
+    awsm_job_openings: wp/v2/awsm_job_openings
   name: FSM Government
   country: Micronesia, Federated States of
   lang: en-US
@@ -693,3 +919,130 @@
   channel: wp-api
   base: https://gov.fm
   via: direct
+
+- domain: tbc.to
+  aliases: [www.tonga-broadcasting.net]
+  wp_types:
+    vacancies: wp/v2/vacancies
+  name: Tonga Broadcasting Commission
+  country: Tonga, Kingdom of
+  lang: en-US
+  type: 新闻
+  channel: wp-api
+  base: https://tbc.to
+  note: "2026-11-13 旧 tonga-broadcasting.net 已死，现站 tbc.to（WordPress，/feed/ 正常）"
+- domain: www.unc.nc
+  aliases: [www.univ-nc.nc]
+  name: Université de la Nouvelle-Calédonie
+  country: Nouvelle-Calédonie
+  lang: fr-FR
+  type: 智库
+  channel: sitemap
+  base: https://www.unc.nc
+  sitemap: /wp-sitemap.xml
+  url_filter: '^https://www\.unc\.nc/(?!wp-content/|category/|post_tag/|author/|product_cat/|categories/)'
+  note: "2026-11-15 wp-sitemap 重定向 sitemap_index.xml 可用；重试后仍有 41 个 HTTP 500、5 个 404，主要是法英分类和课程入口，保留缺口。"
+
+- domain: picrc.org
+  aliases: [www.picrc.org]
+  name: Palau International Coral Reef Center
+  country: Palau, Republic of
+  lang: en-US
+  type: 智库
+  channel: html
+  base: https://picrc.org
+  via: camoufox
+  camoufox_wait_ms: 8000
+  list_urls:
+  - /news/
+  - /news/page/{page}/
+  page_step: 1
+  pages: 15
+  link_pattern: '\?p=\d+$'
+  noise_gate: false
+  note: "2026-11-13 复查复活：Camoufox 可过 Cloudflare；列表 /news/ 分页 /news/page/N/，文章 ?p=ID 跳规范 slug"
+- domain: www.mia.gov.to
+  name: Ministry of Internal Affairs (Tonga)
+  country: Tonga, Kingdom of
+  lang: en-US
+  type: 政府网站
+  channel: html
+  base: https://mia.gov.to
+  via: camoufox
+  camoufox_wait_ms: 8000
+  list_urls:
+  - /
+  link_pattern: '/index\.php/\d{4}/\d{2}/\d{2}/'
+  noise_gate: false
+  note: "2026-11-13 复查复活：Camoufox 预热后可过；WP 文章 5 条，文章 URL /index.php/YYYY/MM/DD/slug"
+
+- domain: naurugov.nr
+  name: Government of the Republic of Nauru
+  country: Nauru, Republic of
+  lang: en-US
+  type: 政府网站
+  channel: html
+  base: http://naurugov.nr
+  list_urls:
+  - /government-information-office/media-release.aspx
+  link_pattern: '/government-information-office/media-release/media-release-[^"]+\.aspx$'
+  noise_gate: false
+  seed_urls:
+  - /government-information-office/government-gazette.aspx
+  - /government-information-office/gio-notices.aspx
+  - /government-information-office/naoero-bulletin.aspx
+  note: "2026-11-13 复查复活：仅 HTTP 可用（https 证书 CN 不匹配），媒体稿页 2026-08 仍在更新"
+
+- domain: www.pnccpalau.com
+  name: Palau National Communications Corporation
+  country: Palau, Republic of
+  lang: en-US
+  type: 新闻
+  channel: html
+  base: https://www.pnccpalau.com
+  via: camoufox
+  camoufox_wait_ms: 6000
+  list_urls:
+  - /
+  link_pattern: '__no_links__'
+  seed_urls:
+  - /
+  noise_gate: false
+  note: "2026-11-13 旧 palaunet.com 302 到本域；Inertia SPA，先采渲染后的首页"
+- domain: www.radio.co.ck
+  name: Radio Cook Islands
+  country: Cook Islands
+  lang: en-US
+  type: 新闻
+  channel: html
+  base: http://www.radio.co.ck
+  list_urls:
+  - /
+  link_pattern: '__no_links__'
+  seed_urls:
+  - /
+  noise_gate: false
+  note: "2026-11-13 复查 alive；仅 HTTP 可用，单页无新闻列表"
+- domain: minapacific.org
+  name: Mariana Islands Nature Alliance
+  country: Commonwealth of the Northern Mariana Islands
+  lang: en-US
+  type: 智库
+  channel: html
+  base: https://minapacific.org
+  list_urls:
+  - /
+  link_pattern: 'default\.asp\?secID=\d+'
+  seed_urls:
+  - /default.asp?secID=20
+  - /default.asp?secID=26
+  - /default.asp?secID=27
+  - /default.asp?secID=30
+  - /default.asp?secID=33
+  - /default.asp?secID=37
+  - /default.asp?secID=38
+  - /default.asp?secID=43
+  - /default.asp?secID=44
+  - /default.asp?secID=45
+  noise_gate: false
+  note: "2026-11-13 复查 alive；老 ASP 静态站，default.asp?secID=N 为内容页，无新闻流"

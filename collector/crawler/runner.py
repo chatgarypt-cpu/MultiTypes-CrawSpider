@@ -32,8 +32,9 @@ def _export(site, kind):
         out = os.path.join(DATA, "csv", site["domain"] + suffix + ".csv")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         export_csv.export(os.path.join(DATA, site["domain"]), out, kind=kind)
-    except Exception:
-        pass
+    except Exception as exc:
+        logging.getLogger("collect." + site["domain"]).exception("CSV export failed")
+        return str(exc)
 
 
 def collect_site(site, limit, kind="posts"):
@@ -57,11 +58,14 @@ def collect_site(site, limit, kind="posts"):
     c = db(); now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     c.execute("INSERT INTO runs(domain,channel,started,finished,discovered,saved,errors,status,note) VALUES(?,?,?,?,?,?,?,?,?)",
               (site["domain"], channel, now, now, r.get("discovered") or r.get("pages") or 0,
-               r.get("saved", 0), r.get("errors", 0), "ok" if r.get("saved") else "fail", ""))
+               r.get("saved", 0), r.get("errors", 0), r.get("status") or ("interrupted" if r.get("error") else "ok"),
+               json.dumps({"kind": kind, "error": r.get("error"), "reasons": r.get("reasons", {})}, ensure_ascii=False)))
     c.commit()
 
     if channel in ("wp-api", "json-api", "json-list", "sitemap", "rss", "html"):
-        _export(site, kind)
+        export_error = _export(site, kind)
+        if export_error:
+            r["export_error"] = export_error
 
     r.setdefault("secs", round(time.time() - t0, 1))
     return r

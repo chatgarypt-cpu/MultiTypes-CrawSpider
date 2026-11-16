@@ -5,6 +5,7 @@
   python3 collector/export_csv.py --site <domain>    # one site
 """
 import argparse, csv, glob, json, os
+from crawler.config import stored_kinds
 
 MEDIA_COLS = ["id","title","url","link","mime","width","height","alt","caption","description","created_at","parent","host"]
 
@@ -56,7 +57,8 @@ def main():
     for d in dirs:
         name = os.path.basename(d)
         parts = []
-        for kind, suffix in (("posts", ""), ("pages", ".pages"), ("media", ".media")):
+        for kind in stored_kinds(d):
+            suffix = "" if kind == "posts" else "." + kind
             if not os.path.exists(os.path.join(d, "articles.jsonl" if kind == "posts" else f"{kind}.jsonl")):
                 continue
             n = export(d, os.path.join(CSV_DIR, name + suffix + ".csv"), kind)

@@ -99,8 +99,16 @@ def _lines(data_dir: Path, domain: str, kind: str) -> int:
     return count_lines(fallback)
 
 
-def site_counts(data_dir, domain: str) -> dict:
-    return {kind: _lines(data_dir, domain, kind) for kind in KINDS}
+def site_counts(data_dir, domain: str, kinds=None) -> dict:
+    """按配置的 collection 计数；kinds=None 时退回磁盘上实际存在的 jsonl。
+
+    配置站点必须只算 posts/pages/media + wp_types，避免把历史分片
+    （mediaa/mediab/...）当成额外类型重复计数。
+    """
+    if kinds is None:
+        from crawler.config import stored_kinds
+        kinds = stored_kinds(Path(data_dir) / domain)
+    return {kind: _lines(data_dir, domain, kind) for kind in kinds}
 
 
 def site_dirs(data_dir) -> list[str]:
@@ -212,6 +220,7 @@ def _status_note(domain, counts, total, coverage, missing, skip_keys) -> tuple[s
 def _csv_files(csv_dir, domain) -> str:
     d = Path(csv_dir)
     names = [f"{domain}.csv", f"{domain}.pages.csv", f"{domain}.media.csv"]
+    names += [p.name for p in sorted(d.glob(f"{domain}.*.csv")) if p.name not in names]
     return ",".join(n for n in names if (d / n).exists())
 
 
@@ -225,12 +234,19 @@ def build_manifest(sources, data_dir, coverage_payload, csv_dir, skip_keys) -> l
     rows = []
     for domain in configured + extras:
         cfg = by_domain.get(domain) or {}
-        counts = site_counts(data_dir, domain)
+        kinds = None
+        if cfg:
+            from crawler.config import site_kinds
+            kinds = tuple(dict.fromkeys(("posts", "pages", "media", *site_kinds(cfg))))
+        counts = site_counts(data_dir, domain, kinds=kinds)
         total = sum(counts.values())
         rec = records.get(domain)
         coverage = rec.get("coverage") if rec else None
         missing = expected_missing(rec, counts)
         status, note = _status_note(domain, counts, total, coverage, missing, skip_keys)
+        custom = {k: v for k, v in counts.items() if k not in KINDS}
+        if custom:
+            note += ("；" if note else "") + "自定义类型: " + ", ".join(f"{k}={v}" for k, v in custom.items())
         if domain in extras:
             note = (note + "；" if note else "") + "未在 sources.yaml 配置（adhoc/测试）"
         rows.append({
@@ -275,11 +291,11 @@ def build_residuals(coverage_payload, data_dir) -> list[dict]:
         counts = site_counts(data_dir, domain)
         exp_by_kind = _expected_by_kind(rec)
         quantified = False
-        for kind in KINDS:
+        for kind in exp_by_kind:
             exp = exp_by_kind.get(kind)
             if not exp:
                 continue
-            got = counts[kind]
+            got = counts.get(kind, 0)
             missing = exp - got
             if missing <= 0:
                 continue
@@ -308,7 +324,9 @@ def export_csvs(domains, data_dir, csv_dir) -> dict:
     csv_dir.mkdir(parents=True, exist_ok=True)
     for domain in domains:
         d = Path(data_dir) / domain
-        for kind, suffix in (("posts", ""), ("pages", ".pages"), ("media", ".media")):
+        from crawler.config import stored_kinds
+        for kind in stored_kinds(d):
+            suffix = "" if kind == "posts" else "." + kind
             jsonl = d / ("articles.jsonl" if kind == "posts" else f"{kind}.jsonl")
             if not jsonl.exists():
                 continue
@@ -321,7 +339,7 @@ def export_csvs(domains, data_dir, csv_dir) -> dict:
 def render_readme(date: str, manifest, residuals, coverage_payload, coverage_path,
                   csv_counts, warning=None) -> str:
     totals = {k: sum(r[k] for r in manifest) for k in KINDS}
-    grand = sum(totals.values())
+    grand = sum(r["total"] for r in manifest)
     by_status: dict[str, int] = {}
     for r in manifest:
         by_status[r["status"]] = by_status.get(r["status"], 0) + 1
@@ -516,7 +534,7 @@ def run(date=None, no_export=False, dry_run=False, data_dir=None, csv_dir=None,
           f" -> {csv_out}")
     print(f"覆盖率快照: {coverage_path if coverage_path else '无'}")
     print(f"数据规模: posts={totals['posts']:,} pages={totals['pages']:,} "
-          f"media={totals['media']:,} 合计={sum(totals.values()):,}")
+          f"media={totals['media']:,} 合计={sum(r['total'] for r in manifest):,}")
     return {"date": date, "delivery_dir": str(delivery_dir), "dry_run": False,
             "manifest_rows": len(manifest), "residual_rows": len(residuals),
             "csv_exported": csv_counts,

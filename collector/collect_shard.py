@@ -69,7 +69,7 @@ def main():
             done += 1
             if status == 200 and body:
                 row = extract_article(u, body, site)
-                if row.get("text") and len(row["text"]) >= 120:
+                if row.get("title") or row.get("text"):   # 短正文也保留元数据（2026-11-12 规则）
                     jf.write(json.dumps(row, ensure_ascii=False) + "\n"); jf.flush()
                     ufw.write(u + "\n"); ufw.flush()
             if done % 500 == 0:

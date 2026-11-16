@@ -4,7 +4,7 @@ import json, os, glob, re, subprocess
 from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.join(ROOT, "data")
+from crawler.config import DATA
 
 def running():
     try:
@@ -20,23 +20,35 @@ def queue_running():
     except Exception:
         return False
 
-def tasks_running():
+def _collector_commands():
+    import shlex
     try:
         out = subprocess.run(["pgrep", "-f", "collect.py --site"], capture_output=True, text=True)
-        return len([l for l in out.stdout.splitlines() if l.strip()])
-    except Exception:
-        return 0
+        pids = out.stdout.split()
+        if not pids:
+            return []
+        ps = subprocess.run(["ps", "-o", "command=", "-p", ",".join(pids)], capture_output=True, text=True)
+        commands = []
+        for line in ps.stdout.splitlines():
+            try:
+                parts = shlex.split(line)
+            except ValueError:
+                continue
+            if parts and os.path.basename(parts[0]).startswith("python") and "--site" in parts:
+                commands.append(parts)
+        return commands
+    except OSError:
+        return []
+
+
+def tasks_running():
+    return len(_collector_commands())
+
 
 def running_domains():
-    # 沙箱/极简容器里 ps 可能被禁：进程探测失败不能让整个状态流挂掉，降级为"不知道在跑谁"
-    try:
-        out = subprocess.run(["pgrep", "-f", "collect.py --site"], capture_output=True, text=True)
-        pids = [l.strip() for l in out.stdout.splitlines() if l.strip()]
-        if not pids: return []
-        ps = subprocess.run(["ps", "-o", "command=", "-p", ",".join(pids)], capture_output=True, text=True)
-        return sorted({m.group(1) for m in re.finditer(r"--site (\S+)", ps.stdout)})
-    except Exception:
-        return []
+    return sorted({args[args.index("--site") + 1] for args in _collector_commands()
+                   if args.index("--site") + 1 < len(args)})
+
 
 def blocked_domains():
     try:
@@ -57,59 +69,77 @@ COVERAGE_ANOMALY = 1.5
 
 
 def latest_coverage():
-    """最新 data/coverage-*.json 的 {domain: record}（只读，无快照/坏文件都返回 {}）。
-
-    覆盖率快照不会每秒变，用 (path, mtime, size) 缓存解析结果。
-    """
-    try:
-        cands = sorted(glob.glob(os.path.join(DATA, "coverage-*.json")),
-                       key=lambda p: os.stat(p).st_mtime, reverse=True)
-    except OSError:
-        return {}
-    if not cands:
-        return {}
-    try:
-        st = os.stat(cands[0])
-        sig = (cands[0], st.st_mtime_ns, st.st_size)
-    except OSError:
-        return {}
+    """Merge per-site results and historical reports by checked time, never file order alone."""
+    paths = set(glob.glob(os.path.join(DATA, "coverage-*.json")))
+    paths.update(glob.glob(os.path.join(DATA, "coverage-sites", "*.json")))
+    legacy = os.path.join(DATA, "coverage_report.json")
+    if os.path.isfile(legacy):
+        paths.add(legacy)
+    sig = tuple(sorted((p, os.stat(p).st_mtime_ns, os.stat(p).st_size) for p in paths))
     if _COVERAGE_CACHE.get("sig") == sig:
         return _COVERAGE_CACHE["map"]
     out = {}
-    try:
-        with open(cands[0], encoding="utf-8") as f:
-            payload = json.load(f)
-        for rec in (payload.get("report") or []) if isinstance(payload, dict) else []:
-            if isinstance(rec, dict) and rec.get("domain"):
-                out[rec["domain"]] = rec
-    except Exception:
-        out = {}
+    for path, mtime, _ in sig:
+        try:
+            with open(path, encoding="utf-8") as f:
+                payload = json.load(f)
+            if not isinstance(payload, dict):
+                continue
+            stamp = payload.get("generated") or datetime.fromtimestamp(mtime / 1e9, timezone.utc).isoformat()
+            records = payload.get("report", [payload] if payload.get("domain") else [])
+            for record in records:
+                if not isinstance(record, dict) or not record.get("domain"):
+                    continue
+                rec = dict(record, checked_at=record.get("checked_at") or stamp)
+                old = out.get(rec["domain"])
+                if not old or _epoch(rec["checked_at"]) >= _epoch(old["checked_at"]):
+                    out[rec["domain"]] = rec
+        except (OSError, ValueError, TypeError):
+            continue
     _COVERAGE_CACHE.update(sig=sig, map=out)
     return out
 
 
+def _epoch(value):
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return dt.replace(tzinfo=dt.tzinfo or timezone.utc).timestamp()
+    except ValueError:
+        return 0
+
+
 def coverage_flags(dom):
-    """每站覆盖率三类判定：已核对（>=95% 或不可验证）/ 未核对 / 口径异常（旧快照也按同一阈值兜底）。"""
     rec = latest_coverage().get(dom)
     if not rec:
-        return {"coverage": None, "verified": False, "coverage_verdict": "未核对"}
+        return {"coverage": None, "verified": False, "coverage_verdict": "未核对",
+                "coverage_checked_at": None, "coverage_stale": False, "coverage_detail": "尚无核对记录"}
     cov = rec.get("coverage")
     verdict = rec.get("verdict") or ""
-    source = str(rec.get("source") or "")
-    if not verdict:                              # 旧快照没有 verdict 字段，按同一口径推断
-        if isinstance(cov, (int, float)) and cov >= COVERAGE_ANOMALY:
-            verdict = "口径异常"
-        elif cov is None and source.startswith("unverifiable"):
-            verdict = "不可验证"
+    checked = rec.get("checked_at")
+    age = datetime.now(timezone.utc).timestamp() - _epoch(checked)
+    stale = age > float(os.environ.get("COVERAGE_TTL_HOURS", "24")) * 3600
+    reason = "报告已过期" if stale else ""
+    for kind, got in (rec.get("got") or {}).items():
+        path = os.path.join(DATA, dom, "urls.txt" if kind == "posts" else kind + ".urls.txt")
+        cp = os.path.join(DATA, dom, "cursor.json" if kind == "posts" else kind + ".cursor.json")
+        if count_lines(path) != got or (os.path.exists(cp) and os.path.getmtime(cp) > _epoch(checked)):
+            stale, reason = True, "采集数据或状态已变化"
+    if not verdict and cov is None and str(rec.get("source") or "").startswith("unverifiable"):
+        verdict = "不可验证"
     if verdict == "口径异常" or (isinstance(cov, (int, float)) and cov >= COVERAGE_ANOMALY):
-        return {"coverage": None, "verified": False, "coverage_verdict": "口径异常"}
-    if verdict == "不可验证":
-        return {"coverage": None, "verified": True, "coverage_verdict": "不可验证"}
-    if isinstance(cov, (int, float)) and cov >= 0.95:
-        return {"coverage": cov, "verified": True, "coverage_verdict": "已核对"}
-    if isinstance(cov, (int, float)):
-        return {"coverage": cov, "verified": False, "coverage_verdict": "覆盖率不足"}
-    return {"coverage": None, "verified": False, "coverage_verdict": "未核对"}
+        verdict, cov = "口径异常", None
+    elif verdict in ("不可验证", "核对失败"):
+        cov = None
+    elif verdict == "有缺口" or rec.get("crawl_unresolved"):
+        verdict = "覆盖率不足"  # even >=95% cannot erase explicit unresolved work
+    elif isinstance(cov, (int, float)):
+        verdict = "已核对" if cov >= 0.95 else "覆盖率不足"
+    else:
+        verdict = verdict or "未核对"
+    return {"coverage": cov, "verified": verdict == "已核对" and not stale,
+            "coverage_verdict": verdict, "coverage_checked_at": checked,
+            "coverage_stale": stale, "coverage_detail": reason or rec.get("verdict_detail") or rec.get("source") or "",
+            "coverage_missing": (rec.get("missing") or {}).get("count"), "coverage_per_kind": rec.get("per_kind") or {}}
 
 
 def count_lines(path):
@@ -156,7 +186,7 @@ def site_row(d):
             try: cur2 = json.load(open(c))
             except Exception: pass
         return {"n": n, "page": cur2.get("next_page", 0), "pages": cur2.get("total_pages"),
-                "done": cur2.get("done", False), "updated": (cur2.get("updated") or "")[:19]}
+                "done": cur2.get("done", False), "status": cur2.get("status", ""), "last_reason": cur2.get("last_reason", ""), "updated": (cur2.get("updated") or "")[:19]}
     return {"domain": dom, "saved": n,
             "page": cur.get("next_page", 0), "pages": cur.get("total_pages"),
             "posts": cur.get("total_posts"), "done": cur.get("done", False),
@@ -165,15 +195,14 @@ def site_row(d):
             "channel": cfg.get("channel", ""),
             # 三类必须分开：任务结束（done，前端另有"不完整"判定）、覆盖率已核对（verified）、
             # 缺入口或不可访问（needs_config / disabled）。disabled 站不再算"待配置"。
-            "coverage": cov["coverage"], "verified": cov["verified"],
-            "coverage_verdict": cov["coverage_verdict"],
+            **cov,
             "needs_config": bool(not disabled and cfg.get("channel") == "html"
                                  and not (cfg.get("list_url") or cfg.get("list_urls"))),
             "disabled": disabled, "disabled_reason": cfg.get("disabled_reason", ""),
             "kinds": {"posts": {"n": n, "page": cur.get("next_page", 0), "pages": cur.get("total_pages"),
                                 # done/status 必须带上：前端"不完整"判定依赖每类的 done，
                                 # 之前 posts 缺 done 导致 30 个已完成的非 WP 站被误判为不完整
-                                "done": cur.get("done", False), "status": cur.get("status", ""),
+                                "done": cur.get("done", False), "status": cur.get("status", ""), "last_reason": cur.get("last_reason", ""),
                                 "updated": (cur.get("updated") or "")[:19]},
                       "pages": kind_count("pages"), "media": kind_count("media")}}
 

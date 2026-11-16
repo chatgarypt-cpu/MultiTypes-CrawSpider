@@ -54,14 +54,31 @@ def link_ratio(body):
     if doc is None:
         return 0.0
     total = len(_norm(doc.text_content()))
-    if total < 200:
-        return 1.0                       # 几乎没有正文，肯定不是文章
+    if total == 0:
+        return 0.0
     linked = sum(len(_norm(a.text_content())) for a in doc.xpath("//a"))
     return min(1.0, linked / total)
 
 
 GATE_RATIO = 0.35          # 默认链接密度阈值：文字超过 35% 在 <a> 里 → 列表/导航页
 GATE_MD_MAX = 1200         # Markdown 长于此值一律当正文（避免误杀长文章）
+
+
+def page_error(body):
+    """Identify access/error documents before any article or metadata fallback."""
+    title = re.search(r"<title[^>]*>(.*?)</title>", body or "", re.I | re.S)
+    title = _norm(title.group(1)).lower() if title else ""
+    if any(marker in title for marker in (
+            "just a moment", "one moment", "robot challenge", "checking your browser",
+            "attention required!", "access denied", "security check", "请稍候")):
+        return "challenge"
+    if any(marker in title for marker in (
+            "404 not found", "page not found", "service unavailable", "account suspended",
+            "site under construction", "internal server error")):
+        return "error_page"
+    if "cf-chl-" in (body or "") or "sgcaptcha" in (body or "").lower():
+        return "challenge"
+    return ""
 
 
 def gate_setting(site):
