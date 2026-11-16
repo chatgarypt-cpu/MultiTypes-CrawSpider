@@ -87,7 +87,7 @@ def gate_setting(site):
     - 缺省：html 通道默认启用，其它通道默认关闭；
     - true/false：显式开关，用默认阈值 0.35；
     - 0.65 这类数字：启用并改用该阈值（有些站点文章页导航链接多，默认 0.35 会误杀，
-      如 upng 的文章页 link_ratio≈0.57，而列表页≈0.73）。"""
+      例如正文页和导航页的链接密度可能存在明显差异）。"""
     gate = site.get("noise_gate")
     if gate is None:
         return site.get("channel") == "html", GATE_RATIO

@@ -1,7 +1,7 @@
-## Server 0.2.0
+## Server 0.2.1
 
-- 提供站点入口识别、抓取队列、正文清洗、去重和 CSV 导出。
-- CentOS Linux 8.4 x86_64 部署使用 Podman 和 systemd，升级复用数据卷。
-- 镜像包含 Playwright Chromium 和 Camoufox，默认站点清单为空。
+- 补充从安装到提交、续采、下载结果的使用说明，以及站点适配、并发和技术栈设计。
+- 发布源码包采用空白站点清单，示例使用通用域名。
+- CentOS 8.4 x86_64 安装流程继续通过 Podman 构建镜像、交由 systemd 管理。
 
-下载服务器包和 `SHA256SUMS`，校验并解压后运行 `sudo bash deploy/centos8/install.sh`。详细配置见包内的 `README.md`。
+下载服务器源码包和 `SHA256SUMS`，校验并解压后执行 `sudo bash deploy/centos8/install.sh`。配置和升级说明见包内的 `README.md`。

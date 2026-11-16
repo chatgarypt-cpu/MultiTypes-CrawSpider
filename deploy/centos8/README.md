@@ -6,7 +6,7 @@
 
 服务器需要 systemd、curl、OpenSSL 和 sudo 权限。构建时需要访问 Docker Hub、Debian 软件源、npm、PyPI 和浏览器下载地址。x86_64 测试镜像约 2 GB，构建缓存和数据卷另占磁盘空间。
 
-按 [服务器包下载说明](../../README.md#下载安装服务器版) 下载、校验并解压。在解压目录执行：
+按 [服务器包下载说明](../../README.md#快速开始) 下载、校验并解压。在解压目录执行：
 
 ```bash
 sudo bash deploy/centos8/install.sh

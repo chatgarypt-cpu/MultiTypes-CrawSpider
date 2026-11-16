@@ -1,13 +1,7 @@
-"""List JSON -> detail page -> rows（例如 samoaobserver）。
+"""Crawl detail pages discovered through a paginated JSON listing.
 
-2026-11-09 性能修复（原实现每页 3 个分类串行、每次裸 requests 重建 TLS，翻到 2020 年
-历史页时约 3.5s/页；429 会被静默跳过、进度不可见）：
-
-- 列表请求复用 `crawler.web.SESSION` 连接池 + 每域限速器（403/429 自动降速）；
-- 同一页的多个分类并发请求；429/5xx 做有限重试，仍失败则**不推进游标**（下一轮补齐）；
-- 进度日志改用调用方传入的 logger（page/saved/errors 可见）；
-- 新增配置：`scan_mode: full|incremental`（增量只看前几页新内容）、`known_pages_stop`
-  （增量模式下连续 N 页全是已知文章即停）、`max_pages_per_run`（单轮翻页上限，避免长期占槽）。
+The listing uses pooled connections, per-domain throttling, and bounded
+retries. The cursor keeps its current page when a retryable failure remains.
 """
 import json
 import logging

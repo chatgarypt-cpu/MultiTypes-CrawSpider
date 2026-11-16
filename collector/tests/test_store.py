@@ -1,9 +1,4 @@
-"""存储层回归测试：去重写入、known 缓存一致性、dedupe 交互、mark_error 影响面、WAL。
-
-背景（2026-11-07 真实事故）：
-- append_rows 无去重 → lnc 重复 16,150 条、matangitonga 2,768 条；
-- mark_error 曾整站 UPDATE，把 done 重置成 unprocessed → 整站重抓。
-"""
+"""Exercise URL deduplication, cache invalidation and historical row repair."""
 import json
 import time
 
