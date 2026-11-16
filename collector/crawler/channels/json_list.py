@@ -168,9 +168,15 @@ def collect_json_list(site, limit=0, log=None):
                 written = append_rows(site["domain"], rows, "posts")
                 saved += written if isinstance(written, int) else len(rows)
             if detail_errors:
-                last_error = "detail_failed"
-                log.warning("%s detail page %d failures=%s", site["domain"], page, detail_errors)
-                break
+                # 单页正文抽取失败不应中断整轮：跳过该详情页继续翻页；
+                # 只有真实的取页失败（网络/状态码）才保留 last_error 并停下。
+                fatal = [e for e in detail_errors if e.get("status") != "extraction_failed"]
+                if fatal:
+                    last_error = "detail_failed"
+                    log.warning("%s detail page %d failures=%s", site["domain"], page, fatal)
+                    break
+                log.warning("%s detail page %d extraction_failed, skipped=%d",
+                            site["domain"], page, len(detail_errors))
         processed += 1
         log.info("%s json-list page=%d saved=%d pages=%d cats=%s",
                  site["domain"], page, saved, processed, ",".join(str(c) for c in cats))
