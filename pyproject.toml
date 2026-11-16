@@ -1,7 +1,7 @@
 [project]
 name = "rea-crawlspider"
-version = "0.1.0"
-description = "南太平洋信源采集器：collector/ 脚本 + sources.yaml + 状态库（无框架、无数据库服务）"
+version = "0.2.0"
+description = "自托管网页采集服务，支持任务队列、正文清洗和 CSV 导出"
 requires-python = ">=3.12"
 dependencies = [
   "requests>=2.32,<3",
