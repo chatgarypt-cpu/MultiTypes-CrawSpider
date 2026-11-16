@@ -41,13 +41,13 @@ def detect(url):
             r = _get(base + path)
             if r.status_code == 200 and r.headers.get("X-WP-Total"):
                 return {"domain": domain, "base": base, "channel": "wp-api",
-                        "via": "impersonate" if imp else "direct", "detected": {"wp_total": r.headers.get("X-WP-Total")}}
+                        "via": "impersonate" if imp else "direct", "api": "rest_route" if "rest_route=" in path else "wp-json", "detected": {"wp_total": r.headers.get("X-WP-Total")}}
             if _looks_blocked(r):
                 r2 = _get(base + path, impersonate=True)
                 if r2.status_code == 200 and r2.headers.get("X-WP-Total"):
                     imp = True
                     return {"domain": domain, "base": base, "channel": "wp-api", "via": "impersonate",
-                            "detected": {"wp_total": r2.headers.get("X-WP-Total")}}
+                            "api": "rest_route" if "rest_route=" in path else "wp-json", "detected": {"wp_total": r2.headers.get("X-WP-Total")}}
         except Exception as e:
             notes.append(f"wp-json: {str(e)[:60]}")
 
@@ -72,13 +72,14 @@ def detect(url):
             pass
 
     # 4. plain HTML listing (the page you gave us becomes the listing page)
-    return {"domain": domain, "base": base, "channel": "html", "list_url": url,
+    return {"domain": domain, "base": base, "channel": "html", "list_url": base + (p.path or "/"),
             "link_pattern": r'/[^"\']*(?:/20\d\d/|-\d{4,}\.html|/news/|/article)', "via": "direct",
-            "detected": {"list_url": url, "link_pattern": "heuristic"}, "notes": notes}
+            "detected": {"list_url": base + (p.path or "/"), "link_pattern": "heuristic"}, "notes": notes}
 
 
 def remember(site):
     """Persist an auto-detected site so repeat runs reuse the same rule."""
+    os.makedirs(DATA, exist_ok=True)
     path = os.path.join(DATA, "adhoc_sites.json")
     try:
         data = json.load(open(path))

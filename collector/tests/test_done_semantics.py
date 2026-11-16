@@ -236,3 +236,31 @@ def test_legacy_browser_empty_page_marks_partial(tmp_env, browser_wp):
     cur = cursor.load("b.test")
     assert cur["status"] == "partial" and cur["done"] is False
     assert cur["reasons"]["empty_page"] == 1
+
+
+def test_wp_skipped_page_recovers_on_next_run(tmp_env, wp_site, wp):
+    headers = {'x-wp-totalpages': '3', 'x-wp-total': '9'}
+    wp(FakeWP({1: make_posts(1), 3: make_posts(3)}, headers=headers))
+    assert wp_api.collect_wp(wp_site, workers=3, progress=False)['status'] == 'partial'
+    fake = wp(FakeWP({2: make_posts(2), 3: make_posts(3)}, headers=headers))
+    result = wp_api.collect_wp(wp_site, workers=3, progress=False)
+    assert result['status'] == 'complete'
+    assert result['saved'] == 3 and result['skipped_pages'] == 0
+    assert 2 in fake.calls
+
+
+def test_sparse_known_total_walks_past_empty_streak(tmp_env, wp_site, wp):
+    site = dict(wp_site, wp_empty_page_limit=0, wp_empty_retries=0)
+    fake = wp(FakeWP({1: make_posts(1), 8: make_posts(8)},
+                     headers={'x-wp-totalpages': '8', 'x-wp-total': '24'}))
+    result = wp_api.collect_wp(site, workers=2, progress=False)
+    assert result['status'] == 'partial' and not result['done']
+    assert result['saved'] == 6 and fake.count(8) == 1
+    assert result['skipped_pages'] == 6
+
+
+def test_unbounded_empty_scan_without_total_stops(tmp_env, wp_site, wp):
+    site = dict(wp_site, wp_empty_page_limit=0, wp_empty_retries=0)
+    wp(FakeWP({}))
+    result = wp_api.collect_wp(site, workers=2, progress=False)
+    assert result['status'] == 'interrupted' and not result['done']

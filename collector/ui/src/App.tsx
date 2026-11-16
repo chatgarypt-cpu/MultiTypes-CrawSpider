@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import CrawlPanel from './CrawlPanel'
 
-type KindState = { n: number; page: number; pages: number | null; done: boolean; updated: string }
+type KindState = { n: number; page: number; pages: number | null; done: boolean; updated: string; status?: string; last_reason?: string }
 type Site = {
   domain: string
   saved: number
+  channel?: string
   page: number
   pages: number | null
   posts: number | null
@@ -19,6 +21,10 @@ type Site = {
   verified: boolean
   coverage: number | null
   coverage_verdict: string
+  coverage_checked_at?: string
+  coverage_stale?: boolean
+  coverage_detail?: string
+  coverage_missing?: number | null
 }
 type Status = {
   generated: string
@@ -69,7 +75,7 @@ function useConfig() {
       .catch(() => {})
   }, [])
   const apply = async (value: number) => {
-    const n = Math.max(1, Math.min(10, value))
+    const n = Math.max(1, Math.trunc(value))
     setPending(true)
     try {
       const c = await (await fetch('/api/concurrency', {
@@ -94,7 +100,7 @@ function healthOf(site: Site, running: string[], blocked: string[]): Health {
   if (site.disabled) return 'disabled'
   if (site.needs_config && site.saved === 0) return 'config'
   const kinds = [site.kinds.posts, site.kinds.pages, site.kinds.media]
-  if (kinds.some((k) => k.pages && !k.done && k.page <= k.pages)) return 'incomplete'
+  if (kinds.some((k) => !k.done && (['partial', 'interrupted', 'paused', 'blocked'].includes(k.status || '') || (k.pages && k.page <= k.pages)))) return 'incomplete'
   if (site.done) return 'done'
   return 'idle'
 }
@@ -153,12 +159,20 @@ function Badge({ health, title }: { health: Health; title?: string }) {
 // 覆盖率核对与"任务结束"是两件事：cursor done 只说明翻页结束，覆盖率核对看外部总量。
 function CoverageBadge({ site }: { site: Site }) {
   const verdict = site.coverage_verdict || '未核对'
-  const pct = site.coverage != null ? ` ${Math.round(site.coverage * 100)}%` : ''
-  if (verdict === '已核对') return <span className="coverage" data-kind="ok">已核对{pct}</span>
-  if (verdict === '不可验证') return <span className="coverage" data-kind="ok" title="无独立上游总量，按「不可验证」计入已核对">已核对·无源</span>
-  if (verdict === '覆盖率不足') return <span className="coverage" data-kind="warn">未达标{pct}</span>
-  if (verdict === '口径异常') return <span className="coverage" data-kind="bad" title="上游总量与本地不是同一范围，不认核对">口径异常</span>
-  return <span className="coverage" data-kind="none">未核对</span>
+  const pct = site.coverage != null ? ` ${(site.coverage * 100).toFixed(1)}%` : ''
+  const label = site.coverage_stale ? '待刷新' : ({
+    '已核对': `已核对${pct}`, '不可验证': '无法核对', '覆盖率不足': `有缺口${pct}`,
+    '核对失败': '核对失败', '口径异常': '口径异常',
+  }[verdict] || '未核对')
+  const time = site.coverage_checked_at ? new Date(site.coverage_checked_at).toLocaleString('zh-CN', {
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+  }) : ''
+  return <div className="coverage-result" title={site.coverage_detail}>
+    <span className="coverage" data-kind={site.coverage_stale ? 'warn' : site.verified ? 'ok' : 'warn'}>{label}</span>
+    {time && <small>{site.coverage_stale ? '上次 ' : '核对 '}{time}</small>}
+    {!site.coverage_stale && site.coverage_missing != null && site.coverage_missing > 0 && <small>数量差额 {site.coverage_missing.toLocaleString()} 条</small>}
+    {site.coverage_detail && <small className="coverage-detail">{site.coverage_detail}</small>}
+  </div>
 }
 
 function SiteTable({ rows, running, blocked, compact = false }: {
@@ -184,8 +198,8 @@ function SiteTable({ rows, running, blocked, compact = false }: {
         <tbody>
           {rows.map((site) => {
             const health = healthOf(site, running, blocked)
-            const done = site.done || (site.pages != null && site.page > site.pages)
-            const pct = done ? 100 : site.pages ? Math.min(99, Math.round((site.page / site.pages) * 100)) : null
+            const done = site.done
+            const pct = done ? 100 : site.channel === 'wp-api' && site.pages ? Math.min(99, Math.round((site.page / site.pages) * 100)) : null
             const csvHref = `/csv/${encodeURIComponent(site.domain)}.csv`
             const open = () => window.open(csvHref, '_blank', 'noopener')
             return (
@@ -205,7 +219,7 @@ function SiteTable({ rows, running, blocked, compact = false }: {
                 <td className="num">{nf.format(site.saved)}</td>
                 <td className="num muted">{nf.format(site.pages_n)} / {nf.format(site.media_n)}</td>
                 <td className="num muted">{formatMb(site.mb)}</td>
-                <td><Badge health={health} title={site.disabled ? site.disabled_reason : undefined} /></td>
+                <td><Badge health={health} title={site.disabled ? site.disabled_reason : Object.entries(site.kinds).filter(([, k]) => !k.done && k.status).map(([name, k]) => `${name}: ${k.status}${k.last_reason ? " · " + k.last_reason : ""}`).join("；")} /></td>
                 <td><CoverageBadge site={site} /></td>
                 {compact ? null : <td className="num muted">{formatTime(site.updated)}</td>}
                 <td className="open" aria-hidden="true">打开 CSV</td>
@@ -251,13 +265,13 @@ export default function App() {
   const blocked = data?.blocked ?? []
 
   const active = useMemo(() => sites.filter((s) => running.includes(s.domain)), [sites, running])
-  const finished = useMemo(() => sites.filter((s) => !running.includes(s.domain)), [sites, running])
+  const finished = useMemo(() => sites.filter((s) => !running.includes(s.domain) && (s.saved > 0 || s.done)), [sites, running])
   const counts = useMemo(() => {
     const c: Record<Health, number> = { running: 0, blocked: 0, incomplete: 0, done: 0, config: 0, disabled: 0, idle: 0 }
     for (const s of sites) c[healthOf(s, running, blocked)]++
     return c
   }, [sites, running, blocked])
-  // 外部核对口径与"任务结束"分开：verified = coverage>=95% 或不可验证
+  // 外部核对口径与"任务结束"分开：verified = coverage>=95% 且有独立上游总量
   const coverageCounts = useMemo(() => {
     let verified = 0, unavailable = 0
     for (const s of sites) {
@@ -277,20 +291,20 @@ export default function App() {
     <div className="shell">
       <header className="topbar">
         <div className="brand">
-          <h1>南太平洋信源采集</h1>
+          <h1>网站内容采集</h1>
           <span>{data ? `${sites.length} 个站点` : '连接中'}</span>
         </div>
         <div className="topbar-right">
           <span className="state" data-live={data?.queue_running === true} aria-live="polite">
-            {data ? (data.queue_running ? '队列运行中' : data.running ? '采集中' : '已停止') : '连接中'}
+            {data ? (data.queue_running ? '原队列运行中' : data.running ? '原脚本采集中' : '服务已连接') : '连接中'}
           </span>
           <div className="concurrency">
             <label htmlFor="conc">并发</label>
             <div className="stepper">
               <button type="button" aria-label="减少并发" onClick={() => setDraft(Math.max(1, draft - 1))}>−</button>
-              <input id="conc" type="number" min={1} max={10} value={draft}
-                     onChange={(e) => setDraft(Math.max(1, Math.min(10, Number(e.target.value) || 1)))} />
-              <button type="button" aria-label="增加并发" onClick={() => setDraft(Math.min(10, draft + 1))}>+</button>
+              <input id="conc" type="number" min={1} value={draft}
+                     onChange={(e) => setDraft(Math.max(1, Number(e.target.value) || 1))} />
+              <button type="button" aria-label="增加并发" onClick={() => setDraft(draft + 1)}>+</button>
             </div>
             <button type="button" className="button-primary" disabled={!dirty || pending} onClick={() => apply(draft)}>应用</button>
           </div>
@@ -310,6 +324,7 @@ export default function App() {
       </nav>
 
       <main className="main">
+        <CrawlPanel />
         {error && !data ? (
           <div className="notice" data-kind="error"><strong>连不上状态流。</strong> 检查 collector/serve.py 是否在跑，浏览器会自动重连。</div>
         ) : tab === 'overview' ? (
@@ -349,7 +364,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="footer">服务器推送，每秒一帧</footer>
+      <footer className="footer">状态自动更新 · 任务结束不代表全站覆盖率已核实</footer>
     </div>
   )
 }

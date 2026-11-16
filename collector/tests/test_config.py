@@ -234,7 +234,7 @@ def test_check_site_sitemap_dry_run(serve, offline_politeness):
     base = serve({"/sitemap.xml": (200, "application/xml", sitemap)})
     result = collect.check_site({"domain": "s.test", "channel": "sitemap", "base": base, "sitemap": "/sitemap.xml"})
     assert result["discovered"] == 3
-    assert result["sample"][0] == "/news/1"
+    assert result["sample"][0] == base + "/news/1"
 
 
 def test_check_site_cli_prints(serve, offline_politeness, monkeypatch, tmp_path, capsys):

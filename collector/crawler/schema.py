@@ -23,17 +23,17 @@ REQUIRED = {
 }
 
 # every key a channel may carry (plus the universally shared ones)
-SHARED = {"domain", "name", "country", "lang", "type", "channel", "base", "via", "sitemap", "feed",
+SHARED = {"domain", "aliases", "name", "country", "lang", "type", "channel", "base", "via", "sitemap", "feed",
           "url_filter", "link_pattern", "min_text", "note", "notes", "detected", "no_embed",
           "pages", "page_step", "discover_cap", "orderby", "order", "via_posts", "via_pages", "via_media", "wp_per_page", "wp_fields",
           # html 页面流水线（crawler.htmlpage）：schema=XPath→字段，llm_fields=让可选 LLM 补的空字段
-          "schema", "llm_fields", "llm_override", "noise_gate",
+          "schema", "llm_fields", "llm_override", "noise_gate", "seed_urls",
           # robots: false = 该站不按 robots.txt 限制（用户显式决定）；ego_wait_ms = 浏览器加载后等待
           "robots", "ego_wait_ms", "playwright_wait_ms", "block_resources", "headless",
           # 人工确认不可采（无列表入口/站点下线/反爬）：不算配置错误，单独归类
-          "disabled", "disabled_reason"}
+          "disabled", "disabled_reason", "coverage_all", "brightdata_zone", "camoufox_wait_ms", "ignore_https_errors", "http_version"}
 OPTIONAL = {
-    "wp-api": {"api"},
+    "wp-api": {"api", "wp_types", "wp_fields_media", "wp_empty_page_limit", "wp_empty_retries"},
     "sitemap": set(),
     "rss": set(),
     "html": {"list_url", "list_urls", "item_selector"},
@@ -41,8 +41,12 @@ OPTIONAL = {
     "json-list": {"api_categories", "api_items", "free_field", "premium_marker",
                   "scan_mode", "known_pages_stop", "max_pages_per_run"},
 }
-VIA = {"direct", "impersonate", "cloud", "browser", "ego", "playwright"}
+VIA = {"direct", "impersonate", "cloud", "browser", "ego", "playwright", "brightdata", "camoufox"}
 TYPES = {
+    "aliases": list,
+    "wp_types": dict,
+    "wp_empty_page_limit": int, "wp_empty_retries": int,
+    "ignore_https_errors": bool, "http_version": str,
     "list_urls": list, "api_categories": list, "pages": int, "page_step": int,
     "api_page_size": int, "no_embed": bool, "min_text": int,
     "schema": dict, "llm_fields": list, "llm_override": bool,
@@ -115,6 +119,12 @@ def validate_site(site):
         typ = TYPES.get(key)
         if typ and key in site and not isinstance(site[key], typ):
             errors.append(f"{domain}: {key} must be {typ.__name__}")
+    if isinstance(site.get("wp_types"), dict):
+        for kind, route in site["wp_types"].items():
+            if not isinstance(kind, str) or not re.fullmatch(r"[a-z][a-z0-9_-]*", kind):
+                errors.append(f"{domain}: invalid WP collection name {kind!r}")
+            if not isinstance(route, str) or not re.fullmatch(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)+", route):
+                errors.append(f"{domain}: invalid WP REST route {route!r}")
     # noise_gate 允许 bool 或数字（数字=按站覆盖链接密度阈值，见 crawler/htmlpage.py）
     ng = site.get("noise_gate")
     if ng is not None and not isinstance(ng, bool) and not isinstance(ng, (int, float)):

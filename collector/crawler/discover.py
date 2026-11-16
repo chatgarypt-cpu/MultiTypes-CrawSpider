@@ -7,11 +7,31 @@ from urllib.parse import urljoin, urlparse
 import requests, trafilatura
 from lxml import html as lxml_html
 from crawler.config import ROOT, DATA, DB, UA, COLS, MEDIA_COLS, WORKERS
+from crawler.htmlpage import page_error
+
+
+def sitemap_locs(body):
+    """Parse sitemap XML without external entities; malformed/error pages are failures."""
+    from lxml import etree
+    try:
+        # Some legacy generators put HTML named entities inside XML descriptions.
+        # Convert only recognized names to numeric entities; keep structural parsing strict.
+        from html.entities import name2codepoint
+        body = re.sub(r"&([A-Za-z][A-Za-z0-9]+);", lambda m:
+                      "&#%s;" % name2codepoint[m[1]] if m[1] in name2codepoint and
+                      m[1] not in ("amp", "lt", "gt", "quot", "apos") else m[0], body)
+        root = etree.fromstring(body.encode("utf-8"), etree.XMLParser(resolve_entities=False, no_network=True))
+        kind = etree.QName(root).localname
+        if kind not in ("sitemapindex", "urlset"):
+            return None, []
+        return kind, [str(v).strip() for v in root.xpath('//*[local-name()="loc"]/text()') if str(v).strip()]
+    except (ValueError, TypeError, etree.XMLSyntaxError):
+        return None, []
 
 def wp_page_url(site, page, per=50, kind="posts"):
     per = int(site.get("wp_per_page") or per)
     """REST URL for one page of a collection; per-site ordering override supported."""
-    ep = kind
+    ep = (site.get("wp_types") or {}).get(kind, f"wp/v2/{kind}")
     embed = "" if (kind == "media" or site.get("no_embed")) else "&_embed=1"
     order = site.get("orderby", "id")
     tail = f"&orderby={order}&order={site.get('order', 'asc')}" if order else ""
@@ -21,31 +41,34 @@ def wp_page_url(site, page, per=50, kind="posts"):
     if fields:
         tail += "&_fields=" + fields
     if site.get("api") == "rest_route":
-        return f"{site['base']}/?rest_route=/wp/v2/{ep}&per_page={per}&page={page}{embed}{tail}"
-    return f"{site['base']}/wp-json/wp/v2/{ep}?per_page={per}&page={page}{embed}{tail}"
+        return f"{site['base'].rstrip('/')}/?rest_route=/{ep}&per_page={per}&page={page}{embed}{tail}"
+    return f"{site['base'].rstrip('/')}/wp-json/{ep}?per_page={per}&page={page}{embed}{tail}"
 
 
-def sitemap_urls(site, fetcher, limit):
-    base = site["base"]; sm = site.get("sitemap", "/sitemap.xml")
-    got, seen = [], set()
-    queue = [base + sm]
-    while queue and (not limit or len(got) < limit * 3):
-        batch = queue[:5]; queue = queue[5:]
-        for u, status, body in fetcher.get_many(batch):
-            if status != 200: continue
-            locs = re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", body)
-            if re.search(r"<sitemapindex", body, re.I):
-                queue += [l for l in locs if l not in seen][:80]
-            else:
-                pat = site.get("url_filter")
-                for l in locs:
-                    if l in seen or re.search(r"\.(jpg|jpeg|png|gif|css|js|pdf|xml)$", l, re.I): continue
-                    if pat and not re.search(pat, l): continue
-                    seen.add(l); got.append(l)
-            seen.update(locs)
-    return got[:limit] if limit else got
+def wp_type_inventory(site, fetcher):
+    """Inspect REST types without enabling templates, forms or private endpoints."""
+    base = site["base"].rstrip("/")
+    url = base + ("/?rest_route=/wp/v2/types" if site.get("api") == "rest_route" else "/wp-json/wp/v2/types")
+    from crawler.web import parse_json_tolerant
+    _, status, body = next(iter(fetcher.get_many([url])))
+    data = parse_json_tolerant(body) if status == 200 else None
+    if not isinstance(data, dict) or "code" in data:
+        return {"domain": site["domain"], "error": f"types unavailable (HTTP {status})", "types": []}
+    rows = []
+    for name, info in data.items():
+        if not isinstance(info, dict) or not info.get("rest_base"):
+            continue
+        rows.append({"type": name, "route": f"{info.get('rest_namespace') or 'wp/v2'}/{info['rest_base']}",
+                     "name": info.get("name"), "has_archive": info.get("has_archive"),
+                     "configured": name in ("post", "page", "attachment") or name in (site.get("wp_types") or {}),
+                     "needs_scope_review": name not in ("post", "page", "attachment") and name not in (site.get("wp_types") or {})})
+    return {"domain": site["domain"], "types": rows}
 
-def rss_urls(site, fetcher, limit):
+
+def sitemap_urls(site, fetcher, limit, failures=None):
+    return list(iter_sitemap_urls(site, fetcher, limit, failures=failures))
+
+def rss_urls(site, fetcher, limit, failures=None):
     """RSS/Atom 条目 URL。feed 可带 {start} 或 {page} 占位符做翻页（配合 page_step/pages）。"""
     tpl = site.get("feed", "/feed/")
     count = int(site.get("pages", 1) or 1)
@@ -59,11 +82,17 @@ def rss_urls(site, fetcher, limit):
         feeds = [site["base"] + tpl]
     out = []
     for u, status, body in fetcher.get_many(feeds):
-        if status != 200:
+        if status != 200 or not re.search(r"<(?:rss|feed)(?:\s|>)", body or "", re.I):
+            if failures is not None:
+                failures.append({"url": u, "status": status if status != 200 else 0})
             continue
         for block in re.findall(r"<(?:item|entry)[\s>].*?</(?:item|entry)>", body, re.S | re.I):
             m = re.search(r"<link[^>]*>([^<]+)</link>", block) or re.search(r'<link[^>]*href="([^"]+)"', block)
             if m: out.append(html.unescape(m.group(1).strip()))
+    for u in site.get("seed_urls") or []:
+        full = u if u.startswith("http") else site["base"].rstrip("/") + u
+        if full not in out:
+            out.append(full)
     return out[:limit] if limit else out if limit else out
 
 def _page_urls(site):
@@ -88,7 +117,7 @@ ASSET = re.compile(r"\.(?:jpe?g|png|gif|webp|svg|ico|css|js|json|xml|pdf|zip|mp4
 SKIP_SCHEME = ("#", "javascript:", "mailto:", "tel:")
 
 
-def html_urls(site, fetcher, limit):
+def html_urls(site, fetcher, limit, failures=None):
     """列表页 → 文章 URL。
 
     - `item_selector`：可选 XPath，返回 href 字符串（如 //a[contains(@href,'/news/')]/@href）；
@@ -106,17 +135,23 @@ def html_urls(site, fetcher, limit):
         results = list(fetcher.stream_many(pages, workers=4))
     host = urlparse(site["base"]).netloc
     for page_url, status, body in results:
-        if status != 200 or not body:
+        if status != 200 or not body or page_error(body):
+            if failures is not None:
+                failures.append({"url": page_url, "status": status if status != 200 else 0})
             continue
         try:
             doc = lxml_html.fromstring(body)
         except Exception:
+            if failures is not None:
+                failures.append({"url": page_url, "status": 0})
             continue
         hrefs = []
         if sel:                                   # 显式选择器：只信它，不再叠加启发式
             try:
                 hrefs = [x for x in doc.xpath(sel) if isinstance(x, str)]
             except Exception:
+                if failures is not None:
+                    failures.append({"url": page_url, "status": 0, "error": "invalid_selector"})
                 hrefs = []
         else:
             hrefs = [a.get("href") for a in doc.xpath("//a[@href]")]
@@ -129,8 +164,13 @@ def html_urls(site, fetcher, limit):
                 continue
             if not pat and not sel and not re.search(r"/20\d\d/|/news/|/article|/story|/press|/media", full):
                 continue
-            if full not in seen and (host in full or site["domain"] in full):
+            if full not in seen and urlparse(full).netloc in (host, site["domain"]):
                 seen.add(full); out.append(full)
+    # 显式 seed：单页/静态页/无法从列表页发现的详情页（2026-11-12 全站详情页规则）
+    for u in site.get("seed_urls") or []:
+        full = u if u.startswith("http") else site["base"].rstrip("/") + u
+        if full not in seen:
+            seen.add(full); out.append(full)
     return out[:limit] if limit else out
 
 
@@ -142,7 +182,8 @@ def iter_sitemap_urls(site, fetcher, cap=0, chunk_children=5, failures=None):
     """
     base = site["base"]
     sm = site.get("sitemap", "/sitemap.xml")
-    seen, queue = set(), [base + sm]
+    entry = urljoin(base.rstrip("/") + "/", sm)
+    seen, queue = {entry}, [entry]
     filt = site.get("url_filter")
     pat = site.get("link_pattern")
     yielded = 0
@@ -153,9 +194,14 @@ def iter_sitemap_urls(site, fetcher, cap=0, chunk_children=5, failures=None):
                 if failures is not None:
                     failures.append({"url": u, "status": status})
                 continue
-            locs = re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", body)
-            if re.search(r"<sitemapindex", body, re.I):
-                queue += [l for l in locs if l not in seen][:80]
+            xml_kind, locs = sitemap_locs(body)
+            if xml_kind is None:
+                if failures is not None:
+                    failures.append({"url": u, "status": 0, "error": "invalid_sitemap"})
+                continue
+            locs = [urljoin(u, loc) for loc in locs]
+            if xml_kind == "sitemapindex":
+                queue += [l for l in dict.fromkeys(locs) if l not in seen]
                 seen.update(locs)
                 continue
             for l in locs:

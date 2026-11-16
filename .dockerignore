@@ -1,0 +1,10 @@
+**
+!pyproject.toml
+!uv.lock
+!collector/
+!collector/**
+collector/data
+collector/ui/node_modules
+collector/ui/dist
+collector/**/__pycache__
+collector/tests

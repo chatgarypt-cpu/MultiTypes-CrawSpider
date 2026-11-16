@@ -21,6 +21,30 @@ READ_TIMEOUT = 25             # 秒；单次读的上限（body 另受 BODY_DEAD
 RETRIES = 2                   # 连接错误 / 5xx 最多重试 2 次（总尝试 3 次）
 RETRY_BACKOFF = float(os.environ.get("RETRY_BACKOFF", "0.5"))
 
+BRIGHTDATA_API = "https://api.brightdata.com/request"
+
+
+def brightdata_get(url, zone=None, timeout=90):
+    """Bright Data Unlocker：走对方 IP/指纹池过 Cloudflare/SiteGround，返回 (status, body, {})。
+
+    Key 只从环境变量读（BRIGHTDATA_API_KEY），不写进 sources.yaml。
+    """
+    key = os.environ.get("BRIGHTDATA_API_KEY") or os.environ.get("API_TOKEN")
+    zone = zone or os.environ.get("BRIGHTDATA_ZONE") or "cli_unlocker"
+    if not key:
+        return 0, "missing BRIGHTDATA_API_KEY", {}
+    try:
+        r = requests.post(BRIGHTDATA_API, timeout=timeout,
+                          data=json.dumps({"zone": zone, "url": url, "format": "raw"}).encode(),
+                          headers={"Authorization": "Bearer " + key,
+                                   "Content-Type": "application/json"})
+    except Exception as e:
+        return 0, str(e)[:200], {}
+    if r.status_code != 200:
+        return r.status_code, r.text[:500], {}
+    return 200, r.text, {}
+
+
 SESSION = requests.Session()
 # HTTPAdapter(pool_connections=16, pool_maxsize=32)：16 条常驻连接、最多 32 条复用
 ADAPTER = requests.adapters.HTTPAdapter(pool_connections=POOL_CONNECTIONS,
@@ -118,7 +142,7 @@ def read_body_capped(r, max_bytes=None, deadline=None):
         return data.decode("utf-8", "replace")
 
 
-def get_text(url, headers, timeout=(10, 25)):
+def get_text(url, headers, timeout=(10, 25), verify=True):
     """流式取页面：先看 content-type，非文本直接放弃；正文有体积/时延上限。
 
     连接错误 / 5xx 最多重试 2 次（指数退避）；403/429 不重试，留给 politeness 惩罚。
@@ -127,7 +151,7 @@ def get_text(url, headers, timeout=(10, 25)):
     last = (0, "")
     for attempt in range(RETRIES + 1):
         try:
-            r = SESSION.get(url, headers=headers, timeout=timeout, stream=True)
+            r = SESSION.get(url, headers=headers, timeout=timeout, stream=True, verify=verify)
         except Exception as e:
             last = (0, str(e)[:200])
             if attempt < RETRIES:
@@ -154,6 +178,8 @@ class Fetcher:
         self.cloud = site.get("via") == "cloud"
         self.impersonate = site.get("via") == "impersonate"
         self.playwright = site.get("via") == "playwright"
+        self.brightdata = site.get("via") == "brightdata"
+        self.camoufox = site.get("via") == "camoufox"
         # 默认遵守 robots；站点显式写 robots: false 才跳过（用户决定，记在 sources.yaml note 里）
         self.robots = site.get("robots", True) is not False
 
@@ -165,26 +191,71 @@ class Fetcher:
             return ego_fetch(urls, json_mode=json_mode,
                              wait_ms=self.site.get("ego_wait_ms"),
                              space="collector-" + self.site["domain"].replace(".", "-"))
+        if self.camoufox:
+            from crawler.browser_camoufox import fetch_many as cf_fetch
+            res = cf_fetch(list(urls),
+                           wait_ms=self.site.get("camoufox_wait_ms") or 8000,
+                           headless=self.site.get("headless", True),
+                           ignore_https_errors=bool(self.site.get("ignore_https_errors")))
+            bad = [u for u, st, body in res if st == 0 or not body]
+            if bad:
+                again = {u: (st, body) for u, st, body in cf_fetch(bad, wait_ms=8000,
+                           headless=self.site.get("headless", True),
+                           ignore_https_errors=bool(self.site.get("ignore_https_errors")))}
+                res = [(u, *(again.get(u) or (st, body))) for u, st, body in res]
+            return res
+        if self.brightdata:
+            zone = self.site.get("brightdata_zone")
+            with ThreadPoolExecutor(max_workers=4) as ex:
+                return list(ex.map(lambda u: (u, *brightdata_get(u, zone)[:2]), urls))
         if self.playwright:
             from crawler.browser_playwright import fetch_many as pw_fetch
-            return pw_fetch(urls, wait_ms=self.site.get("playwright_wait_ms") or self.site.get("ego_wait_ms"),
-                            headless=self.site.get("headless", True),
-                            block_resources=bool(self.site.get("block_resources")),
-                            user_agent=site_ua(self.site))
+            warm = []
+            if not getattr(self, "_warmed", False):
+                # 先用首页过一次挑战，拿到的 cookie 后面复用；否则首个列表页可能仍是挑战页
+                self._warmed = True
+                warm = [self.site["base"].rstrip("/") + "/"]
+            res = pw_fetch(warm + list(urls),
+                           wait_ms=self.site.get("playwright_wait_ms") or self.site.get("ego_wait_ms"),
+                           headless=self.site.get("headless", True),
+                           block_resources=bool(self.site.get("block_resources")),
+                           ignore_https_errors=bool(self.site.get("ignore_https_errors")),
+                           user_agent=site_ua(self.site))
+            return res[len(warm):]
         if self.browser:
             return self._browser(urls)
         if self.cloud:
             return [(u, st, body) for u in urls for st, body in [cloud_get(u)]]
-        headers = {"User-Agent": UA, "Accept-Language": "en-US,en;q=0.9"}
-        to = _as_timeout(timeout)                 # 连接池 + connect=10/read<=25，保序返回
-        return [(u, *get_text(u, headers=headers, timeout=to)) for u in urls]
+        return [self._fetch_one(u, timeout) for u in urls]
+
+    def _fetch_one(self, u, timeout=60):
+        if self.robots and not ROBOTS.allowed(u):
+            return u, -1, "robots"
+        LIMITER.acquire(u, min_interval=ROBOTS.crawl_delay(u) if self.robots else None)
+        try:
+            if self.impersonate:
+                if cffi_requests is None:
+                    raise RuntimeError("via: impersonate requires curl_cffi")
+                st, body = self._impersonate_text(u, headers_for(self.site))
+            else:
+                options = {"verify": False} if self.site.get("ignore_https_errors") else {}
+                st, body = get_text(u, headers=headers_for(self.site), timeout=_as_timeout(timeout), **options)
+            (LIMITER.penalize if st in (403, 429) else LIMITER.reward)(u)
+            return u, st, body
+        except Exception as e:
+            return u, 0, str(e)[:150]
 
     def _impersonate_text(self, url, headers):
         """curl_cffi 浏览器指纹请求；同样重试连接错误/5xx。"""
         last = (0, "")
         for attempt in range(RETRIES + 1):
             try:
-                r = cffi_requests.get(url, impersonate="chrome", timeout=45, headers=headers)
+                options = {}
+                if self.site.get("ignore_https_errors"):
+                    options["verify"] = False
+                if self.site.get("http_version") == "1.1":
+                    options["http_version"] = 2
+                r = cffi_requests.get(url, impersonate="chrome", timeout=45, headers=headers, **options)
                 if r.status_code >= 500 and attempt < RETRIES:
                     last = (r.status_code, "")
                     _sleep_backoff(attempt)
@@ -198,30 +269,11 @@ class Fetcher:
 
     def stream_many(self, urls, workers=4):
         """Yield (url, status, body) with bounded in-site concurrency (non-WP article fetches)."""
-        if self.ego or self.browser or self.cloud or self.playwright or workers <= 1:
+        if self.ego or self.browser or self.cloud or self.playwright or self.brightdata or self.camoufox or workers <= 1:
             yield from self.get_many(urls)
             return
-        headers = {"User-Agent": UA, "Accept-Language": "en-US,en;q=0.9"}
-
-        def one(u):
-            if self.robots and not ROBOTS.allowed(u):
-                return u, -1, "robots"
-            LIMITER.acquire(u, min_interval=ROBOTS.crawl_delay(u) if self.robots else None)
-            try:
-                if self.impersonate and cffi_requests is not None:
-                    st, body = self._impersonate_text(u, headers)
-                else:
-                    st, body = get_text(u, headers=headers, timeout=(CONNECT_TIMEOUT, READ_TIMEOUT))
-                if st in (403, 429):
-                    LIMITER.penalize(u)
-                else:
-                    LIMITER.reward(u)
-                return u, st, body
-            except Exception as e:
-                return u, 0, str(e)[:150]
-
         with ThreadPoolExecutor(max_workers=workers) as ex:
-            futures = [ex.submit(one, u) for u in urls]
+            futures = [ex.submit(self._fetch_one, u) for u in urls]
             for f in as_completed(futures):
                 yield f.result()
 

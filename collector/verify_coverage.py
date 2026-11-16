@@ -24,9 +24,9 @@ from datetime import datetime, timezone
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import yaml
+from crawler.config import site_kinds, DATA
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.join(ROOT, "data")
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0 Safari/537.36"}
 
 KINDS = ("posts", "pages", "media")
@@ -84,23 +84,37 @@ def local_keys(domain, kind="posts"):
     return keys
 
 
-def http(url, timeout=45, impersonate=None):
+def _impersonate(site):
+    return "chrome" if (site or {}).get("via") in ("impersonate", "browser", "cloud") else None
+
+
+def http(url, timeout=45, impersonate=None, **options):
     if impersonate:
         from curl_cffi import requests as cffi
-        return cffi.get(url, impersonate=impersonate, timeout=timeout, headers=UA)
+        return cffi.get(url, impersonate=impersonate, timeout=timeout, headers=UA, **options)
     import requests
-    return requests.get(url, timeout=timeout, headers=UA)
+    return requests.get(url, timeout=timeout, headers=UA, **options)
+
+
+def transport_options(site):
+    options = {}
+    if site.get("ignore_https_errors"):
+        options["verify"] = False
+    if site.get("http_version") == "1.1" and _impersonate(site):
+        options["http_version"] = 2
+    return options
 
 
 def wp_totals(site):
     """X-WP-Total for posts/pages/media; falls back to curl_cffi impersonation."""
     out = {}
     imp = "chrome" if site.get("via") in ("impersonate", "browser", "cloud") else None
-    for kind in KINDS:
-        path = f"/?rest_route=/wp/v2/{kind}&per_page=1" if site.get("api") == "rest_route" else f"/wp-json/wp/v2/{kind}?per_page=1"
+    for kind in site_kinds(site):
+        route = (site.get("wp_types") or {}).get(kind, f"wp/v2/{kind}")
+        path = f"/?rest_route=/{route}&per_page=1" if site.get("api") == "rest_route" else f"/wp-json/{route}?per_page=1"
         try:
             for attempt in (imp, "chrome"):
-                r = http(site["base"].rstrip("/") + path, impersonate=attempt)
+                r = http(site["base"].rstrip("/") + path, impersonate=attempt, **transport_options(site))
                 if r.status_code == 200:
                     header = r.headers.get("X-WP-Total")
                     out[kind] = int(header) if header not in (None, "") else None
@@ -113,10 +127,12 @@ def wp_totals(site):
 def wp_page_url(site, kind, page, per_page=100):
     """One page of {id, link} pairs, newest first — bounded probe for missing-URL samples."""
     base = site["base"].rstrip("/")
-    tail = f"&per_page={per_page}&page={page}&_fields=id,link&orderby=date&order=desc"
+    route = (site.get("wp_types") or {}).get(kind, f"wp/v2/{kind}")
+    field = "source_url" if kind == "media" else "link"
+    tail = f"&per_page={per_page}&page={page}&_fields=id,{field}&orderby=date&order=desc"
     if site.get("api") == "rest_route":
-        return f"{base}/?rest_route=/wp/v2/{kind}{tail}"
-    return f"{base}/wp-json/wp/v2/{kind}?{tail.lstrip('&')}"
+        return f"{base}/?rest_route=/{route}{tail}"
+    return f"{base}/wp-json/{route}?{tail.lstrip('&')}"
 
 
 def wp_missing_sample(site, kinds, pages=2, per_page=100):
@@ -134,7 +150,7 @@ def wp_missing_sample(site, kinds, pages=2, per_page=100):
             try:
                 r = None
                 for attempt in (imp, "chrome"):
-                    r = http(wp_page_url(site, kind, page, per_page), impersonate=attempt)
+                    r = http(wp_page_url(site, kind, page, per_page), impersonate=attempt, **transport_options(site))
                     if r.status_code == 200:
                         break
                 if r is None or r.status_code != 200:
@@ -146,7 +162,7 @@ def wp_missing_sample(site, kinds, pages=2, per_page=100):
                 break
             scanned += len(items)
             for item in items:
-                link = (item or {}).get("link") if isinstance(item, dict) else None
+                link = (item or {}).get("source_url" if kind == "media" else "link") if isinstance(item, dict) else None
                 if link and canonical_key(link) not in known:
                     found.append(link)
     sample = sorted(set(found))[:MISSING_SAMPLE]
@@ -154,7 +170,7 @@ def wp_missing_sample(site, kinds, pages=2, per_page=100):
             "note": f"按最新 {scanned} 条抽样（非全量缺失清单）" if scanned else "缺失样本探测失败"}
 
 
-def sitemap_urls(site, limit_children=25, state=None):
+def sitemap_urls(site, limit_children=None, state=None):
     """Return the list of URLs advertised by the site sitemap.
 
     state: 可选 dict；sitemap 超过 SITEMAP_MAX_LOCS 时置 state["truncated"]=True。
@@ -164,34 +180,47 @@ def sitemap_urls(site, limit_children=25, state=None):
     if not path.startswith("http"):
         path = base + path
     seen, queue, urls = set(), [path], []
-    while queue and len(seen) < limit_children:
+    from crawler.discover import sitemap_locs
+    while queue and (not limit_children or len(seen) < limit_children):
         u = queue.pop(0)
         if u in seen:
             continue
         seen.add(u)
         try:
-            r = http(u)
+            r = http(u, impersonate=_impersonate(site), **transport_options(site))
             if r.status_code != 200:
+                if state is not None:
+                    state.setdefault("failed", []).append({"url": u, "status": r.status_code})
                 continue
             body = r.text
         except Exception:
+            if state is not None:
+                state.setdefault("failed", []).append({"url": u, "status": 0})
             continue
-        if "<sitemapindex" in body[:3000]:
-            queue.extend(re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", body))
+        xml_kind, locs = sitemap_locs(body)
+        if xml_kind is None:
+            if state is not None:
+                state.setdefault("failed", []).append({"url": u, "status": 0})
+            continue
+        if xml_kind == "sitemapindex":
+            queue.extend(locs)
         else:
-            urls.extend(re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", body))
+            urls.extend(locs)
             if len(urls) > SITEMAP_MAX_LOCS:
                 urls = urls[:SITEMAP_MAX_LOCS]
                 if state is not None:
                     state["truncated"] = True
                 break
+    if queue and state is not None:
+        state["truncated"] = True
     filt = site.get("url_filter")
     pat = site.get("link_pattern")
     if filt:
         urls = [u for u in urls if re.search(filt, u)]
     if pat:
         urls = [u for u in urls if re.search(pat, u)]
-    if not filt and not pat:                      # only article-shaped URLs count for coverage
+    if not filt and not pat and not site.get("coverage_all"):
+        # 默认只把文章型 URL 计入总量；全站详情页规则下的站（coverage_all）按全部 <loc> 对账
         urls = [u for u in urls if ARTICLE_RE.search(u)]
     return list(dict.fromkeys(urls))
 
@@ -252,13 +281,21 @@ def _verify_set(rec, domain, kind, expected_items):
     if not _apply_guard(rec, rec["got"].get(kind, 0), rec["expected"]):
         return
     rec["missing"] = missing_payload(missing_urls(expected_items, local_keys(domain, kind)))
+    matched = rec["expected"] - rec["missing"]["count"]
+    rec["coverage"] = round(matched / rec["expected"], 3)
+    rec["verdict"] = "已核对" if matched / rec["expected"] >= 0.95 else "有缺口"
 
 
 def _verify_wp(site, rec, got):
     totals = wp_totals(site)
     rec["expected"] = totals
     rec["source"] = "X-WP-Total"
-    comparable = {k: totals[k] for k in KINDS
+    unavailable = [k for k in site_kinds(site) if totals.get(k) is None]
+    if unavailable:
+        rec["verdict"] = "口径异常"
+        rec["verdict_detail"] = "X-WP-Total 缺失: " + ", ".join(unavailable)
+        return
+    comparable = {k: totals[k] for k in site_kinds(site)
                   if isinstance(totals.get(k), int) and not isinstance(totals.get(k), bool)
                   and totals[k] > 0}
     if not comparable:
@@ -290,6 +327,20 @@ def _verify_wp(site, rec, got):
         except Exception as e:
             payload["note"] = f"缺失样本探测失败: {str(e)[:60]}"
     rec["missing"] = payload
+    unresolved = {}
+    for kind in site_kinds(site):
+        filename = "cursor.json" if kind == "posts" else f"{kind}.cursor.json"
+        try:
+            with open(os.path.join(DATA, site["domain"], filename)) as f:
+                state = json.load(f)
+            if state.get("skipped_pages") or state.get("status") in ("partial", "blocked", "interrupted", "paused"):
+                unresolved[kind] = {"status": state.get("status"), "skipped_pages": state.get("skipped_pages", 0)}
+        except (OSError, ValueError):
+            pass
+    if unresolved:
+        rec["crawl_unresolved"] = unresolved
+        rec["verdict"] = "有缺口"
+        rec["verdict_detail"] = "数量比例不代表采集完成；游标仍有未解决页或中断"
 
 
 def verify_site(s, got):
@@ -304,7 +355,9 @@ def verify_site(s, got):
             state = {}
             urls = sitemap_urls(s, state=state)
             rec["source"] = "sitemap <loc>"
-            if state.get("truncated"):
+            if state.get("failed"):
+                rec.update(verdict="不可验证", verdict_detail="部分 sitemap 请求失败，不能用残缺分母核对", discovery_failed=state["failed"])
+            elif state.get("truncated"):
                 rec["verdict"] = "不可验证"
                 rec["verdict_detail"] = (f"sitemap 超过 {SITEMAP_MAX_LOCS} 条已截断"
                                          f"（本地 {got['posts']} 条），需单独抽样核对")
@@ -315,9 +368,13 @@ def verify_site(s, got):
                 rec["verdict"] = "口径异常"
                 rec["verdict_detail"] = "上游 sitemap 未返回任何 <loc>（expected 缺失/为 0），无法按同一范围核对"
         elif channel == "json-api":
-            r = http(s["base"].rstrip("/") + s["api"] + "?limit=1&meta=total_count")
+            from crawler.channels.json_api import page_url
+            r = http(page_url(s, totals=True))
+            if r.status_code != 200:
+                raise ValueError(f"HTTP {r.status_code}")
             rec["source"] = "Directus meta"
-            total = (r.json().get("meta") or {}).get("total_count")
+            meta = r.json().get("meta") or {}
+            total = meta.get("filter_count") if "filter" in (s.get("api_query") or "") else meta.get("total_count")
             rec["expected"] = total
             if _apply_guard(rec, got["posts"], total):
                 rec["missing"] = {"count": max(int(total) - got["posts"], 0), "sample": [],
@@ -325,8 +382,10 @@ def verify_site(s, got):
                                   "note": "上游只给总量，无 URL 列表"}
         else:                                    # rss / html / json-list: probe a sitemap
             state = {}
-            urls = [u for u in sitemap_urls(s, state=state) if ARTICLE_RE.search(u)]
-            if state.get("truncated"):
+            urls = sitemap_urls(s, state=state)
+            if state.get("failed"):
+                rec.update(verdict="不可验证", verdict_detail="sitemap 探测失败，未取得完整上游清单", discovery_failed=state["failed"])
+            elif state.get("truncated"):
                 rec["source"] = "sitemap <loc> (truncated)"
                 rec["verdict"] = "不可验证"
                 rec["verdict_detail"] = f"sitemap 超过 {SITEMAP_MAX_LOCS} 条已截断，需单独抽样核对"
@@ -340,6 +399,22 @@ def verify_site(s, got):
         rec["coverage"] = None
         rec["verdict"] = "核对失败"
         rec["source"] = f"error: {str(e)[:60]}"
+    # Report remaining HTTP failures alongside ratios; count retries only once per URL.
+    import sqlite3
+    from collections import Counter
+    database = os.path.join(DATA, "state.db")
+    if os.path.exists(database):
+        try:
+            with sqlite3.connect("file:" + database + "?mode=ro", uri=True) as connection:
+                errors = connection.execute("SELECT error FROM requests WHERE domain=? AND state='error'", (s["domain"],)).fetchall()
+            counts = Counter((re.search(r"http_(-?\d+)", e[0] or "").group(1) if re.search(r"http_(-?\d+)", e[0] or "") else "other") for e in errors)
+            if counts:
+                rec["crawl_errors"] = dict(counts)
+                detail = "；".join(f"HTTP {code}: {n} 个链接" for code, n in sorted(counts.items()))
+                rec["verdict_detail"] = (rec.get("verdict_detail") + "；" if rec.get("verdict_detail") else "") + detail
+        except sqlite3.Error:
+            pass
+    rec["checked_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     return rec
 
 
@@ -387,6 +462,53 @@ def print_table(payload):
     print(f"有可信上游总量 {payload['verified']} 站，其中已核对(>=95%) {payload['complete']} 站")
 
 
+def verify_and_store(site):
+    """Publish a per-site receipt atomically, without replacing another site's history."""
+    from pathlib import Path
+    import fcntl
+    directory = Path(DATA) / "coverage-sites"
+    directory.mkdir(parents=True, exist_ok=True)
+    domain = site["domain"]
+    if "/" in domain or "\\" in domain or domain.startswith("."):
+        raise ValueError("invalid domain")
+    with (directory / (domain + ".lock")).open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return None
+        got = {k: rows(domain, k) for k in site_kinds(site)}
+        rec = verify_site(site, got)
+        path = directory / (domain + ".json")
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(rec, ensure_ascii=False, indent=1), encoding="utf-8")
+        os.replace(tmp, path)
+        return rec
+
+
+def refresh_registered(stop):
+    """Refresh only sites explicitly registered by verification, using queue concurrency.
+
+    Existing report history is read-only. Expired or changed per-site receipts are
+    rechecked in the background; failures publish a new dated result too.
+    """
+    from pathlib import Path
+    from concurrent.futures import ThreadPoolExecutor
+    import status
+    while not stop.is_set():
+        try:
+            sites = status.source_cfg()
+            pending = [sites[p.stem] for p in (Path(DATA) / "coverage-sites").glob("*.json")
+                       if p.stem in sites and status.coverage_flags(p.stem).get("coverage_stale")]
+            if pending:
+                workers = status.concurrency()
+                with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+                    list(pool.map(verify_and_store, pending))
+        except Exception:
+            import traceback
+            traceback.print_exc()
+        stop.wait(60)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", action="store_true")
@@ -412,10 +534,9 @@ def main():
     for s in sites:
         if s.get("disabled"):
             continue
-        got = {k: rows(s["domain"], k) for k in KINDS}
-        if sum(got.values()) == 0:
-            continue
-        report.append(verify_site(s, got))
+        rec = verify_and_store(s)
+        if rec is not None:
+            report.append(rec)
 
     payload = summarize(report, disabled)
     if a.json:

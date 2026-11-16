@@ -43,7 +43,9 @@ def ld_value(nodes, key):
     return ""
 
 def extract_article(url, body, site):
-    txt = trafilatura.extract(body, include_comments=False, include_tables=False) or ""
+    txt = trafilatura.extract(body, include_comments=False, include_tables=True,
+                             prune_xpath=["//nav", "//footer", "//aside", "//form", "//select",
+                                          "//*[@role='dialog']", "//*[@aria-hidden='true']"]) or ""
     md = trafilatura.extract_metadata(body)
     ld = jsonld_blocks(body)
 
@@ -99,9 +101,17 @@ def extract_article(url, body, site):
 # ---------- multi-extractor candidates + scoring (news-please style) ----------
 
 def _para_text(body):
-    """Crude fallback: paragraphs that look like prose."""
-    txt = clean(body)
-    lines = [l.strip() for l in txt.splitlines() if len(l.strip()) >= 40]
+    """Paragraph fallback after removing navigation; length must not reward menus."""
+    doc = htmlpage._doc(body)
+    if doc is None:
+        return ""
+    for node in doc.xpath("//nav | //header | //footer | //aside | //form | //select | //*[@role='dialog'] | //*[@aria-hidden='true'] | //*[@role='navigation']"):
+        if node.getparent() is not None:
+            node.drop_tree()
+    roots = doc.xpath("//article | //main") or [doc]
+    lines = [htmlpage._norm(p.text_content()) for root in roots
+             for p in root.xpath(".//p | .//blockquote")]
+    lines = list(dict.fromkeys(line for line in lines if len(line) >= 40))
     return "\n".join(lines)
 
 
@@ -152,6 +162,8 @@ def extract_best(url, body, site=None, min_text=60):
 
     HTML 通道还会过列表页闸门、按 site 的 schema/llm_fields 补字段（crawler.htmlpage）。
     """
+    if htmlpage.page_error(body):
+        return None
     cands = candidates(url, body, site)
     if not cands:
         return None
@@ -162,3 +174,36 @@ def extract_best(url, body, site=None, min_text=60):
     row["text"] = best["text"]
     row["_extractor"] = best["extractor"]
     return htmlpage.enrich(row, body, url, site)
+
+
+def extract_metadata(url, body, site=None):
+    """正文抽不出来时的元数据兜底（2026-11-12 规则：短正文/无正文也保留条目）。
+
+    优先复用候选行的 title/date/description；候选为空时退回 og/title/description。
+    只返回有标题或描述的行，避免把错误页当详情页入库。
+    """
+    if htmlpage.page_error(body):
+        return None
+    gate, ratio = htmlpage.gate_setting(site or {})
+    if gate and htmlpage.looks_like_listing(body, htmlpage.markdown(body, url), ratio):
+        return None
+    cands = candidates(url, body, site)
+    if cands:
+        row = dict(cands[0]["row"])
+        if not row.get("url"):
+            row["url"] = url
+        if row.get("title") or row.get("description"):
+            row["_extractor"] = (cands[0].get("extractor") or "") + "+meta"
+            return row
+    title = clean(meta(body,
+                       r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']*)',
+                       r'<meta[^>]+name=["\']twitter:title["\'][^>]+content=["\']([^"\']*)',
+                       r"<title[^>]*>([^<]*)</title>"))
+    desc = clean(meta(body,
+                      r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']*)',
+                      r'<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']*)'))
+    if not title and not desc:
+        return None
+    date = meta(body, r'<meta[^>]+property=["\']article:published_time["\'][^>]+content=["\']([^"\']*)')
+    return {"title": title, "url": url, "description": desc, "text": "",
+            "created_at": iso(parse_dt(date)), "host": (site or {}).get("domain", "")}

@@ -163,12 +163,18 @@ def main():
     ap.add_argument("--validate", action="store_true")
     ap.add_argument("--check-site", metavar="DOMAIN", help="dry-run discovery only: print count + first 3 URLs")
     ap.add_argument("--check-extract", metavar="DOMAIN", help="dry-run discovery + fetch/extract samples (no writes)")
+    ap.add_argument("--check-types", metavar="DOMAIN", help="inspect WordPress REST types and report unconfigured collections")
     ap.add_argument("--samples", type=int, default=8, help="--check-extract 抽样条数（默认 8）")
     ap.add_argument("--url", help="crawl one article URL (no need to add it to sources.yaml)")
     ap.add_argument("--site-url", help="point at a site homepage/listing and auto-detect how to crawl it")
     ap.add_argument("--detect", action="store_true", help="only print the detected rule for --site-url")
-    ap.add_argument("--kind", default="posts", choices=["posts", "pages", "media"])
+    ap.add_argument("--kind", default="posts", help="posts/pages/media or a configured wp_types collection")
     a = ap.parse_args()
+    import re
+    if not re.fullmatch(r"[a-z][a-z0-9_-]*", a.kind):
+        ap.error("invalid collection name")
+    from crawler.channels import wp_api
+    wp_api.WORKERS = max(1, a.workers)
 
     if a.url:
         from crawler.adhoc import collect_one
@@ -179,12 +185,14 @@ def main():
         from crawler.adhoc import detect, remember
         site = detect(a.site_url)
         remember(site)
-        if a.detect or a.limit == 0:
+        if a.detect:
             print(json.dumps(site, ensure_ascii=False, indent=1))
             return
-        import glob
-        for cp in glob.glob(os.path.join(DATA, site["domain"], "*cursor*.json")):
-            os.remove(cp)                       # a manual run always re-discovers
+        if a.reset:
+            from crawler.store import _paths
+            cp = _paths(site["domain"], a.kind)[2]
+            if os.path.exists(cp):
+                os.remove(cp)
         print(json.dumps({"detected": site}, ensure_ascii=False), flush=True)
         print(json.dumps(collect_site(site, a.limit, a.kind), ensure_ascii=False), flush=True)
         return
@@ -201,6 +209,14 @@ def main():
         sys.exit(1 if errs else 0)
 
     sites = yaml.safe_load(open(sources_path))
+    if a.check_types:
+        from crawler.discover import wp_type_inventory
+        site = next((s for s in sites if s.get("domain") == a.check_types), None)
+        if not site or site.get("channel") != "wp-api":
+            ap.error("--check-types requires a configured wp-api site")
+        result = wp_type_inventory(site, Fetcher(site))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        sys.exit(1 if result.get("error") else 0)
     if a.check_site:
         site = next((s for s in sites if s.get("domain") == a.check_site), None)
         if site is None:
@@ -240,8 +256,13 @@ def main():
                   + ", ".join(skipped_disabled), flush=True)
 
     for s in sites:
+        from crawler.config import site_kinds
+        if a.kind not in site_kinds(s):
+            if a.site:
+                ap.error(f"{s['domain']}: collection {a.kind!r} is not configured")
+            continue
         if a.reset:
-            cp = os.path.join(DATA, s["domain"], "cursor.json")
+            cp = os.path.join(DATA, s["domain"], "cursor.json" if a.kind == "posts" else f"{a.kind}.cursor.json")
             if os.path.exists(cp):
                 os.remove(cp)
         try:

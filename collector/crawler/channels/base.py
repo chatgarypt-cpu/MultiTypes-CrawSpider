@@ -13,7 +13,8 @@ import os, time
 from collections import Counter
 
 from crawler import cursor
-from crawler.extract import extract_best
+from crawler.htmlpage import page_error
+from crawler.extract import extract_best, extract_metadata
 from crawler.pipeline import normalize, validate
 from crawler.request import RequestQueue
 from crawler.store import append_rows, load_known
@@ -42,7 +43,7 @@ def _split_discovery_failures(failures):
             status = 0
         if status in GONE_HTTP:
             gone.append(f)
-        elif str(status).startswith("5") or status in RETRYABLE_HTTP:
+        else:
             retryable.append(f)
     return retryable, gone
 
@@ -76,7 +77,19 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     retryable_disc, gone_disc = _split_discovery_failures(discovery_failures)
     disc_reasons = Counter("discovery_http_%s" % f.get("status") for f in (discovery_failures or []))
     cur = cursor.load(domain, kind)
-    if cur["status"] == "complete":
+    cur["saved"] = len(load_known(domain, kind))
+    q = RequestQueue(domain, kind)
+    known_urls = load_known(domain, kind)
+    repaired = q.requeue_missing_rows(known_urls)
+    if repaired:
+        log.info("repair_missing_rows domain=%s count=%d", domain, repaired)
+    q.seed_done(known_urls, channel=channel)
+    requeued = q.retry_transient(cooldown=RETRY_COOLDOWN)
+    if requeued:
+        log.info("retry_transient domain=%s requeued=%d", domain, requeued)
+    if cur["status"] == "complete" and not urls:
+        existing_queue = q
+        has_pending = bool(existing_queue.stats().get("unprocessed", 0))
         # 已完成站点若本次发现阶段有可重试失败（子 sitemap 503 等），不能继续显示 complete
         if retryable_disc:
             reasons = Counter(cur.get("reasons") or {})
@@ -90,20 +103,16 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
             return {"domain": domain, "channel": channel, "skipped": "reopened", "saved": 0,
                     "status": "partial", "reasons": dict(reasons),
                     "discovery_failed": _failed_sample(retryable_disc)}
-        return {"domain": domain, "channel": channel, "skipped": "done", "saved": 0,
-                "status": "complete", "reasons": dict(cur.get("reasons") or {})}
+        if not has_pending and discovered_count:
+            return {"domain": domain, "channel": channel, "skipped": "done", "saved": 0,
+                    "status": "complete", "reasons": dict(cur.get("reasons") or {})}
 
     reasons = Counter(cur.get("reasons") or {})
     reasons.update(disc_reasons)
     run_reasons = Counter()
-    q = RequestQueue(domain, kind)
-    q.seed_done(load_known(domain, kind), channel=channel)
-    requeued = q.retry_transient(cooldown=RETRY_COOLDOWN)
-    if requeued:
-        log.info("retry_transient domain=%s requeued=%d", domain, requeued)
     added = q.add_many(urls, channel=channel) if urls else 0
     pending_start = q.stats().get("unprocessed", 0)
-    discovered = added + pending_start
+    discovered = sum(q.stats().values())
     if discovered_count is None:
         discovered_count = len(urls)
 
@@ -164,14 +173,21 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
         batch = q.next_batch(min(BATCH, max(1, want)))
         if not batch:
             break
+        responded = set()
         for req, status, body in fetcher.stream_requests(batch, workers=workers):
             key = req.key
+            responded.add(key)
+            rejection = page_error(body) if status == 200 else ""
+            if rejection:
+                status = 403 if rejection == "challenge" else 503
             if status != 200:
                 errors += 1
                 _count(reasons, run_reasons, "http_%s" % status)
                 q.mark_error([key], {key: f"http_{status} {(body if isinstance(body, str) else '')[:200]}"})
                 continue
             row = extract_best(req.url, body, site, min_text=0)
+            if row is None:
+                row = extract_metadata(req.url, body, site)   # 元数据兜底：无正文也保留条目
             if row is None:
                 q.mark_skipped([key], "no_text")
                 _count(reasons, run_reasons, "no_text")
@@ -185,8 +201,15 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
             buf.append((key, row))
             if len(buf) >= FLUSH_EVERY:
                 flush()
+        missing = [req.key for req in batch if req.key not in responded]
+        if missing:
+            q.mark_error(missing, {key: "http_0 no_response" for key in missing})
+            errors += len(missing)
+            reasons["no_response"] += len(missing)
+            run_reasons["no_response"] += len(missing)
         if limit and saved + len(buf) >= limit:
             break
+        flush()
 
     flush()
 
@@ -212,6 +235,8 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     else:
         status = "interrupted"
         last_reason = "no_output"
+    if st.get("skipped") and status == "complete":
+        status, last_reason = "partial", "skipped"
     auth = sum(run_reasons.get(k, 0) for k in AUTH_REASONS)
     all_http = sum(v for k, v in run_reasons.items() if k.startswith("http_"))
     if saved == 0 and unprocessed == 0 and auth and auth == all_http:

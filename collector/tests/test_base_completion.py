@@ -22,6 +22,8 @@ def _cursor(status="interrupted"):
 def test_nothing_new_marks_complete(tmp_env, monkeypatch):
     """发现到 N>0 条 URL（都已入库）、队列无待办 → complete，而不是一直 interrupted。"""
     from crawler.request import RequestQueue
+    from crawler.store import append_rows
+    append_rows("s.test", [{"url": "https://s.test/a", "title": "saved", "text": "body"}])
     q = RequestQueue("s.test", "posts")
     q.add_many(["https://s.test/a"], channel="sitemap")
     q.mark_done([r.key for r in q.next_batch(10)])
@@ -97,3 +99,11 @@ def test_dead_429_stays_partial(tmp_env, monkeypatch):
     log = type("L", (), {"info": lambda *a, **k: None})()
     out = base_mod.collect_urls(_site(), [], 0, log, FakeFetcher(), discovered_count=1)
     assert out["status"] == "partial"
+
+
+def test_empty_fetcher_does_not_loop_forever(tmp_env):
+    log = type('L', (), {'info': lambda *a, **k: None})()
+    result = base_mod.collect_urls(_site(), ['https://s.test/missing'], 0, log, FakeFetcher())
+    assert result['status'] == 'partial'
+    assert result['queue']['error'] == 1
+    assert result['saved'] == 0

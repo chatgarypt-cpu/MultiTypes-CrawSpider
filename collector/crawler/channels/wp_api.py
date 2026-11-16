@@ -12,7 +12,7 @@ from crawler.store import (load_cursor, save_cursor, load_known, append_rows,
 from crawler.discover import sitemap_urls, rss_urls, html_urls, wp_page_url
 from crawler.mapping import map_wp_post, map_wp_media, map_json_item, _flatten_rich
 from crawler.extract import extract_article
-from crawler.web import Fetcher, _get, wp_json, cloud_get, headers_for
+from crawler.web import Fetcher, _get, wp_json, cloud_get, headers_for, brightdata_get
 from crawler.pipeline import normalize, validate
 
 # 空页抖动：同页重试 N 次；仍空就跳过该页（记 reasons.empty_page），继续翻。
@@ -21,6 +21,14 @@ EMPTY_RETRY_SLEEP = float(os.environ.get("WP_EMPTY_RETRY_SLEEP", "1.5"))
 # 连续这么多页都是空页 → 站点很可能在吐挑战页/假空页，停止并标 interrupted，
 # 不能一路翻到天荒地老，更不能标 complete。
 EMPTY_PAGE_LIMIT = int(os.environ.get("WP_EMPTY_PAGE_LIMIT", "5"))
+
+
+def _get_for_site(site, url, timeout=90, impersonate=False):
+    """经由站点配置的出口取 WP REST；brightdata 走 Unlocker，其余沿用 _get。"""
+    if site.get("via") == "brightdata":
+        st, body, hdr = brightdata_get(url, site.get("brightdata_zone"), timeout=timeout)
+        return st, body, hdr
+    return _get(None, url, timeout=timeout, impersonate=impersonate, headers=headers_for(site))
 
 
 def _int_header(hdr, name):
@@ -55,11 +63,11 @@ def _parse_page(st, body):
 
 def _retry_empty_page(site, page, kind, impersonate):
     """200 [] 可能是分页抖动：同页再试 N 次，返回 posts 或 None。"""
-    for _ in range(max(0, EMPTY_RETRIES)):
+    for _ in range(max(0, int(site.get("wp_empty_retries", EMPTY_RETRIES)))):
         if EMPTY_RETRY_SLEEP:
             time.sleep(EMPTY_RETRY_SLEEP)
-        st, body, _hdr = _get(None, wp_page_url(site, page, kind=kind), timeout=60,
-                              impersonate=impersonate, headers=headers_for(site))
+        st, body, _hdr = _get_for_site(site, wp_page_url(site, page, kind=kind), timeout=60,
+                                       impersonate=impersonate)
         page_kind, info = _parse_page(st, body)
         if page_kind == "ok":
             return info
@@ -69,8 +77,8 @@ def _retry_empty_page(site, page, kind, impersonate):
 def _fetch_pages(site, pages, kind, impersonate):
     headers = headers_for(site)
     with ThreadPoolExecutor(max_workers=max(1, len(pages))) as ex:
-        return list(ex.map(lambda p: _get(None, wp_page_url(site, p, kind=kind),
-                                          impersonate=impersonate, headers=headers), pages))
+        return list(ex.map(lambda p: _get_for_site(site, wp_page_url(site, p, kind=kind),
+                                                   impersonate=impersonate), pages))
 
 
 def _collect_rows(posts, site, kind, known):
@@ -80,7 +88,7 @@ def _collect_rows(posts, site, kind, known):
         if kind == "media":
             if not row["url"] or row["url"] in known:
                 continue
-        elif (kind == "posts" and len(row["text"]) < 100) or row["url"] in known:
+        elif row["url"] in known:
             continue
         known.add(row["url"])
         rows.append(row)
@@ -106,21 +114,27 @@ def collect_wp(site, limit=0, workers=8, progress=True, kind="posts"):
     """
     impersonate = site.get("via") == "impersonate"
     domain = site["domain"]
+    empty_limit = int(site.get("wp_empty_page_limit", EMPTY_PAGE_LIMIT))
     cur = cursor.load(domain, kind)
     if cursor.is_complete(domain, kind):
         return {"domain": domain, "skipped": "done", "saved": 0, "status": cur.get("status")}
     known = load_known(domain, kind)
+    cur["saved"] = len(known)
     reasons = Counter(cur.get("reasons") or {})
     skipped_pages = int(cur.get("skipped_pages") or 0)
     total_pages = cur.get("total_pages") or None
     total_posts = cur.get("total_posts")
+    skipped_numbers = list(cur.get("skipped_page_numbers") or [])
+    if skipped_pages and (cur.get("status") == "partial" or (total_pages and cur.get("next_page", 1) > total_pages)):
+        cur["next_page"] = min(skipped_numbers) if skipped_numbers else 1
+        skipped_pages, skipped_numbers = 0, []
     t0, saved = time.time(), 0
     prefetched = {}
 
     # 首屏探一次 total_pages；顺带识别 403/挑战页/真空站。
     if not total_pages and not total_posts:
-        st, body, hdr = _get(requests.Session(), wp_page_url(site, 1, kind=kind), timeout=90,
-                             impersonate=impersonate, headers=headers_for(site))
+        st, body, hdr = _get_for_site(site, wp_page_url(site, 1, kind=kind), timeout=90,
+                                      impersonate=impersonate)
         page_kind, info = _parse_page(st, body)
         total_pages = _int_header(hdr, "x-wp-totalpages") or None
         total_posts = _int_header(hdr, "x-wp-total")
@@ -142,7 +156,7 @@ def collect_wp(site, limit=0, workers=8, progress=True, kind="posts"):
         prefetched[1] = (st, body, hdr)
         cur = cursor.save(domain, kind, total_pages=total_pages,
                           total_posts=total_posts if total_posts is not None else cur.get("total_posts"),
-                          reasons=dict(reasons))
+                          reasons=dict(reasons), saved=cur["saved"])
 
     next_page = int(cur.get("next_page") or 1)
     final = None
@@ -192,13 +206,14 @@ def collect_wp(site, limit=0, workers=8, progress=True, kind="posts"):
                 posts = _retry_empty_page(site, p, kind, impersonate)
                 if not posts:
                     empty_streak += 1
-                    if empty_streak >= EMPTY_PAGE_LIMIT:
+                    if (empty_limit > 0 and empty_streak >= empty_limit) or (not total_pages and empty_limit == 0):
                         # 连续空页更像挑战页/站点故障：中断在这页，下次重试
                         last_ok = p - 1
                         terminal = ("interrupted", "empty_pages")
                         break
                     # 持久空页：跳过它继续翻，但本次不能再标 complete
                     skipped_pages += 1
+                    skipped_numbers.append(p)
                     reasons["empty_page"] += 1
                     last_ok = p
                     continue
@@ -237,6 +252,7 @@ def collect_wp(site, limit=0, workers=8, progress=True, kind="posts"):
 
         fields = dict(next_page=next_page, total_pages=total_pages, total_posts=total_posts,
                       saved=cur["saved"], seen=cur.get("seen"), skipped_pages=skipped_pages,
+                      skipped_page_numbers=skipped_numbers,
                       reasons=dict(reasons))
         if final:
             if final == "partial" and not reasons.get("skipped_pages") and skipped_pages:
@@ -264,7 +280,7 @@ def collect_wp(site, limit=0, workers=8, progress=True, kind="posts"):
 
 def run(site, limit, log, fetcher, kind="posts"):
     """wp-api channel entry point; `via: browser` keeps the legacy page loop."""
-    if site.get("via") in ("browser", "ego"):
+    if site.get("via") in ("browser", "ego", "playwright", "camoufox"):
         return _legacy_browser(site, limit, kind, log, fetcher)
     return collect_wp(site, limit=limit, workers=WORKERS, kind=kind)
 
@@ -276,14 +292,20 @@ def _legacy_browser(site, limit, kind, log, fetcher):
     或拿到 400 invalid page 才算 complete；失败原因写 cursor.reasons。
     """
     domain = site["domain"]
+    empty_limit = int(site.get("wp_empty_page_limit", EMPTY_PAGE_LIMIT))
     cur = cursor.load(domain, kind)
     if cursor.is_complete(domain, kind):
         return {"domain": domain, "channel": "wp-api", "skipped": "done", "saved": 0,
                 "status": cur.get("status")}
     known = load_known(domain, kind)
+    cur["saved"] = len(known)
     reasons = Counter(cur.get("reasons") or {})
     skipped_pages = int(cur.get("skipped_pages") or 0)
     total_pages = cur.get("total_pages") or None
+    skipped_numbers = list(cur.get("skipped_page_numbers") or [])
+    if skipped_pages and (cur.get("status") == "partial" or (total_pages and cur.get("next_page", 1) > total_pages)):
+        cur["next_page"] = min(skipped_numbers) if skipped_numbers else 1
+        skipped_pages, skipped_numbers = 0, []
     per = 50
     batch_pages = int(os.environ.get("EGO_PAGES", "4"))
     saved, t0 = 0, time.time()
@@ -326,7 +348,7 @@ def _legacy_browser(site, limit, kind, log, fetcher):
                 break
             if page_kind == "empty":
                 posts = None
-                for _ in range(max(0, EMPTY_RETRIES)):
+                for _ in range(max(0, int(site.get("wp_empty_retries", EMPTY_RETRIES)))):
                     if EMPTY_RETRY_SLEEP:
                         time.sleep(EMPTY_RETRY_SLEEP)
                     again = list(fetcher.get_many([wp_page_url(site, p, per=per, kind=kind)], timeout=90))
@@ -337,11 +359,12 @@ def _legacy_browser(site, limit, kind, log, fetcher):
                             break
                 if not posts:
                     empty_streak += 1
-                    if empty_streak >= EMPTY_PAGE_LIMIT:
+                    if (empty_limit > 0 and empty_streak >= empty_limit) or (not total_pages and empty_limit == 0):
                         last_ok = p - 1
                         terminal = ("interrupted", "empty_pages")
                         break
                     skipped_pages += 1
+                    skipped_numbers.append(p)
                     reasons["empty_page"] += 1
                     last_ok = p
                     continue
@@ -351,7 +374,7 @@ def _legacy_browser(site, limit, kind, log, fetcher):
             empty_streak = 0
             cur["seen"] = int(cur.get("seen") or 0) + len(posts)
             for post in posts:
-                row = normalize(map_wp_post(post, site), site)
+                row = normalize(map_wp_media(post, site) if kind == "media" else map_wp_post(post, site), site)
                 ok, why = validate(row, site, kind)
                 if not ok:
                     reasons[why or "invalid_row"] += 1
@@ -383,6 +406,7 @@ def _legacy_browser(site, limit, kind, log, fetcher):
         next_page = last_ok + 1 if last_ok >= start else start
         fields = dict(next_page=next_page, total_pages=total_pages, saved=cur["saved"],
                       seen=cur.get("seen"), skipped_pages=skipped_pages,
+                      skipped_page_numbers=skipped_numbers,
                       reasons=dict(reasons))
         if final:
             if final == "partial" and skipped_pages and not reason:

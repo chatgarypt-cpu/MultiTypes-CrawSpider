@@ -77,7 +77,8 @@ def total_rows(data_dir) -> int:
             continue
         if not any((p / m).exists() for m in SITE_MARKERS):
             continue
-        total += sum(_site_lines(data, p.name, kind) for kind in KINDS)
+        from crawler.config import stored_kinds
+        total += sum(_site_lines(data, p.name, kind) for kind in stored_kinds(p))
     return total
 
 

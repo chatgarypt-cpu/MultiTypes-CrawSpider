@@ -153,9 +153,8 @@ def load_tasks(sources_path=None) -> list:
         if not isinstance(s, dict) or not s.get("domain") or s.get("disabled"):
             continue
         dom = s["domain"]
-        out.append((dom, "posts"))
-        if s.get("channel") == "wp-api":
-            out += [(dom, "pages"), (dom, "media")]
+        from crawler.config import site_kinds
+        out.extend((dom, kind) for kind in site_kinds(s))
     return out or list(TASKS)
 
 

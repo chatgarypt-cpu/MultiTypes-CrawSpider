@@ -134,7 +134,7 @@ def test_gives_up_after_retries(fake_get, monkeypatch):
 def test_get_many_preserves_order_and_uses_session(fake_get):
     fake_get.push(lambda url, **kw: FakeResponse(body=url.encode()),
                   lambda url, **kw: FakeResponse(body=url.encode()))
-    fetcher = web.Fetcher({"domain": "order.test"})
+    fetcher = web.Fetcher({"domain": "order.test", "robots": False})
     out = fetcher.get_many(["http://a.test/1", "http://a.test/2"])
     assert out == [("http://a.test/1", 200, "http://a.test/1"),
                    ("http://a.test/2", 200, "http://a.test/2")]
@@ -306,7 +306,7 @@ def test_fetcher_playwright_branch(monkeypatch):
 
     seen = {}
 
-    def fake(urls, wait_ms=None, headless=True, block_resources=False, user_agent=None):
+    def fake(urls, wait_ms=None, headless=True, block_resources=False, user_agent=None, ignore_https_errors=False):
         seen.update(wait_ms=wait_ms, headless=headless, block=block_resources, ua=user_agent)
         return [(u, 200, "<html>ok</html>") for u in urls]
 
@@ -325,3 +325,13 @@ def test_playwright_config_validates():
             "block_resources": True, "headless": True}
     errors, _warnings = schema.validate_site(site)
     assert errors == []
+
+
+def test_https_exception_is_scoped_to_one_fetcher(fake_get, monkeypatch):
+    monkeypatch.setattr(web.LIMITER, 'acquire', lambda *a, **k: None)
+    relaxed = web.Fetcher({'domain': 'expired.test', 'robots': False, 'ignore_https_errors': True})
+    ordinary = web.Fetcher({'domain': 'normal.test', 'robots': False})
+    relaxed.get_many(['https://expired.test/a'])
+    ordinary.get_many(['https://normal.test/b'])
+    assert fake_get.calls[0][1]['verify'] is False
+    assert fake_get.calls[1][1]['verify'] is True

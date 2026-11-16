@@ -148,9 +148,9 @@ def test_low_coverage_is_not_verified(layered_status):
     assert row["coverage"] == 0.6 and row["coverage_verdict"] == "覆盖率不足"
 
 
-def test_unverifiable_counts_as_verified(layered_status):
+def test_unverifiable_is_not_verified(layered_status):
     row = _row(layered_status, "unver.test")
-    assert row["verified"] is True and row["coverage"] is None
+    assert row["verified"] is False and row["coverage"] is None
     assert row["coverage_verdict"] == "不可验证"
 
 
@@ -167,3 +167,44 @@ def test_needs_config_and_disabled_are_separate(layered_status):
     gone = _row(layered_status, "gone.test")
     assert gone["disabled"] is True and gone["needs_config"] is False
     assert gone["disabled_reason"] == "站点已下线"
+
+
+def test_coverage_merges_sites_and_honors_latest_failed_check(fake_status):
+    data = __import__('pathlib').Path(fake_status.DATA)
+    _write(data / 'coverage-old.json', {'generated': '2026-11-14T00:00:00Z', 'report': [
+        {'domain': 'alpha.test', 'coverage': 1.0, 'verdict': '已核对'},
+        {'domain': 'beta.test', 'coverage': .4, 'verdict': '有缺口'}]})
+    _write(data / 'coverage-sites/alpha.test.json', {'domain': 'alpha.test', 'checked_at': '2026-11-15T00:00:00Z', 'verdict': '核对失败', 'source': 'HTTP 503'})
+    records = fake_status.latest_coverage()
+    assert set(records) == {'alpha.test', 'beta.test'}
+    assert records['alpha.test']['verdict'] == '核对失败'
+    assert fake_status.coverage_flags('alpha.test')['coverage'] is None
+
+
+def test_expired_or_changed_coverage_is_not_verified(fake_status):
+    from pathlib import Path
+    from datetime import datetime, timezone
+    data = Path(fake_status.DATA)
+    record = {'domain': 'alpha.test', 'coverage': 1, 'verdict': '已核对', 'got': {'posts': 1}, 'checked_at': '2020-01-01T00:00:00Z'}
+    _write(data / 'coverage-sites/alpha.test.json', record)
+    assert fake_status.coverage_flags('alpha.test')['coverage_stale']
+    record['checked_at'] = datetime.now(timezone.utc).isoformat()
+    _write(data / 'coverage-sites/alpha.test.json', record)
+    assert fake_status.coverage_flags('alpha.test')['verified']
+    (data / 'alpha.test/urls.txt').write_text('https://alpha.test/a\nhttps://alpha.test/b\n')
+    flag = fake_status.coverage_flags('alpha.test')
+    assert flag['coverage_stale'] and not flag['verified']
+
+
+def test_99_percent_with_explicit_gaps_is_not_pass(fake_status):
+    from pathlib import Path
+    _write(Path(fake_status.DATA) / 'coverage-fresh.json', {'report': [
+        {'domain': 'alpha.test', 'coverage': .999, 'verdict': '有缺口', 'crawl_unresolved': {'posts': {'status': 'partial'}}}]})
+    flags = fake_status.coverage_flags('alpha.test')
+    assert not flags['verified'] and flags['coverage_verdict'] == '覆盖率不足'
+
+
+def test_legacy_list_report_does_not_break_status(fake_status):
+    from pathlib import Path
+    _write(Path(fake_status.DATA) / 'coverage-unrelated.json', ['legacy', 'list'])
+    assert fake_status.build_status()['sites']

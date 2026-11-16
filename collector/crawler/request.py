@@ -87,6 +87,16 @@ class RequestQueue:
             "VALUES(?,?,?,?,?,?,?,?,?,?,?)", rows)
         self.conn.commit()
 
+    def requeue_missing_rows(self, known_urls):
+        """Repair historical done-before-persist records against the disk URL registry."""
+        known = {canonical_key(u) for u in known_urls}
+        rows = self.conn.execute(
+            "SELECT key FROM requests WHERE domain=? AND kind=? AND state='done'",
+            (self.domain, self.kind)).fetchall()
+        missing = [key for (key,) in rows if key not in known]
+        self._set_state(missing, "unprocessed", error="missing_persisted_row")
+        return len(missing)
+
     def mark_done(self, keys):
         self._set_state(keys, "done")
 
