@@ -140,7 +140,7 @@ def test_html_urls_item_selector_and_assets():
 
 
 def test_noise_gate_threshold_is_per_site(monkeypatch):
-    """noise_gate 支持数字阈值：upng 这类文章页 link_ratio≈0.57，默认 0.35 会误杀。"""
+    """noise_gate 支持数字阈值：链接密度较高的正文页可以使用单独设置的阈值。"""
     from crawler import htmlpage
     monkeypatch.setattr(htmlpage, "markdown", lambda body, url="": "short")
     monkeypatch.setattr(htmlpage, "link_ratio", lambda body: 0.57)

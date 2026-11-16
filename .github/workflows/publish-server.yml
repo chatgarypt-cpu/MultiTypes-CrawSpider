@@ -4,7 +4,11 @@ on:
   push:
     branches: ['deploy/centos8']
     tags: ['server-v*']
-    paths: ['.github/workflows/publish-server.yml']
+    paths: ['.github/workflows/publish-server.yml', 'pyproject.toml']
+
+concurrency:
+  group: publish-server-package
+  cancel-in-progress: false
 
 permissions:
   contents: write

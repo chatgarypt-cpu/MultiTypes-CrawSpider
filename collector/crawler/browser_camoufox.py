@@ -1,10 +1,7 @@
-"""Camoufox headless egress — anti-detect Firefox for Cloudflare-heavy sites.
+"""Headless Firefox transport with a reusable browser context.
 
-Camoufox is a Firefox build with fingerprint spoofing; headless it passes some
-challenges that stock Chromium cannot (e.g. upng.ac.pg). One browser per process,
-one page reused sequentially: cookies from the first solved challenge carry over.
-
-Install: pip install camoufox[geoip] + python -m camoufox fetch (or direct release).
+Reuse the context across pages so cookies and session state survive between
+requests. The server image includes the browser and its Python dependencies.
 """
 import atexit
 import time
