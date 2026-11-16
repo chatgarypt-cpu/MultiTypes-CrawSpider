@@ -12,6 +12,7 @@ node_modules/
 outputs/
 artifacts/
 packages/*.zip
+packages/server-*/
 
 # crawler runtime + deliverables
 data/

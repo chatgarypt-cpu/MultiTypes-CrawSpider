@@ -1,174 +1,76 @@
-# Deploy on CentOS Linux 8.4.2105 (x86_64)
+# CentOS Linux 8.4 x86_64 部署
 
-CentOS Linux 8 reached EOL on 2021-12-31. The default mirrors are gone, so the
-first step is to point DNF at `vault.centos.org`. The crawler itself runs in a
-container built from `deploy/Dockerfile` (Debian bookworm + Python 3.12), so the
-host only needs a container runtime.
+宿主机使用 Podman 构建和运行容器，systemd 管理服务进程及开机启动。镜像包含 Python、网页界面、Playwright Chromium 和 Camoufox。
 
-## Quick start (recommended)
+## 安装
 
-No Docker, no npm, no Node.js on the host: the image builds the UI inside a
-Node stage, and Podman runs the result.
+服务器需要 systemd、curl、OpenSSL 和 sudo 权限。构建时需要访问 Docker Hub、Debian 软件源、npm、PyPI 和浏览器下载地址。x86_64 测试镜像约 2 GB，构建缓存和数据卷另占磁盘空间。
+
+按 [服务器包下载说明](../../README.md#下载安装服务器版) 下载、校验并解压。在解压目录执行：
 
 ```bash
-git clone git@github.com:chatgarypt-cpu/MultiTypes-CrawSpider.git
-cd MultiTypes-CrawSpider
-git checkout deploy/centos8
 sudo bash deploy/centos8/install.sh
 ```
 
-The script:
+在尚未安装 Podman 的 CentOS Linux 8.4.2105 主机上，脚本会把 BaseOS、AppStream 和 Extras 指向 CentOS Vault，再用 DNF 安装 Podman。CentOS Linux 8 的系统软件包已停止接收更新。[CentOS 生命周期说明](https://www.centos.org/centos-linux-eol/)
 
-1. points DNF at `vault.centos.org` for CentOS 8.4;
-2. installs Podman;
-3. generates an admin password in `/etc/rea-crawler/web.env` (0600);
-4. builds `rea-crawler:latest` and starts container `rea-crawler`;
-5. enables `podman-restart.service` so the container comes back after reboot;
-6. waits for `/healthz` and prints the URL.
+脚本生成管理员密码，构建镜像，安装并启用 `rea-crawler.service`。构建和运行使用专用的 seccomp 配置，让旧 Podman 上的新版运行库能创建线程。发布端口通过 `/healthz` 检查后，脚本才打印部署成功。
 
-Use `CRAWL_BIND=0.0.0.0` / `CRAWL_PORT=8788` before the script to change the
-bind address/port. Data stays in the `crawler-data` volume across rebuilds.
+## 登录和配置
 
-Why not npm/qnpm: npm is only used to build the frontend, which already happens
-inside the image. Installing Node/Python on CentOS 8.4 natively is fragile
-(glibc/OpenSSL/EOL repos) and unnecessary. Why not Docker: Docker CE's CentOS 8
-repo is archived; Podman is native and sufficient.
-
-## 1. Fix DNF repos (vault)
+默认地址为服务器本机的 `http://127.0.0.1:8787/`。可从操作电脑建立 SSH 转发，在本机浏览器打开同一个地址。
 
 ```bash
-sed -i 's/^mirrorlist=/#mirrorlist=/; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*.repo
-sed -i 's/\$releasever/8.4.2105/g' /etc/yum.repos.d/CentOS-*.repo
-dnf clean all && dnf makecache
+ssh -N -L 8787:127.0.0.1:8787 user@server
 ```
 
-Optional EPEL (also from vault):
+账号为 `admin`。密码在 `/etc/rea-crawler/web.env` 的 `CRAWL_WEB_PASSWORD` 项中，文件仅 root 可读写。用 `sudoedit /etc/rea-crawler/web.env` 修改配置，保存后重启服务。
 
-```bash
-dnf install -y epel-release
-```
+| 配置 | 用途 | 默认值 |
+| --- | --- | --- |
+| `CRAWL_WEB_PASSWORD` | Web 登录密码 | 安装时生成 |
+| `CRAWL_BIND` | 宿主机监听地址 | `127.0.0.1` |
+| `CRAWL_PORT` | 宿主机监听端口 | `8787` |
+| `SITE_WORKERS` | 单站通用并行请求数 | `4` |
+| `BRIGHTDATA_API_KEY` | 使用 Bright Data 的站点所需凭据 | 空 |
+| `BRIGHTDATA_ZONE` | 站点未指定时使用的 Bright Data Zone | `cli_unlocker` |
 
-## 2. Container runtime: Podman
+如需对外提供网页，使用 HTTPS 反向代理指向宿主机端口，保留原始 `Host`，并为 `/api/stream` 关闭缓冲。采集服务面向可信操作人员。
 
-CentOS 8 AppStream ships Podman, which avoids the archived Docker CE repo.
-
-```bash
-dnf install -y podman
-podman --version
-```
-
-> Docker CE for CentOS 8 is archived. If you must use Docker, use its static
-> x86_64 binaries or a supported host; Podman is the lower-risk path here.
-
-## 3. Manual build and run (same steps as the script)
-
-```bash
-set -a; . /etc/rea-crawler/web.env; set +a
-
-podman build -f deploy/Dockerfile -t rea-crawler:latest .
-podman volume exists crawler-data || podman volume create crawler-data
-podman rm -f rea-crawler 2>/dev/null || true
-podman run -d --name rea-crawler --restart=unless-stopped \
-  -p 127.0.0.1:8787:8787 \
-  -e CRAWL_WEB_PASSWORD \
-  -v crawler-data:/data \
-  rea-crawler:latest
-curl -fsS http://127.0.0.1:8787/healthz
-```
-
-The container binds `127.0.0.1:8787` by default. Put an HTTPS reverse proxy
-(nginx/Apache) in front; do not expose plain HTTP with the admin password.
-
-To expose on a trusted LAN only, use `-p 0.0.0.0:8787:8787` and open the port:
-
-```bash
-firewall-cmd --permanent --add-port=8787/tcp
-firewall-cmd --reload
-```
-
-`deploy/compose.yaml` is still available as an optional `podman-compose` path;
-the direct `podman run` above has fewer moving parts.
-
-Firewall (only if CRAWL_BIND is not 127.0.0.1):
-
-```bash
-firewall-cmd --permanent --add-port=8787/tcp
-firewall-cmd --reload
-```
-
-## 4. Nginx reverse proxy (example)
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name crawler.example.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8787;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    # SSE progress stream: disable buffering
-    location /api/stream {
-        proxy_pass http://127.0.0.1:8787;
-        proxy_http_version 1.1;
-        proxy_set_header Connection '';
-        proxy_buffering off;
-        proxy_read_timeout 3600s;
-    }
-}
-```
-
-## 5. Data and backup
-
-- Data lives in the named volume `crawler-data` (mounted at `/data`).
-- Do **not** run `podman-compose down -v` unless you intend to delete data.
-- Backup while the service is stopped:
-
-```bash
-podman volume export crawler-data -o crawler-data-$(date +%F).tar
-```
-
-Restore with `podman volume import crawler-data <file>`.
-
-## 6. Health and logs
+## 日常运维
 
 ```bash
 curl -fsS http://127.0.0.1:8787/healthz
-podman-compose -f deploy/compose.yaml logs -f
+sudo systemctl status rea-crawler.service
+sudo journalctl -u rea-crawler.service -f
+sudo systemctl restart rea-crawler.service
 ```
 
-## 7. Browser channels (Playwright / Camoufox)
-
-The default image intentionally does **not** include Playwright or Camoufox
-(they add large browser downloads and OS libraries). Sites that need a real
-browser (`via: playwright` / `via: camoufox`) require a derived image:
-
-```dockerfile
-FROM rea-crawler:latest
-USER root
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-      libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
-      libgbm1 libasound2 && rm -rf /var/lib/apt/lists/*
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN /app/.venv/bin/python -m playwright install --with-deps chromium
-USER crawler
-```
-
-Camoufox needs a Firefox binary and `playwright==1.62.0` (already pinned in
-`pyproject.toml`); install it in the same derived image only if a source
-actually uses `via: camoufox`. Validate with:
+升级时，下载并校验新版本服务器包。如已维护专用站点配置，先将 `collector/sources.yaml` 复制到新的解压目录。然后重新执行安装脚本。
 
 ```bash
-podman exec -it <container> /app/.venv/bin/python collector/collect.py --check-site <domain>
+sudo bash deploy/centos8/install.sh
 ```
 
-## 8. Notes
+镜像构建完成后才替换容器。升级复用配置文件、密码和 `crawler-data` 卷。系统重启后，服务会自动启动并调度排队任务。被中断的任务可在页面点「继续采集」。
 
-- Images are multi-arch; building on this host produces `linux/amd64`.
-- `CRAWL_DATA_DIR=/data` is already set by the image.
-- Only one web scheduler may use a data directory at a time.
-- After upgrading the image, interrupted tasks show "interrupted" in the UI and
-  can be resumed; queued tasks are scheduled automatically.
+## 备份和恢复
+
+容器内的 `/data` 对应 Podman 命名卷 `crawler-data`，包含任务状态、断点、日志和 CSV。备份时停止服务并归档整个卷目录。
+
+```bash
+sudo systemctl stop rea-crawler.service
+volume_dir="$(sudo podman volume inspect --format '{{.Mountpoint}}' crawler-data)"
+sudo tar --numeric-owner -C "$volume_dir" -czf "crawler-data-$(date +%F).tar.gz" .
+sudo systemctl start rea-crawler.service
+```
+
+恢复时，保持服务停止，确认目标卷为空，再用 root 将备份解压到该卷目录，保留数字 UID 和 GID（`tar --numeric-owner --same-owner -xzf`）。如需迁移账号配置，另行备份并恢复 `/etc/rea-crawler/web.env`，保持权限为 `0600`。
+
+## 站点抓取方式
+
+运行镜像已包含直接 HTTP、TLS 指纹请求、Playwright Chromium 和 Camoufox。站点使用的方式定义在 [`collector/sources.yaml`](../../collector/sources.yaml)。新增或更换其中的站点配置后，可以检查发现结果和正文样本。命令中的域名需与配置中的 `domain` 对应。服务器包初始站点清单为空，可在网页直接提交网址。维护专用站点配置时，更新 `collector/sources.yaml` 后重新运行安装脚本。
+
+```bash
+sudo podman exec rea-crawler /app/.venv/bin/python collector/collect.py --check-extract example.com --samples 3
+```
