@@ -1,0 +1,13 @@
+**
+!pyproject.toml
+!uv.lock
+!collector/
+!collector/**
+!deploy/
+deploy/**
+!deploy/install-camoufox.py
+collector/data
+collector/ui/node_modules
+collector/ui/dist
+collector/**/__pycache__
+collector/tests
