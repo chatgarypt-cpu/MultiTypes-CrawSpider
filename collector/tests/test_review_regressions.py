@@ -1,4 +1,4 @@
-"""Regression tests for public collection, coverage and storage."""
+"""Regression tests for the 2026-11-15 audit; production data is isolated."""
 import json, logging, sys
 from pathlib import Path
 from unittest.mock import patch
@@ -8,6 +8,7 @@ sys.path.insert(0,str(ROOT/'collector'))
 from crawler import config,store,request,cursor,discover
 from crawler.channels import base,sitemap,html_list,json_list
 import verify_coverage as vc
+import recheck_sources
 
 @pytest.fixture(autouse=True)
 def isolated(tmp_path,monkeypatch):
@@ -70,6 +71,10 @@ def test_challenge_page_must_not_be_saved(isolated):
  out=base.collect_urls(site,[url],1,LOG,Fetch({url:(200,body)}))
  assert out['saved']==0,out
 
+def test_http_503_must_not_be_classified_alive():
+ body='<html><title>Service unavailable</title><body>'+'server maintenance '*500+'</body></html>'
+ out=recheck_sources.verdict(503,body,'https://x.test','x.test')
+ assert out[0]!='alive',out
 
 
 def test_completed_listing_picks_up_new_urls():
@@ -104,6 +109,8 @@ def test_coverage_partial_sitemap_not_verified(monkeypatch):
 
 
 def test_json_detail_recovers_without_duplicate(isolated,monkeypatch):
+ # Exercise the second run immediately; production retries obey RETRY_COOLDOWN.
+ monkeypatch.setenv('RETRY_COOLDOWN','0')
  site={'domain':'x.test','base':'https://x.test','channel':'json-list','api_list':'/list/{page}','api_categories':['a'],'api_url':'{base}/news/{id}','max_pages_per_run':1,'noise_gate':False}
  monkeypatch.setattr(json_list,'fetch_page',lambda *a,**k:({'a':[{'id':1},{'id':2}]},[]))
  pages={'https://x.test/news/1':(200,BODY),'https://x.test/news/2':(503,'Unavailable')}
@@ -125,6 +132,10 @@ def test_sequential_impersonation_uses_selected_transport(monkeypatch):
  assert list(f.stream_many(['https://x.test'],workers=1))[0][2]=='fingerprint'
 
 
+def test_detection_does_not_call_hosting_brand_dead():
+ body='<html><title>Local school news</title><article>'+'School funded new classrooms. '*150+'Hosted by GoDaddy.</article></html>'
+ assert recheck_sources.verdict(200,body,'https://x.test','x.test')[0]=='alive'
+ assert recheck_sources.verdict(0,'','','x.test')[0]=='unreachable'
 
 
 def test_short_real_notice_survives_metadata():
@@ -140,6 +151,20 @@ def test_security_check_not_metadata():
  assert row is None
 
 
+def test_custom_wp_type_in_scheduler_and_export(isolated,tmp_path):
+ from crawler.config import site_kinds
+ from supervisor import load_tasks
+ from deliver import export_csvs,site_counts
+ import yaml
+ site={'domain':'x.test','base':'https://x.test','channel':'wp-api','wp_types':{'reports':'news/v1/reports'}}
+ assert 'reports' in site_kinds(site)
+ assert '/wp-json/news/v1/reports?' in discover.wp_page_url(site,1,kind='reports')
+ configfile=tmp_path/'sites.yaml';configfile.write_text(yaml.safe_dump([site]))
+ assert ('x.test','reports') in load_tasks(configfile)
+ store.append_rows('x.test',[{'url':'https://x.test/report','title':'Report'}],'reports')
+ assert site_counts(isolated,'x.test')['reports']==1
+ exported=export_csvs(['x.test'],isolated,tmp_path/'csv')
+ assert exported['x.test']['reports']==1
 
 
 def test_json_api_failure_resumes_same_page(monkeypatch):

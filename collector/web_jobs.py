@@ -1,19 +1,18 @@
 """Durable, isolated web jobs. One scheduler per server; workers own their receipts."""
 import fcntl
-import ipaddress
 import json
 import os
 from pathlib import Path
 import re
-import socket
 import subprocess
 import sys
 import threading
 import time
 import uuid
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
 from crawler.config import DATA, ROOT
+from crawler.public_urls import normalize_url
 
 JOBS = Path(DATA) / 'web-jobs'
 LOCK = threading.RLock()
@@ -34,40 +33,6 @@ def write(path, value):
     temp = path.with_name(path.name + '.' + uuid.uuid4().hex + '.tmp')
     temp.write_text(json.dumps(value, ensure_ascii=False, indent=2))
     os.replace(temp, path)
-
-
-def normalize_url(value):
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError('请输入域名或网址')
-    value = value.strip()
-    p = urlsplit(value if '://' in value else 'https://' + value)
-    if p.scheme not in ('http', 'https') or not p.hostname or p.username or p.password:
-        raise ValueError('仅支持不含账号密码的 HTTP / HTTPS 网址')
-    host = p.hostname.encode('idna').decode().lower().rstrip('.')
-    if not re.fullmatch(r'[a-z0-9.-]+', host) or '..' in host:
-        raise ValueError('域名格式不正确')
-    port = p.port
-    if port and port not in (80, 443) and os.getenv('CRAWL_ALLOW_PRIVATE') != '1':
-        raise ValueError('公开站点仅支持 80 / 443 端口')
-    if os.getenv('CRAWL_ALLOW_PRIVATE') != '1':
-        try:
-            addresses = socket.getaddrinfo(host, port or 443, type=socket.SOCK_STREAM)
-        except OSError as exc:
-            raise ValueError('域名无法解析，请检查拼写或网络') from exc
-        # macOS TUN resolvers may map public names into the RFC 2544 fake-IP range.
-        # Literal private IPs remain forbidden. This is a trusted-operator service,
-        # not a hardened arbitrary-URL public proxy.
-        try:
-            literal = ipaddress.ip_address(host)
-        except ValueError:
-            literal = None
-        fake = ipaddress.ip_network('198.18.0.0/15')
-        if (literal and not literal.is_global) or any(
-                not ipaddress.ip_address(a[4][0]).is_global and
-                not (literal is None and ipaddress.ip_address(a[4][0]) in fake) for a in addresses):
-            raise ValueError('不能提交本机或内网地址')
-    authority = host + (f':{port}' if port else '')
-    return urlunsplit((p.scheme, authority, p.path or '/', p.query, ''))
 
 
 def job_dir(job_id):
@@ -113,7 +78,7 @@ def jobs():
     return sorted(result, key=lambda j: j['created'], reverse=True)
 
 
-def submit(values):
+def submit(values, *, site=None):
     if not isinstance(values, list) or not values:
         raise ValueError('请至少填写一个域名，每行一个')
     results = []
@@ -132,7 +97,10 @@ def submit(values):
                     results.append({'input': value, 'status': 'duplicate', 'id': active[domain]['id'], 'message': '该域名已有排队或运行中的任务'})
                     continue
                 j = {'id': uuid.uuid4().hex, 'url': url, 'status': 'queued', 'created': time.time(), 'stage': '等待执行'}
-                write(job_dir(j['id']) / 'job.json', j)
+                directory = job_dir(j['id'])
+                if site is not None:
+                    write(directory / 'site.json', site)
+                write(directory / 'job.json', j)
                 active[domain] = j
                 results.append({'input': value, 'status': 'queued', 'id': j['id'], 'message': '已加入队列'})
             except (ValueError, UnicodeError) as exc:

@@ -36,7 +36,9 @@ def load_known(domain, kind="posts"):
 
 # ---------- append with dedupe ----------
 # urls.txt is the per-(domain, kind) URL registry: the source of truth for "already
-# collected". Keep canonical URL keys cached in-process and reload the file when
+# collected". append_rows used to append blindly, so a rerun or a queue reset stored
+# the same article twice (lnc: 16,150 dup rows, matangitonga: 2,768). Keep one canonical
+# key per line here, cached in-process, and re-read the file only when its stat says it
 # changed (another process appended, or dedupe.py rewrote it).
 
 _KNOWN = {}                       # urls.txt path -> {"sig": (size, mtime_ns) | None, "keys": set}

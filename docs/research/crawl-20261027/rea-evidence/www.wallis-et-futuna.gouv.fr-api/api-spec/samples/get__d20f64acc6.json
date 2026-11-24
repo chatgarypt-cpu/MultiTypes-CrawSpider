@@ -1,0 +1,13 @@
+{
+  "endpoint": "GET https://www.wallis-et-futuna.gouv.fr/",
+  "request": {
+    "status": null,
+    "headers": {},
+    "body": null
+  },
+  "response": {
+    "status": null,
+    "headers": {},
+    "body": null
+  }
+}

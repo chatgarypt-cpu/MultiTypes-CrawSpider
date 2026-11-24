@@ -3,9 +3,6 @@
 !uv.lock
 !collector/
 !collector/**
-!deploy/
-deploy/**
-!deploy/install-camoufox.py
 collector/data
 collector/ui/node_modules
 collector/ui/dist

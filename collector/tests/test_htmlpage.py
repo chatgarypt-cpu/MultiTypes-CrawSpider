@@ -7,8 +7,8 @@ import sys
 import pytest
 
 from crawler import htmlpage
-from crawler.extract import extract_best
-from crawler.discover import html_urls
+from crawler.extract import extract_best, extract_metadata
+from crawler.discover import html_urls, parse_feed
 
 
 ARTICLE = """<html><head>
@@ -110,6 +110,37 @@ def test_gate_can_be_disabled_per_site():
     assert row is not None
 
 
+def test_listing_role_blocks_long_article_candidate_and_metadata():
+    url = 'https://example.test/archives?offset=20'
+    site = {'base': 'https://example.test', 'domain': 'example.test',
+            'channel': 'html', 'list_url': '/archives?offset={offset}'}
+    # An archive with long summaries still matches the configured listing URL.
+    long_archive = '<html><title>Archive</title><p>' + ('Long summary of our latest news. ' * 70) + '</p></html>'
+    assert extract_best(url, long_archive, site, min_text=0) is None
+    assert extract_metadata(url, long_archive, site) is None
+    assert extract_best('https://example.test/about', ARTICLE, site, min_text=0)
+
+
+def test_atom_selects_public_alternate_link_and_resolves_relative_urls():
+    feed = '''<feed xmlns="http://www.w3.org/2005/Atom" xml:base="/archive/">
+      <entry><link rel="self" href="123.atom"/><link rel="alternate" href="123"/></entry>
+      <entry><link href="//example.test/archive/123"/></entry>
+    </feed>'''
+    assert parse_feed(feed, 'https://example.test/sub/feed.atom') == ['https://example.test/archive/123']
+    assert parse_feed('<html><rss>Not a real feed</rss></html>', 'https://example.test/feed') is None
+
+
+def test_site_pruning_keeps_short_announcement_and_removes_sidebar():
+    body = ('<html><title>Service notice</title><article><h1>Service notice</h1>'
+            '<p>The office closes at noon.</p></article><div class="promoted">'
+            + 'Read twelve stories and explore our special offers. ' * 50 + '</div></html>')
+    site = {'domain': 'example.test', 'channel': 'sitemap',
+            'prune_xpath': ["//div[@class='promoted']"]}
+    row = extract_best('https://example.test/notice', body, site, min_text=0)
+    assert 'The office closes at noon.' in row['text']
+    assert 'special offers' not in row['text']
+
+
 class FakeFetcher:
     def __init__(self, pages):
         self.pages = pages
@@ -140,9 +171,9 @@ def test_html_urls_item_selector_and_assets():
 
 
 def test_noise_gate_threshold_is_per_site(monkeypatch):
-    """noise_gate 支持数字阈值：链接密度较高的正文页可以使用单独设置的阈值。"""
+    """noise_gate 支持数字阈值：upng 这类文章页 link_ratio≈0.57，默认 0.35 会误杀。"""
     from crawler import htmlpage
-    monkeypatch.setattr(htmlpage, "markdown", lambda body, url="": "short")
+    monkeypatch.setattr(htmlpage, "markdown", lambda body, url="", site=None: "short")
     monkeypatch.setattr(htmlpage, "link_ratio", lambda body: 0.57)
     row = {"url": "https://u.test/a", "text": "x"}
     site = {"domain": "u.test", "channel": "html"}

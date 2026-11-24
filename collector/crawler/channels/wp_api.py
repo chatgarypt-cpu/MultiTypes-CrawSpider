@@ -25,6 +25,13 @@ EMPTY_PAGE_LIMIT = int(os.environ.get("WP_EMPTY_PAGE_LIMIT", "5"))
 
 def _get_for_site(site, url, timeout=90, impersonate=False):
     """经由站点配置的出口取 WP REST；brightdata 走 Unlocker，其余沿用 _get。"""
+    if site.get("_public_host"):
+        from crawler.adhoc import _get as public_api_get
+        try:
+            response = public_api_get(url, timeout=timeout, public=True)
+        except (ValueError, OSError, requests.RequestException) as exc:
+            return 0, str(exc), {}
+        return response.status_code, response.text, response.headers
     if site.get("via") == "brightdata":
         st, body, hdr = brightdata_get(url, site.get("brightdata_zone"), timeout=timeout)
         return st, body, hdr
@@ -103,6 +110,20 @@ def _result(domain, cur, saved, t0, reasons, skipped_pages):
             "secs": round(time.time() - t0, 1)}
 
 
+def _collection_cursor(site, kind):
+    """One opt-in replay after extraction changes; interruptions still resume."""
+    domain = site["domain"]
+    cur = cursor.load(domain, kind)
+    revision = (site.get("backfill_revision") or {}).get(kind, 0)
+    if revision > cur.get("backfill_revision", 0):
+        cur = cursor.save(domain, kind, status="interrupted", next_page=1,
+                          total_pages=None, total_posts=None, seen=0,
+                          skipped_pages=0, skipped_page_numbers=[], reasons={},
+                          saved=len(load_known(domain, kind)), backfill_revision=revision,
+                          last_reason="extraction_backfill")
+    return cur
+
+
 def collect_wp(site, limit=0, workers=8, progress=True, kind="posts"):
     """Page-parallel WordPress collection with an atomic cursor; safe to kill and rerun.
 
@@ -115,7 +136,7 @@ def collect_wp(site, limit=0, workers=8, progress=True, kind="posts"):
     impersonate = site.get("via") == "impersonate"
     domain = site["domain"]
     empty_limit = int(site.get("wp_empty_page_limit", EMPTY_PAGE_LIMIT))
-    cur = cursor.load(domain, kind)
+    cur = _collection_cursor(site, kind)
     if cursor.is_complete(domain, kind):
         return {"domain": domain, "skipped": "done", "saved": 0, "status": cur.get("status")}
     known = load_known(domain, kind)
@@ -293,7 +314,7 @@ def _legacy_browser(site, limit, kind, log, fetcher):
     """
     domain = site["domain"]
     empty_limit = int(site.get("wp_empty_page_limit", EMPTY_PAGE_LIMIT))
-    cur = cursor.load(domain, kind)
+    cur = _collection_cursor(site, kind)
     if cursor.is_complete(domain, kind):
         return {"domain": domain, "channel": "wp-api", "skipped": "done", "saved": 0,
                 "status": cur.get("status")}

@@ -1,0 +1,777 @@
+[
+ {
+  "domain": "islandtimes.org",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 93871,
+  "head": " \n \n  Close  \n  Search for:   \n   Search     \n\nHome \nNews\n  Open dropdown menu  \n \nTop Stories \nSports \nBillboard   \nPacific News \nWorld News \nOpinion \nWomen’s Corner    \n\nTop Stories \nBillboard \nWorld News \nPacific News \nIn Focus \nOpinion \nSports \nHome    \n \n  Close   \n Skip to content  \n \n \n  \n \nIsland Times News \n Your gateway to Palau News and Current Events    \n \n   \n  Menu    \n \n \n  \n\nHome \n"
+ },
+ {
+  "domain": "naurugov.nr",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"DownstreamServiceFailureError\",\"status\":42205,\"message\":\"Failed to resolve domain 'naurugov.nr' (EAI_AGAIN)\",\"reada"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"DownstreamServiceFailureError\",\"status\":42205,\"message\":\"Failed to resolve domain 'naurugov.nr' (EAI_AGAIN)\",\"reada"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "pacificclimateaction.net",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'pacificclimateaction.net' could not be resolved\",\"re"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'pacificclimateaction.net' could not be resolved\",\"re"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "matangitonga.to",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 9513,
+  "head": "Skip to main content\nTuesday 27 Oct 2026, updated 16:39.\nSearch form\nSearch\n°C ,\nSunrise , Sunset \nLOGIN Sign up Subscribe\n Latest news Pacific Islands Sports Parliament Opinion Business Travel About JOBS NOTICES FAMILY NOTICES\nBasketball\nTonga crowned FIBA Polynesian Cup Champions, qualify for 2027 Pacific Games\n36-0\nTonga turn focus to Samoa showdown after Lebanon win\nRugby League World Cup\nDie-"
+ },
+ {
+  "domain": "www.abc7chamorro.com",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.abc7chamorro.com' could not be resolved\",\"readab"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.abc7chamorro.com' could not be resolved\",\"readab"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.cmi.edu",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 5818,
+  "head": "Skip to the content\nSONIS – SIS\neLearning\nAccreditation\nJobs @ CMI\nFinancial Aid\nSingle Sign-On\nCampus Life\nSearch\nCollege of the Marshall Islands\nHome\nStudent Services\nAcademics\nWAVES\nCommunity\nAbout CMI\nAudit Report FY 2023\nAudit Report\nFinancial Statements and Reports on Internal Control and Compliance\nFinal FY 2023 FS Report\n\nAuditor’s Required Communications (ARC)\n\nManagement Letter\n\nAudit Re"
+ },
+ {
+  "domain": "dimenc.gouv.nc",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 4783,
+  "head": "Aller au contenu principal\n\nRechercher\nMenu principal (niveau 1)\nLA DIMENC\nÉNERGIE\nGÉOLOGIE\nINDUSTRIE\nLABORATOIRE\nMINES ET CARRIÈRES\nÀ propos de la DIMENC\nNos offres d'emplois\nNos services\nÉnergie\nGéologie\nIndustrie\nLaboratoire\nMines et carrières\nAdministration\nNos partenaires\nOBLIC\nFonds Nickel\nACE\nNos engagements\nQualité\nNos métiers\nExplorateur cartographique\nContacts\nActualités\nSchéma pour la t"
+ },
+ {
+  "domain": "www.coralgardeners.org",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 1333,
+  "head": "Coral Gardeners — Adopt a coral, restore a reef\nGet gardening\nGrowAdopt a coral. Follow its journey back to the reef.Adopt a coral \nWearMerch that gives 100% back to the reef.Rep the mission \nEcotourJoin the Gardeners in the water.Get gardening \nFrench PolynesiaFijiThailand\nA world\nrevived,\nfrom the\nreef up\n\nWith 12 active restoration sites across our branches in French Polynesia, Fiji, and Thaila"
+ },
+ {
+  "domain": "www.cookislands.gov.ck",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"cause\":{\"log\":[\"  - navigating to \\\"https://www.cookislands.gov.ck/\\\", waiting until \\\"networkidle\\\"\"],\"name\":\"Error\"},\"code\":422,\"name\":\"Assertio"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"cause\":{\"log\":[\"  - navigating to \\\"http://www.cookislands.gov.ck/\\\", waiting until \\\"networkidle\\\"\"],\"name\":\"Error\"},\"code\":422,\"name\":\"Assertion"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.dca.gov.mp",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.dca.gov.mp' could not be resolved\",\"readableMess"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.dca.gov.mp' could not be resolved\",\"readableMess"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.cookislandsnews.com",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 14014,
+  "head": "Monday, 26 October 2026 10:33 PM\nSubscribe | Login/Register\n\nHome\nNational\nElection 2026\nSports\nLifestyle\nPacific\nOpinion\nFeatures\nClassifieds\n\nTop Headlines\nPREMIUM CONTENT\nECONOMY\nParadise ‘pushed to the limit’\n\nThe Opposition has raised concerns that easing visitor entry and stay requirements could drive up tourist numbers, putting extra pressure on Rarotonga’s infrastructure and essential serv"
+ },
+ {
+  "domain": "www.environnement.gouv.nc",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.environnement.gouv.nc' could not be resolved\",\"r"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.environnement.gouv.nc' could not be resolved\",\"r"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.fbc.com.fj",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 177,
+  "head": "Welcome to Fijian Broadcasting Corporation. Our main site is coming soon.\nNEWS ➜\nVITI+ ➜\nSERE+ ➜\nFijian Broadcasting Corporation. 69 Gladstone Road, Suva, FIJI. Ph: +679 3314333"
+ },
+ {
+  "domain": "www.fenuaenvironnement.pf",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.fenuaenvironnement.pf' could not be resolved\",\"r"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.fenuaenvironnement.pf' could not be resolved\",\"r"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.fsmepa.fm",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.fsmepa.fm' could not be resolved\",\"readableMessa"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.fsmepa.fm' could not be resolved\",\"readableMessa"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.fisheries.gov.sb",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"DownstreamServiceFailureError\",\"status\":42205,\"message\":\"Failed to resolve domain 'www.fisheries.gov.sb' (EAI_AGAIN"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"DownstreamServiceFailureError\",\"status\":42205,\"message\":\"Failed to resolve domain 'www.fisheries.gov.sb' (EAI_AGAIN"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.fsmmarine.fm",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.fsmmarine.fm' could not be resolved\",\"readableMe"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.fsmmarine.fm' could not be resolved\",\"readableMe"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.fwrm.org.fj",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 5603,
+  "head": " \n \n Skip to main content   \n  \n \n  \n    \n  \n      \n \n \n \n \n \n \n \n \nHOME \nABOUT \n \nOur People \nProgrammes \nPriority Areas & Thematic Areas of Work \n \nWomen in Democratisation Processes \nWomen in Law, Civil & Political Rights \nGender in Human Rights Accountability Mechanisms  \nWomen's Access to Justice & Ending Violence Against Women and Girls \nWomen in Decent Work  \nGender in Global to Local Proce"
+ },
+ {
+  "domain": "www.gov.to",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 5317,
+  "head": " Skip to main content Skip to footer \n\n\n\n \n \n\n  English \n  Tongan   \n \n Search  \n \n\n\n\nTonga \n National Portal\n\n\nHome \n\nMinistries\n \n \nPrime Ministers’ Office \nPublic Service Commission \nMinistry of Foreign Affairs \nMinistry of Finance \nDepartment of Statistics \nMinistry of Fire & Emergency Services \nMinistry of Revenue and Customs \nMinistry of Health \nMinistry of Infrastructure   \n\nServices\n\n\n\n\n\n\n"
+ },
+ {
+  "domain": "www.gov.tv",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.gov.tv' could not be resolved\",\"readableMessage\""
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.gov.tv' could not be resolved\",\"readableMessage\""
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.fisheries.gov.to",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 1898,
+  "head": "Skip to content\nHome\nAbout Us\nPolicies & Legislation\nPublications\nNews\nVacancies\nHome\nAbout Us\nOrganizational Structure\nCorporate Plan\nAnnual Reports\nDigital Library\nPolicies & Legislation\nAct\nAbout\nRegulation\nOrder\nManagement Plan\nTerm & Conditions\nTonga National Fisheries Policy\nPublications\nBrochures & Posters\nPeriodicals Quarterly Bulletin\nDomestic Market Survey Report\nNews\nPress Release\nVacan"
+ },
+ {
+  "domain": "www.islandsun.com.sb",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.islandsun.com.sb' could not be resolved\",\"readab"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.islandsun.com.sb' could not be resolved\",\"readab"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "radiosamoa.ws",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 18213,
+  "head": "Skip to content\nREAD\nLISTEN\nWATCH\nSAMOA\nNIU SILA\nLALOLAGI\nTAALOGA\nABOUT US\nCONTACT US\nSHOP\n[searchwp_form id=\"1\"]\nTALA LATA MAI I MEA O LOO TUTUPU\nFilifilia le faia’oga fou a le Tifaimoana Samoa\n7 hours ago\n16 masina ua nofo va’ava’aia ai Michael Tanumafili Von Reiche ae 100 itula e galue fua ai\n8 hours ago\nTapena le malo e toe faafo’i Leauvaa i le itumalo palota o Gaga’emauga 1\n8 hours ago\nTete’e"
+ },
+ {
+  "domain": "www.kiribati.gov.ki",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 72,
+  "head": " \n \n \n403 \nForbidden  \nAccess to this resource on the server is denied! "
+ },
+ {
+  "domain": "www.ladepeche.pf",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.ladepeche.pf' could not be resolved\",\"readableMe"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.ladepeche.pf' could not be resolved\",\"readableMe"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.marianas.edu",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 4524,
+  "head": "STORM UPDATE NMC CAMPUSES REOPEN AND CLASSES RESUME MONDAY, OCT. 19\nONGOING REGISTER FOR FALL 2026 SESSION II\nSUPPORT NEED HELP REGISTERING?\nTYPHOON CHAMPI\nNMC Campuses Reopen and Classes Resume Monday, Oct. 19\n\nBased on the cancellation of storm conditions and anticipated “all clear” declaration, Northern Marianas College (NMC) Saipan campus and the Tinian Instructional Center will reopen and cla"
+ },
+ {
+  "domain": "www.lefigaro.fr",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 49682,
+  "head": "ALLER AU CONTENU\nMenu\nRechercher\nTV & Vidéos\nAudio\nJeux\nLe Figaro in English\nNewsletters\nActu locale\nSe connecter\nLire le journal\nOFFRE ANNIVERSAIRE\n2€/mois pendant 200 semaines\nColère sociale\nPrésidentielle 2027\nBallon d'Or\nPolitique\nInternational\nÉconomie\nSociété\nVox\nSport\nCulture\nMadame\nPASSER LA PUBLICITÉ\nPASSER LA PUBLICITÉ\nPublicité\nEN DIRECT - Colère des lycéens : «Le travail doit reprendre"
+ },
+ {
+  "domain": "www.marine.gov.pf",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.marine.gov.pf' could not be resolved\",\"readableM"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.marine.gov.pf' could not be resolved\",\"readableM"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.meteorology.gov.ws",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"DownstreamServiceFailureError\",\"status\":42205,\"message\":\"Failed to resolve domain 'www.meteorology.gov.ws' (EAI_AGA"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"DownstreamServiceFailureError\",\"status\":42205,\"message\":\"Failed to resolve domain 'www.meteorology.gov.ws' (EAI_AGA"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.meidecc.gov.to",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.meidecc.gov.to' could not be resolved\",\"readable"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.meidecc.gov.to' could not be resolved\",\"readable"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.mecdm.gov.sb",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 771,
+  "head": "Solomon Islands Government\nMinistry of Environment, Climate Change, Disaster Management and Meteorology\nFAQ's\nAnnouncements\nSearch\nLogin\n \nAbout Us\nEnvironment\nClimate Change\nWeather\nDisasters\nProjects\nNews\nResources\nSearch\n404Component not found.\nAbout Us\nAbout Us\nTerms of Use\nCopyright and Attribution\nPrivacy Policy\nDisclaimer\nQuick Links\nNDMO\nUNEP\nSPREP\nUNFCCC\nUNCBD\nUNCCD\nREDD+ Solomon Islands\n"
+ },
+ {
+  "domain": "www.nbc.com.pg",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 3077,
+  "head": "  \n \n \n  \n \n \n \nNational Broadcasting Corporation \nConnect-Inform-Inspire      \n \nNews \nSports \nWatch \nListen       \n  \n  \nNews \n\nNBC Western back on air after seven years\n\n\n Radio coverage in Western Province is set to reach more communities, with NBC Western’s restored broadcast service extending to Morehead, Kondobol, Balimo and Wipim. \nRead full story →\n\nEast New Britain residents urged to rep"
+ },
+ {
+  "domain": "www.nus.edu.ws",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 176,
+  "head": "nus.edu.ws\n\nChecking the site connection security\n\nThis page requires cookies to be enabled in your browser settings. Please check this setting and enable cookies (if disabled)"
+ },
+ {
+  "domain": "www.palaunet.com",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 0,
+    "msg": "<urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)>"
+   },
+   {
+    "scheme": "http",
+    "code": 403,
+    "msg": "{\"data\":null,\"code\":403,\"name\":\"AbuseAlleviationError\",\"status\":40305,\"message\":\"Abuse detected: Suspicious action: Domain resolved to non-public network: https"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.mia.gov.to",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 15474,
+  "head": "Visone\nKe hoko ‘ae Potungaue kihe Ngaahi Ngaue Fakalotofonua koe taaimu’a ‘i he\n‘ilo fo’ou 'oe fakalakalaka fakasosiale, ke fo’u ai ha fa’unga malu fakasosiale\nlelei, fakasi’isi’i ‘a e ngaahi faikehekehe fakasosiale, fakasi’isi’i e nofo\nmasivesiva, fakaa’u e ngaahi sevesi kihe kakai, fakalakalaka’i e to’utupu, mo\nhiki hake tu’unga mo’ui lelei moe mo’ui faka’aho ‘ae kakai ‘o Tonga\nVision\nThe Minist"
+ },
+ {
+  "domain": "www.pngcepa.org.pg",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.pngcepa.org.pg' could not be resolved\",\"readable"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.pngcepa.org.pg' could not be resolved\",\"readable"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.picrc.org",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 2508,
+  "head": "bgi_top_01\nfund\nbgi_top_02\ntopAquarium2023\nOur People\nOur Work\nGet Involved\nFacilities\nContact\nDONATE NOW\nVision\n\nEmpowered Ocean Stewardship that Sustains People and Inspires the World\n\nMission\n\nTo be a center of excellence that produces high quality and impactful research, education and opportunities to support the stewardship of Palau’s ocean resources.\n\nResearch\n\nEducation\n\nTOPICS\nPalau Nation"
+ },
+ {
+  "domain": "www.norfolkisland.gov.nf",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 12914,
+  "head": "Skip to main content\nQuick Links\nFacebook\nInstagram\nLinkedIn\nOpen Search\nMenu\nYour Council \nAbout Council\nNIRC Administrators\nGeneral Manager and Executive Managers\nPublic Officer\nCustomer Service Charter\nNIRC Directorate Summary\nCouncil Advisory Committees\nElectricity Special Purpose Committee (ESPC)\nEnvironment and Sustainability Advisory Committee (ESAC)\nStrategic Finance Improvement Committee "
+ },
+ {
+  "domain": "www.pngimr.org.pg",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 2797,
+  "head": "Skip to content\n\t\nHOME\nABOUT \nNEWS & EVENTS \nPNG MEDICAL JOURNAL\nRESEARCH \nCONTACT US\nExcellence in public health & medical research\nPNGIMR conducts approved research on the effectiveness of medicines and advises the Government of PNG on their suitability for Papua New Guinea\nOur researchers access scientific books and journals in our library and online\nPNGIMR studies infectious diseases in labora"
+ },
+ {
+  "domain": "www.redcross.org.ck",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.redcross.org.ck' could not be resolved\",\"readabl"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.redcross.org.ck' could not be resolved\",\"readabl"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.maisondelaculture.pf",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 0,
+    "msg": "<urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)>"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"cause\":{\"log\":[\"  - navigating to \\\"http://www.maisondelaculture.pf/\\\", waiting until \\\"networkidle\\\"\"],\"name\":\"TimeoutError\"},\"code\":422,\"name\":\""
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.redcross.sb",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.redcross.sb' could not be resolved\",\"readableMes"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.redcross.sb' could not be resolved\",\"readableMes"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.redcross.org.ws",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.redcross.org.ws' could not be resolved\",\"readabl"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.redcross.org.ws' could not be resolved\",\"readabl"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.redcross.to",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.redcross.to' could not be resolved\",\"readableMes"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.redcross.to' could not be resolved\",\"readableMes"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.rythmeblue.nc",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.rythmeblue.nc' could not be resolved\",\"readableM"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.rythmeblue.nc' could not be resolved\",\"readableM"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.rmiepa.com",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 104,
+  "head": "This website is under construction.\n\nIf you're the owner of this site, you can publish it in the editor."
+ },
+ {
+  "domain": "www.pngchamberminpet.com.pg",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 0,
+    "msg": "<urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)>"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"cause\":{\"log\":[\"  - navigating to \\\"http://www.pngchamberminpet.com.pg/\\\", waiting until \\\"networkidle\\\"\"],\"name\":\"TimeoutError\"},\"code\":422,\"name"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.savali.gov.ws",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"DownstreamServiceFailureError\",\"status\":42205,\"message\":\"Failed to resolve domain 'www.savali.gov.ws' (EAI_AGAIN)\","
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"DownstreamServiceFailureError\",\"status\":42205,\"message\":\"Failed to resolve domain 'www.savali.gov.ws' (EAI_AGAIN)\","
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.samoaobserver.ws",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 7386,
+  "head": "  \n \n \n \n \n              \n \n \n \n \n \n \n \n \n    \n \n \n   \nSearch    \n Login    Subscribe    \n \nNews \n \n Samoa Samoa Elections 2025 World Sport Opinion     \n \nOpinion \n \n Editorial Letter to the Editor Cartoon Op-Ed Columns     \n \n \n Contributors Between the Lines Think a Minute Sponsored     \n \n \n Today's Paper Daily Quiz    \n \nTalk to us \nShare a tip or letter.  Send Us A Tip or Letter           \n \n"
+ },
+ {
+  "domain": "www.sibconline.com.sb",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 6512,
+  "head": "Skip to content\n\nTuesday, 27 October 2026\n\nAbout SIBC\nAdvertise With Us\nHave a Story?\nContact\nSolomon Islands Broadcasting Corporation\nVOICE OF THE NATION\nADVERTISE HERE\nReach thousands of Solomon Islanders every day\nMore details\nListen live\nHome\nTop Headlines\nPolitics\nNational\nBusiness\nHealth\nEnvironment\nSport\nPacific\nFeatures\nPodcasts\nLatest\nSIBC News: Solomon Islands news and live radio\nHEALTH\n"
+ },
+ {
+  "domain": "www.solomonstarnews.com",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 271,
+  "head": "www.solomonstarnews.com\nPerforming security verification\n\nThis website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot.\n\nRay ID: a5105cd9c8980712\nPerformance and Security by Cloudflare\nPrivacy"
+ },
+ {
+  "domain": "www.spc.int",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 2340,
+  "head": "Skip to main content\nEXPLORE\n\nENFR\nSearch rechercher\nABOUT\nMEMBERS\nPARTNERS\nUPDATES\nEVENTS\nRESOURCES\nThe Pacific Community\nSUSTAINABLE PACIFIC DEVELOPMENT THROUGH SCIENCE, KNOWLEDGE AND INNOVATION\nSPC's annual governing meeting gethers members to reflect on the challenges facing the region and provide direction on the priorities ahead.\nNew report shows learning gains across the Pacific, but contin"
+ },
+ {
+  "domain": "www.thenational.com.pg",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 11429,
+  "head": " \n \n \n \n  \n  \n   \n     \n \n \nSign in Join    \n \n\n\nHome     \n \n  \n  \nSign in  \n    \n \nWelcome!Log into your account \n \nyour username \nyour password   \n Forgot your password?  \n Create an account    \n  \n  \nSign up  \n    \nWelcome!Register for an account \n \n \nyour email \nyour username   \nA password will be e-mailed to you.   \n  \n  \nPassword recovery  \n \nRecover your password \n \nyour email     \n \n \n \n  "
+ },
+ {
+  "domain": "www.tiscookislands.org.ck",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.tiscookislands.org.ck' could not be resolved\",\"r"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.tiscookislands.org.ck' could not be resolved\",\"r"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.saipantribune.com",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 8998,
+  "head": "Skip to content\nOctober 27, 2026\nHOME SAMPLE PAGE\nPopular TagsCNMIpeopleGuamSaipan TribuneCUCbusinesspower\nEXCLUSIVE\n1\nKean, teammates break 2 school relay record\n2\nKennedy reappointed as federal magistrate judge\n3\nPark, Pagaduan, Cao top Pacifica’s 11th Annual Art Contest\n4\nBill to address facility repairs, equipment procurement for DOC moves to legislative session\n5\nTMS reels 2nd win in v-ball\n1"
+ },
+ {
+  "domain": "www.tntv.pf",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 1793,
+  "head": "SKIP NAVIGATION\nSign In\n Home \n Live TV News \n TV Shows \n Events \n TNTV News \n TNTV Reo \n My space \n Settings \nTerms and Conditions\nHelp\nFAQ\nPrivacy Policy\nCopyright © 2026 Tahiti Nui Television. All Rights Reserved.\nLoading content\nNous prenons à coeur de protéger vos données\nNous et nos 1033 partenaires stockons et accédons à des données personnelles, telles que des données de navigation ou des "
+ },
+ {
+  "domain": "www.radio.co.ck",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"cause\":{\"log\":[\"  - navigating to \\\"https://www.radio.co.ck/\\\", waiting until \\\"networkidle\\\"\"],\"name\":\"TimeoutError\"},\"code\":422,\"name\":\"Assertio"
+   }
+  ],
+  "scheme": "http",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 3071,
+  "head": "\t\t\n\t\n\nLISTEN ONLINE\n\n\n\n\nMake a birthday dedication to someone in the Cook Islands on Radio Cook Islands.  Just email us your birthday dedication.\n\n \n\n\t\n\nRadio Cook Islands was set up in the 1970s by the Government of the Cook Islands broadcasting on AM 630kHz. It uses a 5kW transmitter but this has had to be cut in half due to power costs. The station is heard all over Rarotonga, the Southern Grou"
+ },
+ {
+  "domain": "www.usp.ac.fj",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 41,
+  "head": "Enable JavaScript and cookies to continue"
+ },
+ {
+  "domain": "www.univ-nc.nc",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.univ-nc.nc' could not be resolved\",\"readableMess"
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.univ-nc.nc' could not be resolved\",\"readableMess"
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.vwc.vu",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.vwc.vu' could not be resolved\",\"readableMessage\""
+   },
+   {
+    "scheme": "http",
+    "code": 422,
+    "msg": "{\"data\":null,\"path\":\"url\",\"code\":422,\"name\":\"SubmittedDataMalformedError\",\"status\":42203,\"message\":\"Domain 'www.vwc.vu' could not be resolved\",\"readableMessage\""
+   }
+  ],
+  "alive": false
+ },
+ {
+  "domain": "www.tokelau.org.nz",
+  "errors": [
+   {
+    "scheme": "https",
+    "code": 0,
+    "msg": "<urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)>"
+   }
+  ],
+  "scheme": "http",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 5985,
+  "head": "HOME\nTOKELAU GOVERNMENT\nABOUT US\nCLIMATE CHANGE\nJOBS\nSTATISTICS\nCONTACT\nNotice to Potential Beneficiaries Estate of Beato Pereira\n \nTokelau Department of Education\nApplication Forms for 2027\n \nApplication Form 1 2027\nApplication Form 2\nApplying for a Scholarship Award reminders\n \n \n \n \n \n \nTokelau 2023 Election Results\n Tokelauan / English\n \nTokelau Border as at 30th Nov 2022\nTokelauan / English\n "
+ },
+ {
+  "domain": "www.wpcouncil.org",
+  "scheme": "https",
+  "code": 200,
+  "alive": true,
+  "title": "",
+  "len": 2556,
+  "head": "HOT TOPICS\n \nMARINE SPATIAL MANAGEMENT\n \nPROTECTED SPECIES\n \nABOUT US\n \nMEETINGS + CALENDAR\n \nOUR FISHERIES\n \nWHAT WE DO\n \nNEWS + ANNOUNCEMENTS\n \nEDUCATIONAL RESOURCES\nSummer 2026 Pacific Islands Fishery News\n2025 WPR Status of the Fisheries Report\nUS Pacific Territories Fishery Capacity-Building Scholarship - APPLY NOW! Deadline extended to October 16\nEcosystem-Based Fisheries Management\nin the U"
+ }
+]

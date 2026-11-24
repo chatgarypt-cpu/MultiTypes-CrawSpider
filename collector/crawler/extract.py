@@ -44,8 +44,7 @@ def ld_value(nodes, key):
 
 def extract_article(url, body, site):
     txt = trafilatura.extract(body, include_comments=False, include_tables=True,
-                             prune_xpath=["//nav", "//footer", "//aside", "//form", "//select",
-                                          "//*[@role='dialog']", "//*[@aria-hidden='true']"]) or ""
+                             prune_xpath=htmlpage.body_pruning(site)) or ""
     md = trafilatura.extract_metadata(body)
     ld = jsonld_blocks(body)
 
@@ -100,13 +99,13 @@ def extract_article(url, body, site):
 
 # ---------- multi-extractor candidates + scoring (news-please style) ----------
 
-def _para_text(body):
+def _para_text(body, site=None):
     """Paragraph fallback after removing navigation; length must not reward menus."""
     doc = htmlpage._doc(body)
     if doc is None:
         return ""
-    for node in doc.xpath("//nav | //header | //footer | //aside | //form | //select | //*[@role='dialog'] | //*[@aria-hidden='true'] | //*[@role='navigation']"):
-        if node.getparent() is not None:
+    for node in doc.xpath(" | ".join(["//header", *htmlpage.body_pruning(site)])):
+        if hasattr(node, "drop_tree") and node.getparent() is not None:
             node.drop_tree()
     roots = doc.xpath("//article | //main") or [doc]
     lines = [htmlpage._norm(p.text_content()) for root in roots
@@ -136,7 +135,7 @@ def candidates(url, body, site=None):
     # 粗抽（整页可见文字）只做兜底：它一定比剪枝结果长（含导航/页脚），按长度择优会永远赢，
     # 于是 2026-11 之前入库的 html/rss 站正文常带 "Skip to main content / EXPLORE" 这类菜单。
     # 只有剪枝结果明显不合格（不足粗抽的 40%）时才让粗抽参与竞争。
-    para = _para_text(body)
+    para = _para_text(body, site)
     base_text = base.get("text") or ""
     if len(para) > 200 and len(base_text) < 0.4 * len(para):
         row = dict(base)
@@ -162,7 +161,7 @@ def extract_best(url, body, site=None, min_text=60):
 
     HTML 通道还会过列表页闸门、按 site 的 schema/llm_fields 补字段（crawler.htmlpage）。
     """
-    if htmlpage.page_error(body):
+    if htmlpage.page_error(body) or htmlpage.is_navigation_page(url, body, site):
         return None
     cands = candidates(url, body, site)
     if not cands:
@@ -182,10 +181,10 @@ def extract_metadata(url, body, site=None):
     优先复用候选行的 title/date/description；候选为空时退回 og/title/description。
     只返回有标题或描述的行，避免把错误页当详情页入库。
     """
-    if htmlpage.page_error(body):
+    if htmlpage.page_error(body) or htmlpage.is_navigation_page(url, body, site):
         return None
     gate, ratio = htmlpage.gate_setting(site or {})
-    if gate and htmlpage.looks_like_listing(body, htmlpage.markdown(body, url), ratio):
+    if gate and htmlpage.looks_like_listing(body, htmlpage.markdown(body, url, site), ratio):
         return None
     cands = candidates(url, body, site)
     if cands:

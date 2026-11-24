@@ -10,8 +10,6 @@ services:
     environment:
       CRAWL_WEB_PASSWORD: ${CRAWL_WEB_PASSWORD:?请设置网页管理员密码}
       SITE_WORKERS: ${SITE_WORKERS:-4}
-      BRIGHTDATA_API_KEY: ${BRIGHTDATA_API_KEY:-}
-      BRIGHTDATA_ZONE: ${BRIGHTDATA_ZONE:-}
     volumes:
       - crawler-data:/data
 volumes:

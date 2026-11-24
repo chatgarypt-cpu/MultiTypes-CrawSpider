@@ -42,6 +42,10 @@ class H(BaseHTTPRequestHandler):
         self.send_header('Content-Length', str(len(body)))
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Cache-Control', 'no-store')
+        # do_POST 会置 close_connection=True；不显式声明的话客户端会把死连接放回池里，
+        # 下一个请求就 RemoteDisconnected（requests/urllib3 只认 Connection: close 头）。
+        if self.close_connection and not any(k.lower() == 'connection' for k in (headers or {})):
+            self.send_header('Connection', 'close')
         for k, v in (headers or {}).items():
             self.send_header(k, v)
         self.end_headers()
@@ -148,7 +152,15 @@ class H(BaseHTTPRequestHandler):
                     raise ValueError('并发数必须为正整数')
                 web_jobs.write(CFG, {'concurrency': n})
                 return self.json({'ok': True, 'concurrency': n})
+            if self.path == '/api/preview':
+                from web_preview import preview
+                return self.json(preview(body.get('url'), body.get('rules', {}),
+                                         body.get('channel', 'auto'), body.get('item_selector', ''),
+                                         body.get('scope')))
             if self.path == '/api/crawl':
+                if 'preview_id' in body:
+                    from web_preview import confirm
+                    return self.json({'ok': True, 'results': confirm(body['preview_id'])}, 202)
                 values = body.get('urls', [body.get('url', '')])
                 return self.json({'ok': True, 'results': web_jobs.submit(values)}, 202)
             if self.path.startswith('/api/jobs/'):

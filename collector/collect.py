@@ -208,7 +208,13 @@ def main():
         print(f"\n{len(sites)} sites, {len(errs)} errors, {len(warns)} warnings")
         sys.exit(1 if errs else 0)
 
-    sites = yaml.safe_load(open(sources_path))
+    from crawler.schema import find_duplicate_keys
+    with open(sources_path, encoding="utf-8") as f:
+        sources_text = f.read()
+    duplicate_errors = find_duplicate_keys(sources_text, sources_path)
+    if duplicate_errors:
+        ap.error("\n".join(duplicate_errors))
+    sites = yaml.safe_load(sources_text)
     if a.check_types:
         from crawler.discover import wp_type_inventory
         site = next((s for s in sites if s.get("domain") == a.check_types), None)

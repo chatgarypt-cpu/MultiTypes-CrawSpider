@@ -1,0 +1,13 @@
+{
+  "endpoint": "GET https://dimenc.gouv.nc/",
+  "request": {
+    "status": null,
+    "headers": {},
+    "body": null
+  },
+  "response": {
+    "status": null,
+    "headers": {},
+    "body": null
+  }
+}

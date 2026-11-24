@@ -2,8 +2,9 @@
 
 Used by `collect.py --url <article>` and `collect.py --site-url <homepage>`.
 """
-import json, os, re
-from urllib.parse import urlsplit
+import json, os
+from types import SimpleNamespace
+from urllib.parse import urljoin, urlsplit
 
 import requests
 
@@ -17,7 +18,16 @@ SITEMAP_PATHS = ["/sitemap.xml", "/sitemap_index.xml", "/wp-sitemap.xml", "/news
 FEED_PATHS = ["/feed/", "/rss.xml", "/atom.xml", "/index.php?option=com_content&view=featured&format=feed&type=rss"]
 
 
-def _get(url, timeout=20, impersonate=False):
+def _get(url, timeout=20, impersonate=False, public=False):
+    if public:
+        from crawler.public_urls import public_get
+        from crawler.web import PUBLIC_ROBOTS, LIMITER, read_body_capped
+        LIMITER.acquire(url, min_interval=PUBLIC_ROBOTS.crawl_delay(url))
+        with public_get(requests.get, url, same_host=urlsplit(url).netloc, stream=True,
+                        headers={"User-Agent": UA}, timeout=timeout,
+                        allow_target=PUBLIC_ROBOTS.allowed) as response:
+            return SimpleNamespace(status_code=response.status_code, headers=response.headers,
+                                   text=read_body_capped(response))
     if impersonate and cffi_requests is not None:
         return cffi_requests.get(url, impersonate="chrome", timeout=timeout)
     return requests.get(url, headers={"User-Agent": UA}, timeout=timeout)
@@ -27,7 +37,7 @@ def _looks_blocked(r):
     return r.status_code in (403, 503) or "just a moment" in (r.text or "")[:2000].lower()
 
 
-def detect(url):
+def detect(url, *, public=False):
     """Probe a site and return a sources.yaml-style site dict (plus 'detected' notes)."""
     p = urlsplit(url if "://" in url else "https://" + url)
     base = f"{p.scheme}://{p.netloc}"
@@ -38,11 +48,11 @@ def detect(url):
     # 1. WordPress REST (cheapest: gives exact totals + full bodies)
     for path in ("/wp-json/wp/v2/posts?per_page=1", "/?rest_route=/wp/v2/posts&per_page=1"):
         try:
-            r = _get(base + path)
+            r = _get(base + path, **({"public": True} if public else {}))
             if r.status_code == 200 and r.headers.get("X-WP-Total"):
                 return {"domain": domain, "base": base, "channel": "wp-api",
                         "via": "impersonate" if imp else "direct", "api": "rest_route" if "rest_route=" in path else "wp-json", "detected": {"wp_total": r.headers.get("X-WP-Total")}}
-            if _looks_blocked(r):
+            if not public and _looks_blocked(r):
                 r2 = _get(base + path, impersonate=True)
                 if r2.status_code == 200 and r2.headers.get("X-WP-Total"):
                     imp = True
@@ -54,27 +64,43 @@ def detect(url):
     # 2. sitemap
     for path in SITEMAP_PATHS:
         try:
-            r = _get(base + path)
+            r = _get(base + path, **({"public": True} if public else {}))
             if r.status_code == 200 and ("<urlset" in r.text[:3000] or "<sitemapindex" in r.text[:3000]):
                 return {"domain": domain, "base": base, "channel": "sitemap", "sitemap": path,
                         "via": "impersonate" if imp else "direct", "detected": {"sitemap": path}}
         except Exception:
             pass
 
-    # 3. RSS / Atom
+    # 3. RSS / Atom, including feeds declared by the submitted page.
+    from crawler.discover import declared_feed_urls, parse_feed
+    from crawler.web import Fetcher
+    from lxml import html
+    fetcher = Fetcher({"domain": domain, "_public_host": domain})
+    page_url = p.geturl()
+    _, status, body = fetcher.get_many([page_url])[0]
+    if status == 200 and body:
+        try:
+            declared = declared_feed_urls(page_url, html.fromstring(body))
+        except (ValueError, html.etree.ParserError):
+            declared = []
+        for feed_url, code, xml in fetcher.get_many(declared[:1] if public else declared):
+            if code == 200 and parse_feed(xml, feed_url):
+                return {"domain": domain, "base": base, "channel": "rss", "feed": feed_url,
+                        "via": "direct", "detected": {"feed": feed_url, "declared": True}}
+
     for path in FEED_PATHS:
         try:
-            r = _get(base + path)
-            if r.status_code == 200 and re.search(r"<(rss|feed|rdf:RDF)[\s>]", r.text[:2000]):
+            r = _get(base + path, **({"public": True} if public else {}))
+            if r.status_code == 200 and parse_feed(r.text, urljoin(base, path)) is not None:
                 return {"domain": domain, "base": base, "channel": "rss", "feed": path,
                         "via": "impersonate" if imp else "direct", "detected": {"feed": path}}
         except Exception:
             pass
 
     # 4. plain HTML listing (the page you gave us becomes the listing page)
-    return {"domain": domain, "base": base, "channel": "html", "list_url": base + (p.path or "/"),
+    return {"domain": domain, "base": base, "channel": "html", "list_url": page_url,
             "link_pattern": r'/[^"\']*(?:/20\d\d/|-\d{4,}\.html|/news/|/article)', "via": "direct",
-            "detected": {"list_url": base + (p.path or "/"), "link_pattern": "heuristic"}, "notes": notes}
+            "detected": {"list_url": page_url, "link_pattern": "heuristic"}, "notes": notes}
 
 
 def remember(site):

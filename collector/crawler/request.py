@@ -6,7 +6,7 @@ streamed instead of being materialised in memory.
 
 Table lives in data/state.db next to the existing runs table.
 """
-import json, os, sqlite3, time
+import json, os, re, sqlite3, time
 from dataclasses import dataclass, field
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
@@ -67,15 +67,26 @@ class RequestQueue:
 
     # ---------- writing ----------
     def add_many(self, urls, channel="", label="detail"):
+        return self.add_labelled(((url, label) for url in dict.fromkeys(urls)), channel)
+
+    def add_labelled(self, entries, channel):
         now = time.strftime("%Y-%m-%dT%H:%M:%S")
         rows = [(self.domain, self.kind, canonical_key(u), u, channel, label, "unprocessed", 0, "", now, now)
-                for u in dict.fromkeys(urls) if u]
+                for u, label in entries if u]
         before = self.conn.total_changes
         self.conn.executemany(
             "INSERT OR IGNORE INTO requests(domain,kind,key,url,channel,label,state,retries,error,created,updated) "
             "VALUES(?,?,?,?,?,?,?,?,?,?,?)", rows)
         self.conn.commit()
         return self.conn.total_changes - before
+
+    def update_labels(self, entries):
+        if not entries:
+            return
+        self.conn.executemany(
+            "UPDATE requests SET label=? WHERE domain=? AND kind=? AND key=?",
+            [(label, self.domain, self.kind, key) for key, label in entries])
+        self.conn.commit()
 
     def seed_done(self, urls, channel=""):
         """Remember URLs we already have on disk so they are never fetched twice."""
@@ -117,9 +128,10 @@ class RequestQueue:
             [(max_retries, self.domain, self.kind, k) for k in keys])
         self.conn.commit()
 
-    RETRYABLE_MARKERS = ("http_0", "http_408", "http_425", "http_429", "http_5")
+    RETRYABLE_MARKERS = ("http_0", "http_408", "http_425", "http_429", "http_5",
+                         "document_error", "extraction_failed", "render_unverified")
 
-    def retry_transient(self, cooldown=900):
+    def retry_transient(self, cooldown=900, statuses=()):
         """把上一轮耗尽的"临时故障"死信重新入队（跨运行恢复）。
 
         只在错误时间超过 cooldown 后重试，避免每轮立刻打同一个坏端点；404/410/403/
@@ -132,7 +144,9 @@ class RequestQueue:
             (self.domain, self.kind)).fetchall()
         retry = []
         for key, error, updated in rows:
-            if not any(m in (error or "") for m in self.RETRYABLE_MARKERS):
+            match = re.match(r"http_(\d+)\b", error or "")
+            configured = match and int(match.group(1)) in statuses
+            if not configured and not any((error or "").startswith(m) for m in self.RETRYABLE_MARKERS):
                 continue
             try:
                 ts = time.mktime(time.strptime(updated, "%Y-%m-%dT%H:%M:%S"))
@@ -148,6 +162,49 @@ class RequestQueue:
                 [(now_s, self.domain, self.kind, k) for k in retry])
             self.conn.commit()
         return len(retry)
+
+    def retry_documents(self):
+        """Only reopen legacy no_text records whose URL identifies a document."""
+        from crawler.documents import is_document_url
+        rows = self.conn.execute(
+            "SELECT key,url FROM requests WHERE domain=? AND kind=? AND state='skipped' AND error='no_text'",
+            (self.domain, self.kind)).fetchall()
+        keys = [key for key, url in rows if is_document_url(url)]
+        self._set_state(keys, "unprocessed")
+        return len(keys)
+
+    def requeue_failed(self, patterns=(), limit=0, dry_run=False):
+        """把匹配错误前缀的终态行重新入队（补采用：付费墙回退、换出口后重抓）。
+
+        只动 `error`/`skipped` 行，404/410 这类死链不传进 patterns 就不会被翻出来。
+        返回 {"matched": n, "requeued": n, "by_error": {...}}。
+        """
+        patterns = [p for p in patterns if p]
+        if not patterns:
+            return {"matched": 0, "requeued": 0, "by_error": {}}
+        where = " OR ".join("error LIKE ?" for _ in patterns)
+        args = [self.domain, self.kind, *[p + "%" for p in patterns]]
+        by_error = {}
+        for err, n in self.conn.execute(
+                f"SELECT error, COUNT(*) FROM requests WHERE domain=? AND kind=? "
+                f"AND state IN ('error','skipped') AND ({where}) GROUP BY error", args).fetchall():
+            label = next((pat for pat in patterns if (err or "").startswith(pat)), "other")
+            by_error[label] = by_error.get(label, 0) + n
+        matched = sum(by_error.values())
+        if dry_run or not matched:
+            return {"matched": matched, "requeued": 0, "by_error": by_error}
+        sql = (f"SELECT key FROM requests WHERE domain=? AND kind=? "
+               f"AND state IN ('error','skipped') AND ({where})")
+        if limit:
+            sql += " LIMIT %d" % int(limit)
+        keys = [k for (k,) in self.conn.execute(sql, args).fetchall()]
+        now = time.strftime("%Y-%m-%dT%H:%M:%S")
+        self.conn.executemany(
+            "UPDATE requests SET state='unprocessed', retries=0, error='', updated=? "
+            "WHERE domain=? AND kind=? AND key=?",
+            [(now, self.domain, self.kind, k) for k in keys])
+        self.conn.commit()
+        return {"matched": matched, "requeued": len(keys), "by_error": by_error}
 
     def _set_state(self, keys, state, error=""):
         now = time.strftime("%Y-%m-%dT%H:%M:%S")
