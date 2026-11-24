@@ -27,7 +27,14 @@ def run(task):
     return {"task": task, "before": before, "after": after, "delta": after - before, "out": out[:160]}
 
 def main():
-    tasks = json.load(open(os.path.join(os.path.dirname(ROOT), "backfill_tasks.json")))
+    try:
+        with open(os.path.join(os.path.dirname(ROOT), "backfill_tasks.json"), encoding="utf-8") as source:
+            tasks = json.load(source)
+    except FileNotFoundError:
+        tasks = []
+    if not tasks:
+        print("No backfill tasks configured.")
+        return
     log = open(os.path.join(DATA, "backfill.log"), "a")
     log.write(f"\n=== backfill {len(tasks)} tasks @ {time.strftime('%H:%M:%S')} ===\n"); log.flush()
     with ThreadPoolExecutor(max_workers=int(os.environ.get("BACKFILL_WORKERS", "4"))) as ex:

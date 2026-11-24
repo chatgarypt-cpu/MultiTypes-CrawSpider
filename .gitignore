@@ -27,3 +27,17 @@ sources.yaml.bak-*
 *.bak
 
 /AGENTS.md
+
+# Operator catalogs, crawl snapshots and internal reports
+/collector/sources.yaml
+/backfill_tasks.json
+/collector/STRATEGY.md
+/docs/sources/
+/docs/research/crawl-20261027/
+/docs/CRAWL_POLICY.md
+/docs/CRAWLER_REVIEW_20261115.md
+/docs/GAP_RECOVERY_FIX_20261123.md
+/docs/STATUS-*.md
+/docs/research/*-2026110?.md
+/docs/images/dashboard-shot.png
+/docs/images/ui-*.png

@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import yaml                                              # noqa: E402
 
-from crawler.config import ROOT, DATA                   # noqa: E402
+from crawler.config import ROOT, DATA, sources_path     # noqa: E402
 from crawler.runner import collect_site                  # noqa: E402
 from crawler.store import load_cursor, append_rows, load_known, save_cursor  # noqa: E402  (legacy imports)
 from crawler.mapping import map_wp_post, map_wp_media, map_json_item, _flatten_rich  # noqa: E402
@@ -154,6 +154,7 @@ def print_check_site(result):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--site")
+    ap.add_argument("--no-csv", action="store_true", help="跳过本轮 CSV 导出")
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--limit", type=int, default=50)
     ap.add_argument("--type")
@@ -194,13 +195,13 @@ def main():
             if os.path.exists(cp):
                 os.remove(cp)
         print(json.dumps({"detected": site}, ensure_ascii=False), flush=True)
-        print(json.dumps(collect_site(site, a.limit, a.kind), ensure_ascii=False), flush=True)
+        print(json.dumps(collect_site(site, a.limit, a.kind, export_csv=not a.no_csv), ensure_ascii=False), flush=True)
         return
 
-    sources_path = os.path.join(ROOT, "sources.yaml")
+    catalog = sources_path(ROOT)
     if a.validate:
         from crawler.schema import validate_file
-        errs, warns, sites = validate_file(sources_path)
+        errs, warns, sites = validate_file(catalog)
         for w in warns:
             print("WARN ", w)
         for e in errs:
@@ -209,9 +210,9 @@ def main():
         sys.exit(1 if errs else 0)
 
     from crawler.schema import find_duplicate_keys
-    with open(sources_path, encoding="utf-8") as f:
+    with open(catalog, encoding="utf-8") as f:
         sources_text = f.read()
-    duplicate_errors = find_duplicate_keys(sources_text, sources_path)
+    duplicate_errors = find_duplicate_keys(sources_text, str(catalog))
     if duplicate_errors:
         ap.error("\n".join(duplicate_errors))
     sites = yaml.safe_load(sources_text)
@@ -272,7 +273,7 @@ def main():
             if os.path.exists(cp):
                 os.remove(cp)
         try:
-            r = collect_site(s, a.limit, a.kind)
+            r = collect_site(s, a.limit, a.kind, export_csv=not a.no_csv)
             print(json.dumps(r, ensure_ascii=False), flush=True)
         except Exception as e:
             print(json.dumps({"domain": s["domain"], "error": repr(e)[:160]}, ensure_ascii=False), flush=True)

@@ -59,7 +59,7 @@ def test_snapshot_fields_and_totals(data):
 
     snap = health.snapshot(data_dir=data)
     assert set(snap) == {"ts", "pid", "running", "pending", "stalled", "done",
-                         "paused", "total_rows", "rate_5m", "errors_1h", "last_error"}
+                         "paused", "total_rows", "collection_index_rows", "site_quality_7d", "rate_5m", "errors_1h", "last_error"}
     assert snap["running"] == ["a.test:posts"]
     assert snap["pending"] == 2
     assert snap["stalled"] == 1

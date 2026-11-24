@@ -6,8 +6,8 @@
 
 用法：
     .venv/bin/python collector/camoufox_probe.py \
-        --url https://www.gov.vu/index.php/events/news \
-        --url https://www.fwrm.org.fj/about/our-people \
+        --url https://example.org/index.php/events/news \
+        --url https://example.org/about/our-people \
         --wait 10000
 
 输出：每个 URL 一段人类可读摘要 + 一行 ``RESULT_JSON {...}``，最后汇总表。

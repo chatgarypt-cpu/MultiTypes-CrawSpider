@@ -45,117 +45,25 @@ STALL_KILL = int(os.environ.get("CRAWL_STALL_KILL", "1200"))          # 20min �
 STALLED_RETRY = int(os.environ.get("CRAWL_STALLED_RETRY", "1800"))    # stalled 30min 重排
 STATE_EVERY = int(os.environ.get("CRAWL_STATE_EVERY", "30"))
 
-# 优先级：先最大缺口，再按缺量从大到小（与旧 supervise.py 一致）
-TASKS = [
-    ("www.spc.int", "posts"),
-    # 2026-11-09 补采：spc 只采了 1/3（2,592/约7,700 blog）；其余是核对发现的缺口/新入口
-    ("fijisun.com.fj", "posts"),
-    ("www.cookislandsnews.com", "pages"),
-    ("www.nus.edu.ws", "pages"),
-    ("www.palaugov.pw", "pages"),
-    ("www.mvariety.com", "posts"),
-    ("www.samoaobserver.ws", "posts"),
-    ("www.gov.nu", "posts"),
-    ("www.upng.ac.pg", "posts"),
-    ("www.coralgardeners.org", "posts"),
-    ("www.mecdm.gov.sb", "posts"),
-    ("www.cookislandsnews.com", "posts"),
-    ("matangitonga.to", "posts"),
-    ("www.wpcouncil.org", "posts"),
-    ("www.maisondelaculture.pf", "posts"),
-    ("radiosamoa.ws", "posts"),
-    ("www.redcross.com.fj", "posts"),
-    ("www.palaugov.pw", "posts"),
-    ("www.gov.to", "posts"),
-    ("www.sinu.edu.sb", "posts"),
-    ("www.comfsm.fm", "posts"),
-    ("www.ilm.pf", "posts"),
-    ("www.palau.edu", "posts"),
-    ("www.nus.edu.ws", "posts"),
-    ("www.norfolkisland.gov.nf", "posts"),
-    ("www.fwrm.org.fj", "posts"),
-    ("www.pngnri.org", "posts"),
-    ("dimenc.gouv.nc", "posts"),
-    ("la1ere.francetvinfo.fr", "posts"),
-    ("www.wallis-et-futuna.gouv.fr", "posts"),
-    ("www.saipantribune.com", "media"),
-    ("www.lnc.nc", "posts"),
-    ("www.postcourier.com.pg", "media"),
-    ("www.solomonstarnews.com", "posts"),
-    ("www.tntv.pf", "posts"),
-    ("www.fnu.ac.fj", "media"),
-    ("radiosamoa.ws", "media"),
-    ("www.thenational.com.pg", "posts"),
-    ("www.mnre.gov.ws", "media"),
-    ("www.mnre.gov.ws", "posts"),
-    ("www.mnre.gov.ws", "pages"),
-    ("www.maisondelaculture.pf", "media"),
-    ("www.maisondelaculture.pf", "pages"),
-    ("www.wpcouncil.org", "media"),
-    ("www.wpcouncil.org", "pages"),
-    ("emtv.com.pg", "posts"),
-    ("www.tntv.pf", "media"),
-    ("www.thenational.com.pg", "media"),
-    ("pina.com.fj", "pages"),
-    ("pina.com.fj", "media"),
-    ("www.sinu.edu.sb", "media"),
-    ("www.palaugov.pw", "media"),
-    ("www.palaugov.pw", "posts"),
-    ("www.vbtc.vu", "media"),
-    ("dcrm.gov.mp", "media"),
-    ("www.redcross.com.fj", "posts"),
-    ("www.gov.to", "posts"),
-    ("www.gov.to", "media"),
-    ("www.nus.edu.ws", "media"),
-    ("www.comfsm.fm", "media"),
-    ("www.criobe.pf", "media"),
-    ("www.palau.edu", "posts"),
-    ("www.transparencypng.org.pg", "media"),
-    ("www.pngimr.org.pg", "pages"),
-    ("www.pngimr.org.pg", "media"),
-    ("www.sinu.edu.sb", "posts"),
-    ("www.vbtc.vu", "posts"),
-    ("www.maisondelaculture.pf", "posts"),
-    ("www.postcourier.com.pg", "posts"),
-    ("pina.com.fj", "posts"),
-    # C 组（2026-11-09 补入口后加入；站小，放队尾）
-    ("www.upf.pf", "posts"),
-    ("www.marianas.edu", "posts"),
-    ("www.palauconservation.org", "posts"),
-    ("www.adck.nc", "posts"),
-    ("gov.fm", "posts"),
-    # 大站/慢站放最后：fbcnews 7.2 万条；dailypost 需等 429 冷却（CRAWL_SKIP 控制）
-    ("www.fbcnews.com.fj", "posts"),
-    ("dailypost.vu", "posts"),
-]
-
 SOURCES = HERE / "sources.yaml"
 
 
 def load_tasks(sources_path=None) -> list:
-    """从 sources.yaml 生成任务表（不再依赖硬编码清单）。
+    """Queue collections for enabled sites in the operator's catalog."""
+    import yaml
+    from crawler.config import site_kinds
 
-    - posts 全站都要；wp-api 站再加 pages/media（分页接口独立）；
-    - `disabled: true` 的站跳过（缺入口/不可访问，审查问题 3 的分类）；
-    - sources.yaml 读不到就回退常量 TASKS，保证守护仍能启动；
-    - `CRAWL_TASKS=fixed` 可强制只用硬编码清单（回滚用）。
-    """
-    if os.environ.get("CRAWL_TASKS", "").strip().lower() == "fixed":
-        return list(TASKS)
-    path = Path(sources_path) if sources_path else SOURCES
-    try:
-        import yaml
-        sites = yaml.safe_load(path.read_text(encoding="utf-8")) or []
-    except Exception:
-        return list(TASKS)
+    path = Path(sources_path) if sources_path is not None else SOURCES
+    if not path.exists():
+        return []
+    sites = yaml.safe_load(path.read_text(encoding="utf-8")) or []
     out = []
     for s in sites:
         if not isinstance(s, dict) or not s.get("domain") or s.get("disabled"):
             continue
         dom = s["domain"]
-        from crawler.config import site_kinds
         out.extend((dom, kind) for kind in site_kinds(s))
-    return out or list(TASKS)
+    return out
 
 
 # ---------------------------------------------------------------- 纯函数/状态
@@ -200,7 +108,7 @@ def is_done(data_dir, dom: str, kind: str = "posts") -> bool:
         with open(Path(data_dir) / dom / name, encoding="utf-8") as f:
             cur = json.load(f)
         import yaml
-        sites = yaml.safe_load(SOURCES.read_text(encoding="utf-8")) or []
+        sites = (yaml.safe_load(SOURCES.read_text(encoding="utf-8")) or []) if SOURCES.is_file() else []
         site = next((s for s in sites if s.get("domain") == dom), {})
         revision = (site.get("backfill_revision") or {}).get(kind, 0)
         return bool(cur.get("done")) and cur.get("backfill_revision", 0) >= revision
@@ -298,7 +206,7 @@ def _write_health(data_dir, running: dict, queue, stalled, completed) -> None:
 def start(key, running, data_dir=None, py=None, env=None) -> None:
     dom, kind = key
     data_dir = Path(data_dir) if data_dir else DATA
-    cmd = [str(py or PY), str(COLLECT), "--site", dom, "--kind", kind, "--limit", "0"]
+    cmd = [str(py or PY), str(COLLECT), "--site", dom, "--kind", kind, "--limit", "0", "--no-csv"]
     run_env = dict(env or os.environ, SITE_WORKERS=SITE_WORKERS,
                    QUEUE_BATCH=os.environ.get("QUEUE_BATCH", "100"))
     logfile = data_dir / f"crawl-{dom}-{kind}.log"

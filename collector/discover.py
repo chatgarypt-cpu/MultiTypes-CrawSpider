@@ -7,6 +7,8 @@
 import argparse, json, os, re, sys
 import requests, yaml
 
+from crawler.config import sources_path
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data")
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0 Safari/537.36"}
@@ -54,7 +56,7 @@ def probe(site):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--apply", action="store_true"); a = ap.parse_args()
-    sites = yaml.safe_load(open(os.path.join(ROOT, "sources.yaml")))
+    sites = yaml.safe_load(open(sources_path(ROOT)))
     def rows(d):
         p = os.path.join(DATA, d, "urls.txt")
         return sum(1 for _ in open(p)) if os.path.exists(p) else 0

@@ -18,8 +18,8 @@ uv run python collector/collect.py --site-url "https://example.com" --limit 100
 ... collector/collect.py --site-url "https://example.com" --detect
 
 # 抓 sources.yaml 里已有的站
-... collector/collect.py --site www.postcourier.com.pg --limit 500
-... collector/collect.py --site www.postcourier.com.pg --kind media --limit 0
+... collector/collect.py --site example.org --limit 500
+... collector/collect.py --site example.org --kind media --limit 0
 
 # 校验所有站配置
 ... collector/collect.py --validate

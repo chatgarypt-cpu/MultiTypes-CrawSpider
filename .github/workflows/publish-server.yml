@@ -20,9 +20,11 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - name: Publish versioned archive
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pipx install --force uv==0.11.7
+      - name: Verify server snapshot and upgrade
         run: |
           set -euo pipefail
           tag="$GITHUB_REF_NAME"
@@ -37,7 +39,21 @@ jobs:
             exit 1
           fi
           test "$(cat collector/sources.yaml)" = '[]'
-          package="MultiTypes-CrawSpider-$tag"
+          versions=$(git ls-remote --tags --refs origin 'refs/tags/server-v*' | sed 's|.*refs/tags/||' | grep -E '^server-v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V)
+          previous=$(awk -v target="$tag" '$0 == target {print last; exit} {last=$0}' <<< "$versions")
+          test -n "$previous"
+          git fetch --depth=1 origin "refs/tags/$previous"
+          export CRAWL_UPGRADE_FROM="$(mktemp -d)"
+          git archive FETCH_HEAD | tar -xf - -C "$CRAWL_UPGRADE_FROM"
+          bash deploy/verify-server --release
+          echo "SERVER_TAG=$tag" >> "$GITHUB_ENV"
+      - name: Publish verified archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="$SERVER_TAG"
+          package="MultiTypes-CrawlSpider-$tag"
           output="$(mktemp -d)"
           git archive --format=tar.gz --prefix="$package/" --output="$output/$package.tar.gz" HEAD
           (cd "$output" && sha256sum "$package.tar.gz" > SHA256SUMS)

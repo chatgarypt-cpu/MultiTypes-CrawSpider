@@ -3,6 +3,8 @@
 import json, os, sys
 import requests, yaml
 
+from crawler.config import sources_path
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data")
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0 Safari/537.36"}
@@ -20,7 +22,7 @@ def rows(domain, kind):
     return sum(1 for _ in open(f)) if os.path.exists(f) else 0
 
 def main():
-    sites = [s for s in yaml.safe_load(open(os.path.join(ROOT, "sources.yaml")))
+    sites = [s for s in yaml.safe_load(open(sources_path(ROOT)))
              if s["channel"] == "wp-api"]
     gaps = []
     for s in sites:

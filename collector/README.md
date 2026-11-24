@@ -1,4 +1,4 @@
-# collector — 南太平洋信源采集器
+# 网页采集器
 
 一个脚本 + 一张站点表 + 一个状态库。无框架、无数据库服务。
 
@@ -24,16 +24,16 @@ REA_CrawlSpider/
 ├── collector/            代码
 │   ├── collect.py        采集（wp-api / sitemap / rss / html，posts|pages|media）
 │   ├── run_queue.py      任务队列（可调并发，posts→pages→media 同站串行）
-│   ├── export_csv.py     导出分站 CSV 与合并 CSV
+│   ├── export_csv.py     按站点、集合导出 CSV
 │   ├── status.py         生成 status.json（SSE 数据源）
 │   ├── serve.py          看板服务（静态 + SSE + 并发控制 + /csv/）
 │   ├── verify.py         采后核对（分页完整性 + 浏览器首尾比对）
 │   ├── bb_fetch.mjs      Browserbase CDP 客户端（零依赖）
 │   ├── bb_batch.mjs      会话隧道批量 fetch
-│   ├── sources.yaml      77 个站点配置
+│   ├── sources.yaml      管理员维护的站点配置
 │   └── ui/               React 看板（Vite，构建产物 ui/dist）
 ├── data/                 运行数据（每站 jsonl / 游标 / 日志 / state.db / 队列状态）
-└── output/csv/           交付物：<域名>.csv / .pages.csv / .media.csv / all_sites.csv
+└── output/csv/           各站导出文件，如 <域名>.csv、<域名>.pages.csv、<域名>.media.csv
 ```
 
 ## 常用命令
@@ -47,9 +47,9 @@ uv run python collector/collect.py --site <域名> --limit 50
 # 队列（并发数由看板写 data/queue_config.json）
 nohup uv run python collector/run_queue.py >> data/run_queue.out 2>&1 &
 
-# 导出（分站 / 合并）
+# 导出所有站点的各集合，或单独导出某站文章
 uv run python collector/export_csv.py --all
-uv run python collector/export_csv.py --merged
+uv run python collector/export_csv.py --site <域名>
 
 # 看板
 uv run python collector/serve.py      # http://127.0.0.1:8787/
@@ -97,7 +97,7 @@ nonce/token 不同就不相等，会让 Googlebot 用摘要冒充成功、提前
 `reasons` 里多一个 `paywall_<source>` 计数。**默认关闭**，不改变任何既有站点行为。
 
 ```yaml
-- domain: www.samoaobserver.ws
+- domain: news.example.org
   premium_marker: id="impression-panel"
   paywall_fallback: 13ft        # 13ft | googlebot | archive | freedium
 ```
@@ -118,19 +118,19 @@ nonce/token 不同就不相等，会让 Googlebot 用摘要冒充成功、提前
 页面清单写进队列（`channel=cdx`），再按上面的流程补采：
 
 ```bash
-.venv/bin/python collector/cdx_seed.py --domain www.tonga-broadcasting.net --limit 5000 --dry-run
-.venv/bin/python collector/cdx_seed.py --domain www.tonga-broadcasting.net --limit 5000
-.venv/bin/python collector/collect.py --site www.tonga-broadcasting.net --limit 50
+.venv/bin/python collector/cdx_seed.py --domain example.org --limit 5000 --dry-run
+.venv/bin/python collector/cdx_seed.py --domain example.org --limit 5000
+.venv/bin/python collector/collect.py --site example.org --limit 50
 ```
 
 ```bash
 # 1) 看哪些失败类型/站点可翻出（不写盘）
 .venv/bin/python collector/cli.py requeue --dry-run
 # 2) 重新入队：只翻指定站点的受限/403/空响应，404 死链与 PDF 超限不动
-.venv/bin/python collector/cli.py requeue --domain www.wallis-et-futuna.gouv.fr \
+.venv/bin/python collector/cli.py requeue --domain public.example.org \
     --error http_0,http_403,access_restricted,no_text
 # 3) 单站补采；带关键词的日志里会出现 paywall recovered source=...
-.venv/bin/python collector/collect.py --site www.wallis-et-futuna.gouv.fr --limit 50
+.venv/bin/python collector/collect.py --site public.example.org --limit 50
 ```
 
 ## 逆向采集（channel: archive / via: archive，2026-11-24）
@@ -145,10 +145,10 @@ nonce/token 不同就不相等，会让 Googlebot 用摘要冒充成功、提前
 | 提取 | trafilatura + `schema:` | 完全相同（同一套行结构、校验、导出） |
 
 ```yaml
-- domain: www.tonga-broadcasting.net
+- domain: example.org
   channel: archive          # 发现走 CDX
   via: archive              # 取文走存档（不碰源站）
-  base: https://www.tonga-broadcasting.net
+  base: https://example.org
   cdx:
     limit: 5000
     since: 2015             # 可选：只要这份快照之后的历史
@@ -159,8 +159,6 @@ nonce/token 不同就不相等，会让 Googlebot 用摘要冒充成功、提前
 - CDX 的过滤（资源文件、查询串、后台路径、空壳页、历史链接拼接）复用 `cdx_seed` 的规则；
   队列里已有待办时不会重复拉 CDX。
 - 手动灌历史 URL：`python collector/cdx_seed.py --domain <domain> --limit 5000`。
-- 实测：`tonga-broadcasting.net` 36 页 6/6 命中，`belaunationalmuseum.net` 69 页 8/8，
-  `tokelau.org.nz` 2081 页抽样 12 条 7 条有实质正文。
 
 ## 出口 IP / 虚拟 IP 采集（crawler/proxies.py，2026-11-24）
 
@@ -168,7 +166,7 @@ nonce/token 不同就不相等，会让 Googlebot 用摘要冒充成功、提前
 换出口才有用。代理池默认关闭，站点显式声明才生效：
 
 ```yaml
-- domain: www.tokelau.org.nz
+- domain: example.org
   via: proxy
   proxy_pool: data/proxies.txt    # 一行一个；也可只写单项 proxy: http://user:pass@host:port
   proxy_sticky: true              # 默认 true：同域固定用同一出口，避免频繁换 IP 触发风控
@@ -208,9 +206,9 @@ python collector/proxy_check.py --file my.txt -v --json
    时用任意 OpenAI 兼容接口补空字段，未配置 key 时完全不参与（离线测试不联网）。
 
 ```yaml
-- domain: www.gov.nu
+- domain: example.org
   channel: html
-  base: https://www.gov.nu
+  base: https://example.org
   list_urls: [/media-releases, "/media-releases/page:{page}"]
   pages: 20
   link_pattern: '/media-releases/(?!page:)[^/]+$'
@@ -220,8 +218,6 @@ python collector/proxy_check.py --file my.txt -v --json
   item_selector: "//a[contains(@href,'/media-releases/')]/@href"   # 可选，替代 link_pattern 过滤
 ```
 
-评估过但暂未采用的库（Scrapling / Crawl4AI / Instructor 等）、14 个 html 站的逐站实测与风险
-见 [docs/research/html-pipeline-20261109.md](../docs/research/html-pipeline-20261109.md)。
 
 
 ## 断点
@@ -263,4 +259,18 @@ PY=".venv/bin/python"                         # uv sync 生成；旧环境见上
 
 配置里的 `disabled: true` + `disabled_reason` 表示"人工确认不采"（站点下线/无列表入口/反爬），
 批量采集与 supervisor 都会跳过它，看板单独归类为"缺入口或不可访问"；`collect.py --site X` 仍可临时单独跑。
-supervisor 的任务表改为从 `sources.yaml` 派生（wp-api 站自动带 pages/media），`CRAWL_TASKS=fixed` 可回退旧硬编码清单。
+supervisor 只调度本机配置中启用的站点。配置为空时，待采队列也为空。
+
+## 后台导出与站点质量
+
+守护进程和定时队列以 `--no-csv` 启动采集子进程。站点监控的 CSV 下载按 JSONL 的更新时间生成文件，交付命令可显式导出。网页任务继续生成各集合的 CSV，停止后也可下载已保存的条目。
+
+「站点监控 → 近 7 天质量」读取后台 `state.db` 中的运行记录。`health.json` 的 `site_quality_7d` 使用相同口径。轮次按完成时间归入窗口，每次通道执行单独计数。异常轮次包含 partial、interrupted、blocked 和 failed。新增入库按每轮实际写入的记录数求和。
+
+| 指标 | 计数方式 |
+| --- | --- |
+| 已登记文章 URL | 各站文章集合 `urls.txt` 的行数。健康快照的 `collection_index_rows` 汇总所有集合，缺索引时使用该集合 JSONL 行数。兼容字段 `total_rows` 使用同一口径。 |
+| 发现、尝试 | 新版链接详情通道和 JSON 列表分别记录发现的候选条数、实际提交的详情尝试次数。重新发现和重试均可再次计数。 |
+| 请求失败、内容拒收 | 按本轮的详情结果分别计数。请求失败包括无响应和 HTTP 错误，拒收包括正文校验、访问受限和解析失败。 |
+| 详情通过率 | （尝试 − 请求失败 − 内容拒收）/ 尝试。通过校验的重复 URL 可以不新增入库。 |
+| 主要原因 | 按本窗口内各类失败或拒收出现的次数，显示最多三项。旧记录和分页 API 的轮次、入库数照常展示，缺少详情计数时显示横线。 |

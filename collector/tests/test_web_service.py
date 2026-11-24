@@ -112,7 +112,7 @@ def wait_for(fn, timeout=45):
 
 
 @pytest.fixture
-def service(tmp_path):
+def service(tmp_path, request):
     with socket.socket() as sock:
         sock.bind(('127.0.0.1', 0)); port = sock.getsockname()[1]
     url = f'http://127.0.0.1:{port}'
@@ -121,8 +121,9 @@ def service(tmp_path):
     env.pop('CRAWL_HOST', None)
     procs = []
     session = requests.Session(); session.auth = ('admin', 'test-password')
-    def start():
-        proc = subprocess.Popen([sys.executable, str(ROOT/'collector/serve.py'), '--port', str(port)], env=env,
+    def start(root=ROOT):
+        python = root / '.venv/bin/python' if root != ROOT else sys.executable
+        proc = subprocess.Popen([str(python), str(root/'collector/serve.py'), '--port', str(port)], env=env,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         procs.append(proc)
         def ready():
@@ -132,7 +133,8 @@ def service(tmp_path):
             except requests.RequestException: return False
         wait_for(ready)
         return proc
-    proc = start()
+    previous = os.environ.get('CRAWL_UPGRADE_FROM') if getattr(request, 'param', False) else None
+    proc = start(Path(previous) if previous else ROOT)
     yield url, session, tmp_path, start, proc
     # Stop fixture workers before removing their temporary data.
     for pidfile in tmp_path.glob('web-jobs/*/worker.pid'):
@@ -167,6 +169,24 @@ def test_batch_full_crawl_download_and_restart(service, source):
     proc.terminate(); proc.wait(timeout=8); start()
     readback = s.get(url+'/api/jobs').json()['jobs']
     assert {j['id']: j['status'] for j in readback} == {j['id']: 'finished' for j in jobs}
+
+
+def test_monitor_csv_download_refreshes_without_background_export(service):
+    url, session, directory, _, _ = service
+    site = directory / "monitor.test"
+    site.mkdir()
+    source = site / "articles.jsonl"
+    source.write_text('{"url":"https://monitor.test/1"}\n')
+    download = url + "/csv/monitor.test.csv"
+    first = session.get(download)
+    first.raise_for_status()
+    assert "https://monitor.test/1" in first.text
+    with source.open("a") as output:
+        output.write('{"url":"https://monitor.test/2"}\n')
+    second = session.get(download)
+    second.raise_for_status()
+    assert "https://monitor.test/2" in second.text
+    assert session.get(url + "/api/quality").json()["sites"] == []
 
 
 def test_auth_validation_static_and_concurrency(service):
@@ -225,8 +245,9 @@ def test_declared_feed_and_archive_discover_distinct_details_once(service, sourc
     assert sorted(r['url'] for r in rows) == [target+'/story/25', target+'/story/26']
 
 
+@pytest.mark.parametrize("service", [True], indirect=True)
 def test_stop_resume_preserves_rows(service, source):
-    url, s, directory, _, _ = service
+    url, s, directory, start, proc = service
     target = source('slow')
     j = s.post(url+'/api/crawl', json={'url': target}).json()['results'][0]
     def progressed():
@@ -236,6 +257,14 @@ def test_stop_resume_preserves_rows(service, source):
     assert s.post(url+f'/api/jobs/{j["id"]}/stop', json={}).ok
     stopped = wait_for(lambda: finished(s, url, 1))[0]
     assert stopped['status'] == 'interrupted'
+    download = url + stopped['files'][0]['url']
+    before = s.get(download)
+    before.raise_for_status()
+    assert list(csv_module.DictReader(io.StringIO(before.content.decode('utf-8-sig'))))
+    proc.terminate()
+    proc.wait(timeout=8)
+    start()
+    assert s.get(download).content == before.content
     assert s.post(url+f'/api/jobs/{j["id"]}/resume', json={}).ok
     end = wait_for(lambda: finished(s, url, 1))[0]
     assert end['status'] == 'finished' and end['saved'] == 27, end
@@ -275,7 +304,7 @@ def test_cli_zero_means_unlimited_and_preserves_cursor(monkeypatch, tmp_path):
     calls = []
     monkeypatch.setattr(adhoc, 'detect', lambda url: site)
     monkeypatch.setattr(adhoc, 'remember', lambda site: None)
-    monkeypatch.setattr(collect, 'collect_site', lambda s, limit, kind: calls.append((limit, kind)) or {'status': 'complete'})
+    monkeypatch.setattr(collect, 'collect_site', lambda s, limit, kind, **kwargs: calls.append((limit, kind)) or {'status': 'complete'})
     monkeypatch.setattr(collect, 'DATA', str(tmp_path))
     monkeypatch.setattr(sys, 'argv', ['collect.py', '--site-url', 'site.test', '--limit', '0'])
     collect.main()

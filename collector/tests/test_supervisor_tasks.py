@@ -1,5 +1,4 @@
 """supervisor 任务表改为 sources.yaml 派生（审查问题 4）。"""
-import sys
 
 import pytest
 
@@ -33,13 +32,22 @@ def test_load_tasks_from_sources_and_skips_disabled(tmp_path):
     assert len(tasks) == 4
 
 
-def test_load_tasks_falls_back_to_fixed_when_sources_missing(tmp_path):
-    tasks = supervisor.load_tasks(tmp_path / "nope.yaml")
-    assert tasks == list(supervisor.TASKS)
-    assert tasks
+@pytest.mark.parametrize("content", [None, "[]", "- domain: a.test\n  disabled: true"])
+def test_empty_catalog_never_creates_tasks(tmp_path, monkeypatch, content):
+    monkeypatch.setenv("CRAWL_TASKS", "fixed")  # old deployments may still set this
+    path = tmp_path / "sources.yaml"
+    if content is not None:
+        path.write_text(content)
+    assert supervisor.load_tasks(path) == []
 
 
-def test_load_tasks_fixed_override(tmp_path, monkeypatch):
-    path = _write(tmp_path, "- domain: a.test\n  channel: sitemap\n  base: https://a.test\n")
-    monkeypatch.setenv("CRAWL_TASKS", "fixed")
-    assert supervisor.load_tasks(path) == list(supervisor.TASKS)
+def test_local_catalog_overrides_empty_template(tmp_path):
+    from crawler.config import sources_path
+
+    template = tmp_path / "sources.example.yaml"
+    template.write_text("[]\n")
+    assert sources_path(tmp_path) == template
+    local = _write(tmp_path, "- domain: site.test\n  channel: rss\n")
+    assert sources_path(tmp_path) == local
+    assert supervisor.load_tasks(local) == [("site.test", "posts")]
+    assert template.read_text() == "[]\n"

@@ -10,10 +10,10 @@
 
 配置（`cdx:` 块可选，缺省用 cdx_seed 的默认过滤）：
 
-    - domain: www.tonga-broadcasting.net
+    - domain: example.org
       channel: archive
       via: archive
-      base: https://www.tonga-broadcasting.net
+      base: https://example.org
       cdx:
         limit: 5000
         since: 2015

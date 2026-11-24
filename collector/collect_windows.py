@@ -7,6 +7,8 @@ import argparse, calendar, json, math, os, sys
 from concurrent.futures import ThreadPoolExecutor
 import requests, yaml
 
+from crawler.config import sources_path
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data")
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0 Safari/537.36"}
@@ -40,7 +42,7 @@ def main():
     ap.add_argument("--from", dest="start", default="2010-01"); ap.add_argument("--to", dest="end", default="2026-12")
     ap.add_argument("--suffix", default="")
     a = ap.parse_args()
-    site = next(s for s in yaml.safe_load(open(os.path.join(ROOT, "sources.yaml"))) if s["domain"] == a.site)
+    site = next(s for s in yaml.safe_load(open(sources_path(ROOT))) if s["domain"] == a.site)
     kind_out = a.kind + a.suffix
     known = load_known(a.site, kind_out) if a.suffix else load_known(a.site, a.kind)
     y0, m0 = map(int, a.start.split("-")); y1, m1 = map(int, a.end.split("-"))

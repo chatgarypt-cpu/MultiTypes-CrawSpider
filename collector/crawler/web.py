@@ -114,7 +114,7 @@ MAX_BODY_BYTES = int(os.environ.get("MAX_BODY_BYTES", "8000000"))
 BODY_DEADLINE = float(os.environ.get("BODY_DEADLINE", "20"))
 
 
-def _textual(ctype):
+def _textual(ctype: str | None) -> bool:
     ctype = (ctype or "").lower()
     return not ctype or ctype.startswith(TEXTUAL)
 
@@ -153,7 +153,7 @@ _REQ_SEQ = 0
 
 
 def _reset_session():
-    """丢弃 cookie 和连接池：部分站点（如 lnc.nc）会对长连接/累计请求返回 400。"""
+    """清理当前会话的 cookie 和连接池。"""
     global SESSION
     try:
         SESSION.close()
@@ -391,16 +391,19 @@ class Fetcher:
 # ---------- discovery ----------
 def parse_json_tolerant(body):
     """解析 REST 响应；有些站会在 JSON 前面打 PHP 警告/HTML 片段（Divi、cleanlogin 等）。"""
+    if not isinstance(body, (str, bytes, bytearray)):
+        return None
     try:
         return json.loads(body)
-    except Exception:
-        pass
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        if not isinstance(body, str):
+            return None
     idx = [i for i in (body.find("["), body.find("{")) if i >= 0]
     if not idx:
         return None
     try:
         return json.JSONDecoder().raw_decode(body[min(idx):])[0]
-    except Exception:
+    except json.JSONDecodeError:
         return None
 
 

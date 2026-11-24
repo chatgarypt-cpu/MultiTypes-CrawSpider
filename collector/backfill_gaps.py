@@ -2,8 +2,8 @@
 """按源站 REST 清单补采"有缺口"的 wp-api 站点：只抓本地 urls.txt 里没有的条目。
 
 用法：
-  python collector/backfill_gaps.py --site www.tntv.pf --site www.gov.to [--dry-run]
-  python collector/backfill_gaps.py --site www.wpcouncil.org --kind media
+  python collector/backfill_gaps.py --site example.org --site second.example.org [--dry-run]
+  python collector/backfill_gaps.py --site example.org --kind media
 
 只用于 wp-api 通道（源站能给完整清单）；有缺口时先跑这个，再跑 verify_coverage 复核。
 不会重抓已入库 URL（urls.txt 去重）；被 validate 丢弃的短内容会计入 reasons，说明是
@@ -14,6 +14,8 @@ import json
 import os
 import sys
 from collections import Counter
+
+from crawler.config import sources_path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -151,7 +153,7 @@ def main():
     ap.add_argument("--html-fallback", action="store_true",
                     help="REST 正文过短时回退抓页面 HTML（仅 posts）")
     a = ap.parse_args()
-    sites = {s["domain"]: s for s in yaml.safe_load(open(os.path.join(HERE, "sources.yaml"), encoding="utf-8")) or []}
+    sites = {s["domain"]: s for s in yaml.safe_load(open(sources_path(HERE), encoding="utf-8")) or []}
     for d in a.site:
         site = sites.get(d)
         if not site:

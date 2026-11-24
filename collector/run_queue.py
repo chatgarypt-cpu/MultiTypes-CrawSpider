@@ -6,6 +6,8 @@ Concurrency is read from data/queue_config.json every loop (dashboard writes it)
 import json, os, subprocess, sys, time
 import yaml
 
+from crawler.config import sources_path
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data")
 CFG = os.path.join(DATA, "queue_config.json")
@@ -55,7 +57,7 @@ def save_blocked(s):
 
 def build_tasks():
     tasks, seen = [], set()
-    for s in yaml.safe_load(open(os.path.join(ROOT, "sources.yaml"))):
+    for s in yaml.safe_load(open(sources_path(ROOT))):
         if (s["domain"], "posts") in seen:
             continue                     # duplicate row for the same site in the source list
         seen.add((s["domain"], "posts"))
@@ -79,6 +81,7 @@ def rebuild_nonwp(domain):
     open(marker, "w").write("1")
 
 def main():
+    os.makedirs(DATA, exist_ok=True)
     tasks = build_tasks()
     say(f"queue start: {len(tasks)} tasks")
     procs, fails = {}, {}
@@ -116,7 +119,7 @@ def main():
             if site["channel"] != "wp-api":
                 rebuild_nonwp(dom)
             fh = open(os.path.join(DATA, f"run-{dom}-{kind}.log"), "a")
-            cmd = [sys.executable, os.path.join(ROOT, "collect.py"), "--site", dom, "--limit", "0"]
+            cmd = [sys.executable, os.path.join(ROOT, "collect.py"), "--site", dom, "--limit", "0", "--no-csv"]
             if kind != "posts": cmd += ["--kind", kind]
             procs[(dom, kind)] = (subprocess.Popen(cmd, stdout=fh, stderr=subprocess.STDOUT), fh, site)
             active_domains.add(dom)

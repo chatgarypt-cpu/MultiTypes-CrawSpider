@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Run from the candidate source tree, with an extracted prior release for migration.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+test -f "${CRAWL_UPGRADE_FROM:?set CRAWL_UPGRADE_FROM to the previous release directory}/collector/serve.py"
+if [[ "${1:-}" == "--release" ]]; then
+  test "$(cat collector/sources.yaml)" = '[]'
+  for path in data output collector/data backfill_tasks.json; do
+    if [[ -e "$path" || -L "$path" ]]; then
+      echo "Unexpected local data in release: $path" >&2
+      exit 1
+    fi
+  done
+fi
+uv sync --project "$CRAWL_UPGRADE_FROM" --frozen --python 3.12 --no-dev
+(cd "$CRAWL_UPGRADE_FROM/collector/ui" && npm ci --no-audit --no-fund && npm run build)
+uv sync --locked --python 3.12
+npm --prefix collector/ui ci --no-audit --no-fund
+collector/ui/node_modules/.bin/tsc -p collector/ui
+npm --prefix collector/ui run build
+bash -n deploy/centos8/install.sh
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+export CRAWL_DATA_DIR="$scratch"
+PYTHONPATH=collector uv run --locked python - <<'PY'
+import status
+import web_jobs
+
+initial = status.build_status()
+assert initial["sites"] == [] and initial["total"] == 0, "new installation contains site data"
+assert web_jobs.jobs() == [], "new installation contains jobs"
+PY
+if [[ "${1:-}" == "--release" ]]; then
+  uv run --locked pytest collector/tests/test_quality_exports.py \
+    collector/tests/test_web_service.py::test_preview_keeps_samples_out_of_storage_and_confirms_the_tested_rule \
+    collector/tests/test_web_service.py::test_monitor_csv_download_refreshes_without_background_export \
+    collector/tests/test_web_service.py::test_stop_resume_preserves_rows \
+    collector/tests/test_web_service.py::test_batch_full_crawl_download_and_restart
+else
+  uv run --locked pytest
+fi

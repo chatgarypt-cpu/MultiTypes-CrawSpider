@@ -1,5 +1,6 @@
 """Paths, constants and the shared HTTP user agent."""
 import os
+from pathlib import Path
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # collector/
 DATA = os.path.abspath(os.environ.get("CRAWL_DATA_DIR", os.path.join(ROOT, "data")))
@@ -16,6 +17,13 @@ COLS = ["title","sub_title","url","channel_text","country_text","lang_text","use
         "third_channel","editor","updated_at","hit_num","read_num"]
 
 WORKERS = 8           # set by the CLI, used by the wp-api channel
+
+
+def sources_path(directory=ROOT) -> Path:
+    """Use the operator's local catalog, or the empty template on a fresh checkout."""
+    root = Path(directory)
+    local = root / "sources.yaml"
+    return local if local.exists() else root / "sources.example.yaml"
 
 
 def site_kinds(site):

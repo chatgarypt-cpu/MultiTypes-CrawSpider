@@ -7,6 +7,8 @@ import yaml
 import requests
 from urllib.parse import urlsplit
 sys.path.insert(0, 'collector')
+from crawler.config import sources_path
+
 from crawler.browser_camoufox import fetch_many
 from crawler.htmlpage import page_error
 
@@ -53,11 +55,11 @@ def direct(domain):
 def main():
     root = Path(__file__).resolve().parents[1]
     ap = argparse.ArgumentParser()
-    ap.add_argument("--input", type=Path, default=root / "output/reports/original-109-status-20261113.csv")
+    ap.add_argument("--input", type=Path, required=True)
     ap.add_argument("--out", type=Path, default=root / f"output/reports/recheck-{datetime.now():%Y%m%d-%H%M%S}.csv")
     args = ap.parse_args()
     rows = list(csv.DictReader(args.input.open(encoding="utf-8-sig")))
-    sites = yaml.safe_load((root / "collector/sources.yaml").read_text())
+    sites = yaml.safe_load(sources_path(root / "collector").read_text())
     aliases = {alias: s["domain"] for s in sites for alias in s.get("aliases", [])}
     excluded = {s["domain"] for s in sites if s.get("disabled") and "非本地主体" in s.get("disabled_reason", "")}
     seen, doms = set(), []

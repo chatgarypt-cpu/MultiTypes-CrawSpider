@@ -136,6 +136,7 @@ def db():
     c.execute("""CREATE TABLE IF NOT EXISTS runs(
         id INTEGER PRIMARY KEY AUTOINCREMENT, domain TEXT, channel TEXT, started TEXT, finished TEXT,
         discovered INTEGER, saved INTEGER, errors INTEGER, status TEXT, note TEXT)""")
+    c.execute("CREATE INDEX IF NOT EXISTS runs_finished ON runs(finished)")
     return c
 
 def existing_urls(domain):

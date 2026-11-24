@@ -4,7 +4,7 @@ import json, os, glob, re, subprocess
 from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-from crawler.config import DATA
+from crawler.config import DATA, sources_path
 
 def running():
     try:
@@ -211,7 +211,7 @@ _last = {"total": None, "at": 0.0, "rate": 0.0}
 def source_cfg():
     try:
         import yaml
-        return {x["domain"]: x for x in yaml.safe_load(open(os.path.join(ROOT, "sources.yaml")))}
+        return {x["domain"]: x for x in yaml.safe_load(open(sources_path(ROOT)))}
     except Exception:
         return {}
 
@@ -219,7 +219,7 @@ def all_domains():
     """Every configured site, not just the ones that already produced rows."""
     try:
         import yaml
-        sites = yaml.safe_load(open(os.path.join(ROOT, "sources.yaml")))
+        sites = yaml.safe_load(open(sources_path(ROOT)))
         doms = [s["domain"] for s in sites]
     except Exception:
         doms = []

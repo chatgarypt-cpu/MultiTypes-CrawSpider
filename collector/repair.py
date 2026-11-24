@@ -7,6 +7,8 @@ until a run adds nothing. Resets only cursors that disagree with the data on dis
 import json, os, subprocess, sys
 import yaml
 
+from crawler.config import sources_path
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data")
 LOG = os.path.join(DATA, "repair.log")
@@ -40,7 +42,7 @@ def sync_cursor(domain, kind):
 
 def main():
     gaps = json.load(open(os.path.join(DATA, "audit_gaps.json")))
-    sites = {s["domain"]: s for s in yaml.safe_load(open(os.path.join(ROOT, "sources.yaml")))}
+    sites = {s["domain"]: s for s in yaml.safe_load(open(sources_path(ROOT)))}
     todo = []
     for g in gaps:
         if not g.get("expected"): continue

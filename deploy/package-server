@@ -8,11 +8,15 @@ mkdir "$destination"
 
 git -C "$root" archive HEAD -- \
   .dockerignore .github/workflows/publish-server.yml README.md pyproject.toml uv.lock \
-  collector/crawler collector/ui collector/serve.py collector/status.py \
-  collector/web_jobs.py collector/web_worker.py collector/verify_coverage.py \
-  collector/collect.py collector/export_csv.py \
+  collector/sources.example.yaml collector/crawler collector/ui collector/serve.py collector/status.py \
+  collector/web_jobs.py collector/web_preview.py collector/web_worker.py collector/verify_coverage.py \
+  collector/collect.py collector/export_csv.py collector/health.py \
+  collector/tests/{conftest,test_quality_exports,test_web_service}.py deploy/verify-server \
+  docs/images/crawler-workbench.png docs/images/crawler-task-queue.png \
   deploy/README.md deploy/Dockerfile deploy/compose.yaml deploy/start-web \
   deploy/install-camoufox.py deploy/server-release.md deploy/centos8 \
   | tar -xf - -C "$destination"
 
-printf '[]\n' > "$destination/collector/sources.yaml"
+cp "$destination/collector/sources.example.yaml" "$destination/collector/sources.yaml"
+# The standalone installer supports an operator editing the packaged catalog before building.
+printf '\n!collector/sources.yaml\n' >> "$destination/.dockerignore"

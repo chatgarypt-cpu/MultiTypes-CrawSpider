@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import yaml
-from crawler.config import site_kinds, DATA
+from crawler.config import site_kinds, DATA, sources_path
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0 Safari/537.36"}
@@ -517,7 +517,7 @@ def main():
                     help="只核对指定 domain（可重复；小范围只读抽查用）")
     a = ap.parse_args()
     sites, seen = [], set()
-    for s in yaml.safe_load(open(os.path.join(ROOT, "sources.yaml"), encoding="utf-8")) or []:
+    for s in yaml.safe_load(open(sources_path(ROOT), encoding="utf-8")) or []:
         domain = s.get("domain")
         if domain and domain not in seen:
             seen.add(domain)

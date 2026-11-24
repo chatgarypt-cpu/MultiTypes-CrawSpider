@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 """Wayback CDX → 采集队列：给"原站已下线 / 全站 403"的站点补历史 URL。
 
-这类站点（如 tonga-broadcasting.net 已下线、tokelau.org.nz 被 CloudFront 按 IP 拦）
-发现阶段拿不到任何链接，`paywall_fallback` 再强也没有 URL 可抓。CDX 接口能给出
-archive.org 上真实存在的 HTML 页面清单，直接写进 RequestQueue（channel='cdx'），
-随后 `collect.py --site <domain>` 会把这些 URL 逐条交给 paywall 回退去取正文。
-
-  python collector/cdx_seed.py --domain www.tonga-broadcasting.net --limit 2000
-  python collector/cdx_seed.py --domain www.tokelau.org.nz --pages-only --dry-run
+  python collector/cdx_seed.py --domain example.org --limit 2000
+  python collector/cdx_seed.py --domain example.org --pages-only --dry-run
 
 只入队，不抓取；不会把 URL 标成 done，也不会写 articles.jsonl。
 """

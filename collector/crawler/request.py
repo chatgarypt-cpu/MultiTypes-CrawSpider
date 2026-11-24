@@ -16,11 +16,11 @@ TRACKING_PARAMS = {"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_
                    "fbclid", "gclid", "ref", "referrer"}
 
 
-def canonical_key(url):
+def canonical_key(url: str) -> str:
     """Stable identity for a URL: lowercase host, no fragment, no tracking params, no trailing slash."""
     try:
         p = urlsplit(url.strip())
-    except Exception:
+    except ValueError:
         return url.strip()
     query = [(k, v) for k, v in parse_qsl(p.query, keep_blank_values=True) if k.lower() not in TRACKING_PARAMS]
     path = p.path.rstrip("/") or "/"
@@ -150,7 +150,7 @@ class RequestQueue:
                 continue
             try:
                 ts = time.mktime(time.strptime(updated, "%Y-%m-%dT%H:%M:%S"))
-            except Exception:
+            except (ValueError, TypeError, OverflowError):
                 ts = 0
             if now - ts >= cooldown:
                 retry.append(key)
@@ -221,10 +221,10 @@ class RequestQueue:
             (self.domain, self.kind, size))
         return [Request(*row) for row in cur.fetchall()]
 
-    def stats(self):
+    def stats(self) -> dict[str, int]:
         cur = self.conn.execute("SELECT state, COUNT(*) FROM requests WHERE domain=? AND kind=? GROUP BY state",
                                 (self.domain, self.kind))
         return dict(cur.fetchall())
 
-    def pending(self):
+    def pending(self) -> int:
         return self.stats().get("unprocessed", 0)

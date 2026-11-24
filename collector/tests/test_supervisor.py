@@ -105,14 +105,6 @@ def test_write_state_atomic(tmp_path):
     assert json.loads(path.read_text(encoding="utf-8"))["updated"] == "2026-11-07T01:00:00"
 
 
-def test_tasks_queue_dedup():
-    # TASKS 里保留历史顺序（可能有重复），main() 用 dict.fromkeys 去重
-    queue = list(dict.fromkeys(supervisor.TASKS))
-    assert len(queue) == len(set(queue))
-    assert all(len(key) == 2 and key[1] in ("posts", "pages", "media")
-               for key in queue)
-
-
 def test_health_write_integration(tmp_path):
     """_write_health 应写出 data/health.json（不涉及子进程）。"""
     make_site(tmp_path, "a.test", "posts", rows=3)

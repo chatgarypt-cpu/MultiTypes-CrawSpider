@@ -26,9 +26,10 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from crawler.config import sources_path
+
 ROOT = Path(__file__).resolve().parent          # collector/
 REPO = ROOT.parent
-SOURCES = ROOT / "sources.yaml"
 EXCLUDE_DOMAINS = {"blog.python.org"}          # 本地测试站，不进交付清单
 DATA = ROOT / "data"                            # collector/data -> ../data
 CSV_DIR = REPO / "output" / "csv"
@@ -127,7 +128,7 @@ def site_dirs(data_dir) -> list[str]:
 
 def load_sources(path=None) -> list[dict]:
     """读 sources.yaml，按 domain 去重（重复 key 由 T3 的 schema 校验负责报错）。"""
-    src = Path(path) if path else SOURCES
+    src = Path(path) if path else sources_path(ROOT)
     try:
         import yaml
         payload = yaml.safe_load(src.read_text(encoding="utf-8")) or []
@@ -354,7 +355,7 @@ def render_readme(date: str, manifest, residuals, coverage_payload, coverage_pat
     nice_date = f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
     lines = [
-        "# 南太平洋信源采集数据 · 交付说明",
+        "# 网页采集数据 · 交付说明",
         "",
         f"- **交付日期**：{nice_date}",
         "- **生成方式**：`collectorctl deliverables`（`collector/deliver.py` 自动生成）",

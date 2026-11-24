@@ -8,7 +8,7 @@ import sys
 import time
 from urllib.parse import urljoin, urlsplit
 
-from crawler.config import DATA, ROOT, site_kinds
+from crawler.config import DATA, ROOT, site_kinds, sources_path
 from web_jobs import read, write, normalize_url
 from crawler.public_urls import public_get
 
@@ -159,7 +159,7 @@ def resolve_site(url, *, check_entry=False, channel="auto"):
     from crawler.adhoc import detect
     from crawler.web import PUBLIC_ROBOTS
 
-    sources = yaml.safe_load((Path(ROOT) / 'sources.yaml').read_text()) or []
+    sources = yaml.safe_load(sources_path(ROOT).read_text()) or []
     if isinstance(sources, dict):
         sources = sources.get('sites', [])
     host = urlsplit(url).netloc

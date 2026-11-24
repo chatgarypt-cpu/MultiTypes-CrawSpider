@@ -116,7 +116,7 @@ def test_deliverables_end_to_end(env):
     assert len(coverage["report"]) == 2
 
     readme = (dd / "交付说明.md").read_text(encoding="utf-8")
-    for needle in ("南太平洋信源采集数据", "交付物清单", "site_manifest.csv",
+    for needle in ("网页采集数据", "交付物清单", "site_manifest.csv",
                    "residuals.csv", "合计", "| posts | 8 |"):
         assert needle in readme
     # 合计 = posts 8 + pages 2 + media 1

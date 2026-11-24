@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sharded sitemap crawler: crawl one slice of a paginated sitemap into its own files.
 
-  python3 collector/collect_shard.py --site www.lnc.nc --sitemap "https://www.lnc.nc/sitemap.xml?page={page}" \
+  python3 collector/collect_shard.py --site example.org --sitemap "https://example.org/sitemap.xml?page={page}" \
       --from 1 --to 3 --suffix a
 
 Writes data/<domain>/articles<sfx>.jsonl and data/<domain>/urls<sfx>.txt.
@@ -9,6 +9,8 @@ Merge afterwards with collector/merge_shards.py.
 """
 import argparse, os, re, sys, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from crawler.config import sources_path
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
@@ -32,7 +34,7 @@ def main():
     ap.add_argument("--limit", type=int, default=0)
     a = ap.parse_args()
 
-    sites = yaml.safe_load(open(os.path.join(ROOT, "sources.yaml")))
+    sites = yaml.safe_load(open(sources_path(ROOT)))
     site = next(s for s in sites if s["domain"] == a.site)
     tmpl = a.sitemap or (site["base"].rstrip("/") + (site.get("sitemap") or "/sitemap.xml") + "?page={page}")
 

@@ -23,7 +23,7 @@
 
 核对结果按站点保存到 `数据目录/coverage-sites/`，历史报告保留。页面显示核对时间、差额和失败原因；数据或断点状态变化后，旧结论会标为“待刷新”，不再作为最新通过结果。
 
-网页服务每分钟检查已登记站点；数据变化或超过 `COVERAGE_TTL_HOURS`（默认 24 小时）后自动重新核对。此次登记并复检的是指定的六个站点，不会自动扩大到未登记的历史来源。核对失败也保存新的时间和原因。网页服务停止时不执行自动核对。
+网页服务每分钟检查已登记站点。数据变化或超过 `COVERAGE_TTL_HOURS`（默认 24 小时）后自动重新核对。首次安装时登记列表为空。核对失败时也会保存时间和原因。
 
 要登记或立即重新核对其他站点，可运行：
 
@@ -115,7 +115,7 @@ docker compose -f deploy/compose.yaml down
 ### 安装
 
 ```bash
-REPO="/Users/gary/项目开发/REA_CrawlSpider"
+REPO="$(pwd -P)"  # 在项目根目录执行
 
 # 1) 先手动跑一次，确认能启动（Ctrl-C 退出）
 cd "$REPO"
@@ -162,7 +162,7 @@ launchctl kickstart -k gui/$(id -u)/com.reacrawl.supervisor
 "$REPO/deploy/collectorctl" paused    # 查看开关 + 守护状态
 
 # 按站暂停：data/CRAWL_SKIP 每行一个 domain:kind
-printf 'www.lnc.nc:posts\n' >> "$REPO/data/CRAWL_SKIP"
+printf 'example.org:posts\n' >> "$REPO/data/CRAWL_SKIP"
 ```
 
 ### 可选：看板也交给 launchd
@@ -199,7 +199,7 @@ crontab -l          # 查看
 ## 3. 快速自检清单
 
 ```bash
-cd /Users/gary/项目开发/REA_CrawlSpider
+cd "$REPO"
 "演练场（ignore)/.venv/bin/python" collector/cli.py --help
 "演练场（ignore)/.venv/bin/python" collector/cli.py status
 "演练场（ignore)/.venv/bin/python" collector/cli.py paused
@@ -229,4 +229,3 @@ python -m playwright install --with-deps chromium  # 装 Chromium + 系统依赖
 - Cloudflare Turnstile 级风控未验证；如遇到再评估 Patchright / playwright-stealth 或远程浏览器服务。
 - 守护进程用 systemd（或 supervisord）替代 launchd：入口仍是
   `"$REPO/.venv/bin/python" collector/supervisor.py`，环境变量 `CRAWL_RATE/CRAWL_MAX_RATE/SITE_WORKERS` 同本机。
-- A/B 数据与取舍见 [docs/research/ab-20261109.md](../docs/research/ab-20261109.md)。

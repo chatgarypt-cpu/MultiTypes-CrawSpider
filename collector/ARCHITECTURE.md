@@ -50,21 +50,21 @@ collector/
 3. **配置驱动**：站点差异全部写在 `sources.yaml`，不再写 if/else：
 
 ```yaml
-- domain: www.usp.ac.fj
+- domain: example.org
   channel: wp-api
   via: impersonate          # direct | impersonate | cloud | browser
-  base: https://www.usp.ac.fj
+  base: https://example.org
 
-- domain: www.samoaobserver.ws
+- domain: news.example.org
   channel: json-list
   api_list: /stories/page/{page}.json?category={category}&api=true
-  api_categories: [samoa, opinion, sport]
+  api_categories: [news, opinion, sport]
   api_items: stories
   free_field: is_premium
   api_url: "{base}/category/{category_name}/{id}"
   premium_marker: 'id="impression-panel"'
 
-- domain: www.wallis-et-futuna.gouv.fr
+- domain: public.example.org
   channel: html
   list_urls: [https://.../Actualites]
   link_pattern: "/Actualites/[^/\"]+$"
@@ -143,4 +143,3 @@ extract_best(url, body, site)
 并认 `OPENAI_API_KEY` / `DEEPSEEK_API_KEY`。
 
 取舍：图上的 Scrapling / Crawl4AI / Instructor 均评估后未接入（依赖重量与运行形态不合），
-理由、版本与逐站实测见 `docs/research/html-pipeline-20261109.md`。

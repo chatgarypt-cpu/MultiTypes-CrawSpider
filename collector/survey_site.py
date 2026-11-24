@@ -5,9 +5,9 @@
 不直接改 sources.yaml。
 
 用法：
-  uv run python collector/survey_site.py --site www.gov.vu
-  uv run python collector/survey_site.py --base https://www.fwrm.org.fj --out md
-  uv run python collector/survey_site.py --site www.pngnri.org --probe 2 --json
+  uv run python collector/survey_site.py --site example.org
+  uv run python collector/survey_site.py --base https://example.org --out md
+  uv run python collector/survey_site.py --site example.org --probe 2 --json
 """
 from __future__ import annotations
 
@@ -20,6 +20,8 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import yaml
 from lxml import html as lxml_html
+
+from crawler.config import sources_path
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
@@ -43,7 +45,7 @@ BOILER = re.compile(r"(?:contact|mentions-legales|protection-des-donnees|cookies
 def load_site(domain: str, base: str | None) -> dict:
     if base:
         return {"domain": urlsplit(base).netloc, "base": base.rstrip("/"), "via": "direct"}
-    sites = yaml.safe_load(open(ROOT / "sources.yaml"))
+    sites = yaml.safe_load(open(sources_path(ROOT)))
     for s in sites:
         if s["domain"] == domain:
             return s

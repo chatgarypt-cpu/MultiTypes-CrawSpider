@@ -331,7 +331,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_reconcile)
 
     p = sub.add_parser("check-site", help="干跑发现阶段，打印 N 条 URL，不入库（T3）")
-    p.add_argument("domain", help="站点域名，如 www.palaugov.pw")
+    p.add_argument("domain", help="站点域名，如 example.org")
     p.set_defaults(func=cmd_check_site)
 
     p = sub.add_parser("requeue", help="失败/受限条目重新入队（配合 paywall_fallback 补采）")

@@ -30,6 +30,8 @@ from urllib.parse import urljoin, urlparse
 import requests
 import yaml
 
+from crawler.config import sources_path
+
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -186,7 +188,7 @@ def main():
     ap.add_argument("--sites-file", required=True, help="每行一个 domain（# 注释）")
     ap.add_argument("--workers", type=int, default=4)
     a = ap.parse_args()
-    sites = {s["domain"]: s for s in yaml.safe_load(open(ROOT / "sources.yaml", encoding="utf-8")) if s.get("domain")}
+    sites = {s["domain"]: s for s in yaml.safe_load(open(sources_path(ROOT), encoding="utf-8")) if s.get("domain")}
     doms = [ln.split("#")[0].strip() for ln in open(a.sites_file, encoding="utf-8") if ln.split("#")[0].strip()]
     rows = []
     with ThreadPoolExecutor(max_workers=a.workers) as ex:

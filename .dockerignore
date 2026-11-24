@@ -8,3 +8,5 @@ collector/ui/node_modules
 collector/ui/dist
 collector/**/__pycache__
 collector/tests
+collector/sources.yaml
+collector/STRATEGY.md

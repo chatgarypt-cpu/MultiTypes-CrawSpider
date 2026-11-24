@@ -18,6 +18,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from crawler.quality import site_quality
+
 ROOT = Path(__file__).resolve().parent          # collector/
 DATA = ROOT / "data"
 KINDS = ("posts", "pages", "media")
@@ -118,7 +120,7 @@ def _queue_errors(db_path: Path, now: float) -> tuple[int, str]:
             row = conn.execute(
                 "SELECT error FROM requests WHERE error != '' AND error IS NOT NULL "
                 "ORDER BY updated DESC LIMIT 1").fetchone()
-            last = (row[0] or "").replace("\n", " ").replace("\r", " ").strip()
+            last = ((row[0] or "") if row else "").replace("\n", " ").replace("\r", " ").strip()
             return int(n or 0), last[:300]          # health 只留摘要，别把整页 HTML 塞进去
         finally:
             conn.close()
@@ -164,6 +166,8 @@ def snapshot(data_dir=None, db_path=None, state_path=None, running=None,
         "done": int(done),
         "paused": bool(paused),
         "total_rows": rows,
+        "collection_index_rows": rows,
+        "site_quality_7d": site_quality(db),
         "rate_5m": rate,
         "errors_1h": errors_1h,
         "last_error": last_error,

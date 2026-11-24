@@ -8,6 +8,8 @@
 import argparse, csv, json, os, subprocess
 import yaml, requests
 
+from crawler.config import sources_path
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data")
 CSV_DIR = os.path.join(ROOT, "..", "output", "csv")
@@ -58,7 +60,7 @@ def open_in_browser(url):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--site"); a = ap.parse_args()
-    sites = [s for s in yaml.safe_load(open(os.path.join(ROOT, "sources.yaml"))) if s["channel"] == "wp-api"]
+    sites = [s for s in yaml.safe_load(open(sources_path(ROOT))) if s["channel"] == "wp-api"]
     if a.site: sites = [s for s in sites if s["domain"] == a.site]
     report = []
     for s in sites:

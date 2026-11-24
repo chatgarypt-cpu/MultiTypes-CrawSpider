@@ -2,6 +2,8 @@
 
 MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采公开站点或栏目，确认正文、链接和采集范围后再提交任务。服务器负责排队、断点续采和 CSV 导出，工作台展示进度、诊断和覆盖率核对结果。
 
+从 main 克隆或使用 GitHub Release 安装，初始站点清单均为空。首次打开「采集工作台」，在「试采预览」填入自己的第一个网址，核对样本后确认入队。
+
 
 ![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
@@ -20,10 +22,10 @@ MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采
 
 | 界面 | 可以做什么 |
 | --- | --- |
-| **采集总览** | 查看已入库文章、监控站点数量、当前采集速率和队列并发。 |
+| **采集总览** | 查看已登记文章 URL 数、监控站点数量、当前采集速率和队列并发。 |
 | **采集工作台** | 自动识别或手动选择通道，设置栏目或路径范围，查看正文样本和失败诊断。可以调整 HTML 字段 XPath 再复测，也可以按行批量提交网址。 |
 | **网页采集任务** | 查看当前步骤、已保存数量、集合结果与日志。可停止或继续任务，并按集合下载 CSV。 |
-| **站点监控** | 查看原有站点任务的进度与覆盖率核对状态，筛选正在运行或已结束的站点。 |
+| **站点监控** | 查看原有站点任务的进度与覆盖率核对状态，筛选正在运行或已结束的站点，查看近 7 天的详情通过率和主要失败原因。 |
 
 ![任务队列截图。已完成任务显示采集范围、集合结果和 CSV 下载按钮。](docs/images/crawler-task-queue.png)
 
@@ -148,10 +150,12 @@ flowchart TB
 
 | 内容 | 位置 |
 | --- | --- |
-| 实际站点的入口、分页、链接筛选和字段规则 | [`collector/sources.yaml`](collector/sources.yaml) |
+| 实际站点的入口、分页、链接筛选和字段规则 | 本机的 `collector/sources.yaml`，可从[空白模板](collector/sources.example.yaml)复制后编辑。Git 默认忽略本机清单。 |
 | CLI 命令、采集通道及断点管理 | [采集器说明](collector/README.md) |
 | 队列、抓取和提取流程 | [采集器架构](collector/ARCHITECTURE.md) |
 | 本地和 Docker Compose 运行 | [部署说明](deploy/README.md) |
+
+需要为命令行或后台轮询配置站点时，首次运行 `cp -n collector/sources.example.yaml collector/sources.yaml`，在本机清单中添加自己的站点，再执行 `uv run python collector/collect.py --validate`。直接在网页试采和入队无需创建清单。
 
 默认数据目录为 `collector/data`，网页任务存放在其 `web-jobs/` 子目录。迁移或备份时应保留完整数据目录，才能继续使用队列和断点。
 

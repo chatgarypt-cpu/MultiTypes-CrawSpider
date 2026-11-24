@@ -7,8 +7,8 @@
              的 正文长度、链接密度、压缩率、标题/日期完整率
 
 示例：
-  python collector/bench_ab.py transport --site www.gov.nu --n 8 --methods direct,impersonate,ego
-  python collector/bench_ab.py extract --site www.gov.nu --n 8 --fetch-via direct
+  python collector/bench_ab.py transport --site example.org --n 8 --methods direct,impersonate,ego
+  python collector/bench_ab.py extract --site example.org --n 8 --fetch-via direct
   # readability 需要临时依赖：uv run --with readability-lxml --with markdownify python collector/bench_ab.py extract ...
 """
 import argparse
@@ -16,6 +16,8 @@ import json
 import os
 import sys
 import time
+
+from crawler.config import sources_path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -33,7 +35,7 @@ UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit
 
 
 def load_site(domain):
-    sites = yaml.safe_load(open(os.path.join(HERE, "sources.yaml"), encoding="utf-8")) or []
+    sites = yaml.safe_load(open(sources_path(HERE), encoding="utf-8")) or []
     sit = next((s for s in sites if s.get("domain") == domain), None)
     if sit is None:
         sys.exit(f"site {domain!r} not in sources.yaml")

@@ -72,14 +72,14 @@ class H(BaseHTTPRequestHandler):
         mime = mimetypes.guess_type(path.name)[0] or 'application/octet-stream'
         if path.suffix == '.log':
             mime = 'text/plain; charset=utf-8'
-        self.send_response(200)
-        self.send_header('Content-Type', mime)
-        self.send_header('Content-Length', str(path.stat().st_size))
-        self.send_header('X-Content-Type-Options', 'nosniff')
-        if download:
-            self.send_header('Content-Disposition', 'attachment; filename="' + path.name.replace('"', '') + '"')
-        self.end_headers()
         with path.open('rb') as f:
+            self.send_response(200)
+            self.send_header('Content-Type', mime)
+            self.send_header('Content-Length', str(os.fstat(f.fileno()).st_size))
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            if download:
+                self.send_header('Content-Disposition', 'attachment; filename="' + path.name.replace('"', '') + '"')
+            self.end_headers()
             import shutil
             shutil.copyfileobj(f, self.wfile)
 
@@ -91,6 +91,10 @@ class H(BaseHTTPRequestHandler):
             return
         if path in ('/', '/ui', '/crawl', '/index.html', '/dashboard.html'):
             return self.send(302, '', headers={'Location': '/ui/'})
+        if path == '/api/quality':
+            from crawler.quality import site_quality
+            report = site_quality(Path(DATA) / 'state.db')
+            return self.json(report, 503 if report.get('error') else 200)
         if path == '/api/config':
             return self.json(web_jobs.read(CFG, {'concurrency': 4}))
         if path == '/api/jobs':
@@ -111,6 +115,11 @@ class H(BaseHTTPRequestHandler):
         if path.startswith('/ui/'):
             return self.file(UI, path[4:] or 'index.html')
         if path.startswith('/csv/'):
+            from export_csv import refresh_download
+            try:
+                refresh_download(Path(DATA), unquote(path[5:]))
+            except (OSError, ValueError):
+                return self.json({'error': 'CSV 生成失败，请检查数据和磁盘空间'}, 500)
             return self.file(Path(DATA) / 'csv', path[5:], True)
         return self.json({'error': '页面不存在'}, 404)
 

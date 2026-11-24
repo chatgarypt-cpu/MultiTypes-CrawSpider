@@ -19,13 +19,13 @@ class FakeResp:
 def test_cdx_filters_assets_queries_and_junk(monkeypatch):
     payload = [
         ["original", "timestamp"],
-        ["http://www.tonga-broadcasting.net/-china-donates-5m.html", "20240101"],
-        ["http://www.tonga-broadcasting.net/-ex-ikale-tahi.html", "20240102"],
-        ["http://www.tonga-broadcasting.net/-ex-ikale-tahi.html", "20240103"],   # 去重
-        ["http://www.tonga-broadcasting.net/images/logo.png", "20240104"],       # 资源
-        ["http://www.tonga-broadcasting.net/page.html?id=3", "20240105"],        # 查询串
-        ["http://www.tonga-broadcasting.net/wp-admin/", "20240106"],             # 后台
-        ["http://www.tonga-broadcasting.net/%E4%B8%AD.html", "20240107"],        # 编码垃圾
+        ["http://example.org/-community-news.html", "20240101"],
+        ["http://example.org/-sports-report.html", "20240102"],
+        ["http://example.org/-sports-report.html", "20240103"],   # 去重
+        ["http://example.org/images/logo.png", "20240104"],       # 资源
+        ["http://example.org/page.html?id=3", "20240105"],        # 查询串
+        ["http://example.org/wp-admin/", "20240106"],             # 后台
+        ["http://example.org/%E4%B8%AD.html", "20240107"],        # 编码垃圾
     ]
     seen = {}
 
@@ -34,17 +34,17 @@ def test_cdx_filters_assets_queries_and_junk(monkeypatch):
         return FakeResp(payload)
 
     monkeypatch.setattr(cdx_seed.requests, "get", fake_get)
-    urls = cdx_seed.cdx_urls("www.tonga-broadcasting.net", limit=100)
-    assert urls == ["http://www.tonga-broadcasting.net/-china-donates-5m.html",
-                    "http://www.tonga-broadcasting.net/-ex-ikale-tahi.html"]
+    urls = cdx_seed.cdx_urls("example.org", limit=100)
+    assert urls == ["http://example.org/-community-news.html",
+                    "http://example.org/-sports-report.html"]
     assert seen["collapse"] == "urlkey" and "mimetype:text/html" in seen["filter"]
 
 
 def test_seed_queues_only_unknown_urls(tmp_env, monkeypatch):
-    domain = "www.tonga-broadcasting.net"
+    domain = "example.org"
     payload = [["original", "timestamp"],
-               ["http://www.tonga-broadcasting.net/a.html", "20240101"],
-               ["http://www.tonga-broadcasting.net/b.html", "20240102"]]
+               ["http://example.org/a.html", "20240101"],
+               ["http://example.org/b.html", "20240102"]]
     monkeypatch.setattr(cdx_seed.requests, "get",
                         lambda *a, **k: FakeResp(payload))
     urls = cdx_seed.cdx_urls(domain)

@@ -15,6 +15,7 @@ from collections import Counter
 from crawler import cursor, paywall
 from crawler.htmlpage import page_error, paywall_signal
 from crawler.extract import extract_best, extract_metadata
+from crawler.quality import DetailCounts
 from crawler.pipeline import normalize, validate
 from crawler.request import RequestQueue
 from crawler.store import append_rows, load_known
@@ -74,6 +75,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
                  discovery_failures=None):
     domain = site["domain"]
     channel = site.get("channel", "")
+    counts = DetailCounts(discovered=len(urls) if discovered_count is None else discovered_count)
     paywall.reset_budget()
     retryable_disc, gone_disc = _split_discovery_failures(discovery_failures)
     disc_reasons = Counter("discovery_http_%s" % f.get("status") for f in (discovery_failures or []))
@@ -103,11 +105,11 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
                               last_reason="discovery_failed")
             log.info("reopen domain=%s reason=discovery_failed failed=%d",
                      domain, len(retryable_disc))
-            return {"domain": domain, "channel": channel, "skipped": "reopened", "saved": 0,
+            return {"domain": domain, "channel": channel, "quality": counts.report(), "skipped": "reopened", "saved": 0,
                     "status": "partial", "reasons": dict(reasons),
                     "discovery_failed": _failed_sample(retryable_disc)}
         if not has_pending and discovered_count:
-            return {"domain": domain, "channel": channel, "skipped": "done", "saved": 0,
+            return {"domain": domain, "channel": channel, "quality": counts.report(), "skipped": "done", "saved": 0,
                     "status": "complete", "reasons": dict(cur.get("reasons") or {})}
 
     reasons = Counter(cur.get("reasons") or {})
@@ -147,7 +149,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
                           discovery_failed=_failed_sample(retryable_disc))
         log.info("no work domain=%s reason=%s status=%s queue=%s", domain, reason, status,
                  q.stats())
-        return {"domain": domain, "channel": channel, "discovered": 0, "saved": 0,
+        return {"domain": domain, "channel": channel, "quality": counts.report(), "discovered": 0, "saved": 0,
                 "errors": 0, "total": cur.get("saved", 0), "queue": q.stats(),
                 "reasons": dict(reasons), "status": status,
                 "discovery_failed": _failed_sample(retryable_disc), "secs": 0.0}
@@ -176,6 +178,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
         batch = q.next_batch(min(BATCH, max(1, want)))
         if not batch:
             break
+        counts.attempted += len(batch)
         responded = set()
         for req, status, body in fetcher.stream_requests(batch, workers=workers):
             key = req.key
@@ -204,11 +207,13 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
                                  domain, req.url, source, hit)
                 if restriction:
                     q.mark_skipped([key], "access_restricted")
+                    counts.rejections["access_restricted"] += 1
                     _count(reasons, run_reasons, restriction)
                     continue
             if status != 200:
                 errors += 1
                 _count(reasons, run_reasons, "http_%s" % status)
+                counts.request_failures[f"http_{status}"] += 1
                 q.mark_error([key], {key: f"http_{status} {(body if isinstance(body, str) else '')[:200]}"})
                 continue
             if isinstance(body, bytes):
@@ -219,6 +224,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
                     q.mark_error([key], {key: f"document_error {exc}"})
                     errors += 1
                     _count(reasons, run_reasons, "document_error")
+                    counts.rejections["document_error"] += 1
                     continue
             else:
                 row = extract_best(req.url, body, site, min_text=0)
@@ -227,12 +233,14 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
             if row is None:
                 q.mark_skipped([key], "no_text")
                 _count(reasons, run_reasons, "no_text")
+                counts.rejections["no_text"] += 1
                 continue
             row = normalize(row, site)
             ok, why = validate(row, site, kind)
             if not ok:
                 q.mark_skipped([key], why)
                 _count(reasons, run_reasons, why or "invalid_row")
+                counts.rejections[why or "invalid_row"] += 1
                 continue
             buf.append((key, row))
             if len(buf) >= FLUSH_EVERY:
@@ -241,6 +249,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
         if missing:
             q.mark_error(missing, {key: "http_0 no_response" for key in missing})
             errors += len(missing)
+            counts.request_failures["no_response"] += len(missing)
             reasons["no_response"] += len(missing)
             run_reasons["no_response"] += len(missing)
         if limit and saved + len(buf) >= limit:
@@ -292,7 +301,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     cur = cursor.save(domain, kind, **fields)
     log.info("done status=%s saved=%d errors=%d reasons=%s queue=%s", status, saved, errors,
              dict(reasons), st)
-    return {"domain": domain, "channel": channel, "discovered": discovered,
+    return {"domain": domain, "channel": channel, "quality": counts.report(), "discovered": discovered,
             "saved": saved, "errors": errors, "total": total_saved, "queue": st,
             "reasons": dict(reasons), "status": status,
             "discovery_failed": _failed_sample(retryable_disc),

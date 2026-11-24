@@ -69,7 +69,7 @@ sudo systemctl start rea-crawler.service
 
 ## 站点抓取方式
 
-运行镜像已包含直接 HTTP、TLS 指纹请求、Playwright Chromium 和 Camoufox。站点使用的方式定义在 [`collector/sources.yaml`](../../collector/sources.yaml)。新增或更换其中的站点配置后，可以检查发现结果和正文样本。命令中的域名需与配置中的 `domain` 对应。服务器包初始站点清单为空，可在网页直接提交网址。维护专用站点配置时，更新 `collector/sources.yaml` 后重新运行安装脚本。
+运行镜像已包含直接 HTTP、TLS 指纹请求、Playwright Chromium 和 Camoufox。管理员可以在解压目录内的 `collector/sources.yaml` 配置自己的站点。新增或更换其中的站点配置后，可以检查发现结果和正文样本。命令中的域名需与配置中的 `domain` 对应。服务器包初始站点清单为空，可在网页直接提交网址。维护专用站点配置时，更新 `collector/sources.yaml` 后重新运行安装脚本。
 
 ```bash
 sudo podman exec rea-crawler /app/.venv/bin/python collector/collect.py --check-extract example.com --samples 3
