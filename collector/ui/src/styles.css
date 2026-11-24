@@ -1,0 +1,126 @@
+:root {
+  font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #172b3b;
+  background: #edf2f6;
+  --ink: #172b3b;
+  --muted: #526879;
+  --navy: #122b3d;
+  --teal: #007b75;
+  --border: #dbe5ed;
+  --paper: #fff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: var(--teal); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+h1, h2, h3, p { margin: 0; }
+.console { min-height: 100vh; background: #edf2f6; }
+.console-header {
+  min-height: 62px; display: flex; align-items: center; gap: 30px; padding: 10px clamp(16px, 4vw, 62px);
+  background: var(--paper); border-bottom: 1px solid var(--border);
+}
+.console-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.brand-mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--navy); color: #90ede0; }
+.console-nav { display: flex; gap: clamp(10px, 2vw, 28px); }
+.console-nav a { color: var(--muted); text-decoration: none; font-size: 13px; white-space: nowrap; }
+.console-nav a:hover { color: var(--teal); text-decoration: underline; }
+.queue-settings { margin-left: auto; font-size: 13px; white-space: nowrap; }
+.queue-settings .ant-input-number { width: 66px; }
+.console-main { width: min(100%, 1410px); margin: 0 auto; padding: 24px clamp(14px, 3.4vw, 48px) 0; min-width: 0; }
+.overview {
+  color: #fff; padding: 25px 30px 23px; margin-bottom: 22px; border-radius: 12px;
+  background-color: var(--navy);
+  background-image: repeating-linear-gradient(90deg, transparent 0 47px, #ffffff0a 47px 48px);
+}
+.overview-heading { display: flex; align-items: flex-start; gap: 12px; justify-content: space-between; }
+.overview-heading h1 { font-size: clamp(25px, 3vw, 34px); font-weight: 680; letter-spacing: -.04em; }
+.overview-heading p { margin-top: 4px; color: #bdd0de; font-size: 13px; }
+.live-state {
+  display: inline-flex; align-items: center; gap: 7px; border: 1px solid #ffffff38; background: var(--navy);
+  padding: 5px 10px; border-radius: 6px; font-size: 12px; white-space: nowrap;
+}
+.overview-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid #ffffff30; margin-top: 20px; }
+.overview-metrics .ant-statistic { min-width: 0; padding: 13px 15px 0; border-left: 1px solid #ffffff30; }
+.overview-metrics .ant-statistic:first-child { border-left: 0; padding-left: 0; }
+.overview .overview-metrics .ant-statistic-title { color: #bdd0de; font-size: 12px; }
+.overview-metrics .ant-statistic-content { color: #fff; font-size: clamp(19px, 2.4vw, 30px); font-weight: 650; font-variant-numeric: tabular-nums; }
+.overview-metrics .ant-statistic-content-prefix { color: #8ceedd; font-size: .56em; margin-inline-end: 9px; }
+.overview-metrics .ant-statistic-content-suffix { font-size: 12px; font-weight: 450; color: #bdd0de; }
+.console-section { margin-top: 18px; scroll-margin-top: 16px; min-width: 0; }
+.panel-card { box-shadow: 0 2px 6px #172b3b08; }
+.panel-card h2 { color: var(--ink); font-size: 17px; font-weight: 650; }
+.panel-card h2 > .anticon { color: var(--teal); margin-right: 4px; }
+.panel-card .ant-card-head { padding-inline: 21px; }
+.panel-card .ant-card-body { padding: 16px 21px 19px; }
+.panel-card .ant-alert { margin-bottom: 12px; }
+.panel-meta, .panel-caption { font-size: 12px; color: var(--muted); }
+.panel-caption { margin-bottom: 10px; }
+.workbench-card > .ant-card-body { padding: 0; }
+.workflow-strip { padding: 14px 22px; border-bottom: 1px solid var(--border); background: #f6f9fb; }
+.workflow-strip .ant-steps { max-width: 850px; }
+.trial-grid { display: grid; grid-template-columns: minmax(225px, .92fr) minmax(0, 2fr); }
+.trial-sidebar { min-width: 0; padding: 18px 21px; border-right: 1px solid var(--border); background: #fbfdfe; }
+.trial-sidebar form, .batch-form { display: grid; gap: 9px; }
+.trial-sidebar form > button { justify-self: start; }
+.trial-sidebar label, .batch-form label { font-weight: 650; font-size: 13px; }
+.trial-source { margin: 18px 0 0; border-top: 1px solid var(--border); padding-top: 8px; font-size: 13px; }
+.trial-source > div, .trial-checks > div { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 6px; padding: 4px 0; }
+.trial-source dt, .trial-checks dt { color: var(--muted); }
+.trial-source dd, .trial-checks dd { margin: 0; overflow-wrap: anywhere; }
+.field-editor { margin-top: 13px; }
+.field-editor .ant-tag { margin-inline-start: 4px; }
+.rule-inputs { display: grid; gap: 8px; }
+.rule-inputs label { display: block; margin-bottom: 4px; }
+.rule-inputs input { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.trial-output { min-width: 0; min-height: 252px; display: flex; flex-direction: column; }
+.trial-output-heading, .trial-footer { display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 12px 18px; }
+.trial-output-heading > h3 { font-size: 14px; }
+.trial-output-heading > h3 .anticon { color: var(--teal); margin-right: 3px; }
+.trial-content { flex: 1; min-width: 0; padding: 0 18px 12px; }
+.trial-empty { min-height: 126px; margin: 0; display: flex; flex-direction: column; gap: 9px; align-items: center; justify-content: center; text-align: center; border: 1px dashed #bdcfdc; background: #f7fafc; border-radius: 8px; padding: 10px; }
+.trial-empty .ant-empty-image { height: 34px; color: var(--teal); margin-bottom: 0; font-size: 27px; }
+.trial-empty p { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.sample-title { display: flex; align-items: baseline; gap: 4px 12px; justify-content: space-between; flex-wrap: wrap; overflow-wrap: anywhere; }
+.sample-title small, .site-name small, .coverage-cell small, .trial-diagnostics small, .rule-inputs small { font-size: 12px; color: var(--muted); }
+.sample-body p { max-height: 240px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #f1f6f9; padding: 10px 12px; border-radius: 6px; margin: 8px 0 0; }
+.trial-checks { margin: 8px 0 0; font-size: 12px; }
+.trial-diagnostics { margin-top: 9px; }
+.trial-diagnostics small { display: block; overflow-wrap: anywhere; }
+.trial-diagnostics ul { margin: 0; padding-inline-start: 20px; overflow-wrap: anywhere; }
+.trial-footer { border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.trial-success { color: #006b4e; font-weight: 650; }
+.batch-panel { padding: 18px 21px; max-width: 760px; }
+.batch-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: var(--muted); }
+.batch-results { display: grid; gap: 6px; padding-inline-start: 18px; overflow-wrap: anywhere; }
+.batch-panel > .ant-collapse { margin-top: 12px; }
+.site-name, .coverage-cell { display: grid; justify-items: start; gap: 2px; overflow-wrap: anywhere; }
+.coverage-cell .ant-tag { margin-bottom: 2px; }
+.progress-cell { font-size: 12px; }
+.progress-cell .ant-progress { margin: 0; }
+.task-error { color: #a62b31; font-size: 12px; }
+.job-detail { display: grid; gap: 9px; }
+.job-detail > ul { margin: 0; padding-inline-start: 20px; }
+.monitor-signals { display: flex; gap: 6px; flex-wrap: wrap; }
+.monitor-signals .ant-tag { margin: 0; }
+.console-footer { padding: 15px 0 23px; font-size: 12px; color: var(--muted); }
+
+@media (max-width: 760px) {
+  .console-header { gap: 12px; flex-wrap: wrap; }
+  .console-nav { order: 1; width: 100%; }
+  .overview { padding: 17px; }
+  .overview-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .overview-metrics .ant-statistic { padding: 8px 10px; }
+  .overview-metrics .ant-statistic:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .overview-metrics .ant-statistic:nth-child(n+3) { border-top: 1px solid #ffffff30; }
+  .trial-grid { grid-template-columns: minmax(0, 1fr); }
+  .trial-sidebar { border-right: 0; border-bottom: 1px solid var(--border); }
+  .panel-card .ant-card-head { padding-inline: 12px; }
+  .panel-card .ant-card-body { padding-inline: 12px; }
+  .workbench-card > .ant-card-body { padding: 0; }
+  .workflow-strip { padding: 9px 12px; }
+  .workflow-strip .ant-steps-item-title { font-size: 11px; }
+  .workflow-strip .ant-steps-item-icon { margin-inline-end: 3px; font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
