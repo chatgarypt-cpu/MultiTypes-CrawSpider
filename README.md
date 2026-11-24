@@ -10,7 +10,7 @@ MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采
 ![SQLite](https://img.shields.io/badge/SQLite-Queue-003B57?logo=sqlite&logoColor=white)
 ![Podman](https://img.shields.io/badge/Podman-CentOS%208-892CA0?logo=podman&logoColor=white)
 
-[工作台](#工作台与功能组件) · [快速开始](#快速开始) · [采集通道](#采集通道) · [技术栈](#技术栈) · [配置与维护](#配置与维护)
+[工作台](#工作台与功能组件) · [快速开始](#快速开始) · [采集通道](#采集通道) · [架构](#项目架构) · [技术栈](#技术栈) · [配置与维护](#配置与维护)
 
 ## 工作台与功能组件
 
@@ -31,7 +31,7 @@ MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采
 
 | 使用场景 | 入口 |
 | --- | --- |
-| 本地运行、开发适配器或维护站点配置 | `main`，包含采集器前后端、测试、开发记录及可选的 Evose 技能 |
+| 本地运行、开发适配器或维护站点配置 | `main`，包含采集器前后端、测试和开发记录 |
 | CentOS Linux 8.4 x86_64 服务器部署 | [`deploy/centos8`](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/tree/deploy/centos8)，提供独立服务器源码和 Podman 安装脚本 |
 
 ### 本地运行
@@ -80,6 +80,58 @@ curl -fsS http://127.0.0.1:8787/healthz
 
 浏览器中的试采使用 HTTP 直连，支持 HTML、RSS、站点地图及 WordPress REST。其他通道或渲染方式由站点适配器配置，运行前需准备相应依赖。
 
+## 项目架构
+
+```mermaid
+flowchart TB
+    UI["浏览器工作台<br/>React · Ant Design"]
+    API["Python Web 服务<br/>serve.py"]
+    UI -->|"试采、确认入队、批量提交"| API
+    API -->|"站点监控 SSE、任务查询、日志与 CSV"| UI
+
+    subgraph control["试采与任务调度"]
+        direction LR
+        Preview["只读试采<br/>web_preview.py"]
+        Rules["站点配置<br/>sources.yaml"]
+        Jobs["任务队列与并发调度<br/>web_jobs.py"]
+        Preview -->|"确认已试采规则"| Jobs
+        Rules -->|"已有站点适配"| Preview
+    end
+
+    API -->|"POST /api/preview"| Preview
+    Preview -.->|"返回样本、诊断和确认 ID"| API
+    API -->|"POST /api/crawl"| Jobs
+
+    subgraph execution["正式采集"]
+        direction LR
+        Worker["每个任务的采集进程<br/>web_worker.py"]
+        Channels["发现与采集通道<br/>HTML · RSS · Sitemap · WordPress · JSON · Archive"]
+        Fetch["请求与可选浏览器渲染<br/>公开网站与已配置来源"]
+        Extract["正文提取或结构化映射<br/>字段规则、归一化与校验"]
+        Worker --> Channels --> Fetch --> Extract
+    end
+
+    Jobs -->|"按并发配置启动或续跑"| Worker
+    Rules -->|"批量任务复用已配置站点"| Worker
+
+    subgraph data["持久化与导出"]
+        direction LR
+        State[("SQLite 请求状态<br/>任务 JSON 与断点")]
+        Rows[("JSONL 采集结果")]
+        Files["CSV 与运行日志"]
+        Rows -->|"按集合导出"| Files
+    end
+
+    Jobs -->|"任务状态与配置"| State
+    Channels <-->|"按通道使用请求队列或分页断点"| State
+    Extract -->|"校验通过后写入"| Rows
+    Worker -->|"进度与日志"| Files
+    State -.->|"供状态读取"| API
+    Files -.->|"供查询与下载"| API
+```
+
+试采复用站点发现和字段提取能力，只返回样本。正式任务为每个网站任务启动独立进程，将队列、结果和断点保存在该任务的数据目录中。已有站点的命令行采集也复用同一套采集通道和提取逻辑。[模块与数据流说明](collector/ARCHITECTURE.md)
+
 ## 技术栈
 
 | 层 | 技术 | 对应功能 |
@@ -109,7 +161,3 @@ uv run --frozen pytest
 npm --prefix collector/ui ci
 npm --prefix collector/ui run build
 ```
-
-## 可选的 Evose 技能
-
-[`skills/universal-web-crawler/`](skills/universal-web-crawler/) 提供纯 Markdown 网页采集技能，通过 Evose 宿主已授权的工具运行。安装和验证方式见 [Evose 部署说明](docs/evose-deployment.md)。
