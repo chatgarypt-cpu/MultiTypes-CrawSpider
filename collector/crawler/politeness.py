@@ -24,6 +24,8 @@ DEFAULT_RATE = float(os.environ.get("CRAWL_RATE", "2.0"))   # 每域起始速率
 MIN_RATE = 0.25
 MAX_RATE = float(os.environ.get("CRAWL_MAX_RATE", "8.0"))   # 成功累积后回速的上限
 
+LIMITER_STATE = os.environ.get("LIMITER_STATE") or os.path.join(DATA, "limiter.json")
+
 ROBOTS_TTL_DEFAULT = 24 * 3600                                # 24h
 ROBOTS_CACHE_PATH = os.environ.get("ROBOTS_CACHE_PATH") or os.path.join(DATA, "robots.json")
 _FALSE_VALUES = ("0", "false", "off", "no")
@@ -40,6 +42,24 @@ class DomainLimiter:
         self.streak = {}               # domain -> consecutive successes
         self.lock = threading.Lock()
         self._default = rate
+        try:
+            with open(LIMITER_STATE, encoding="utf-8") as f:
+                saved = json.load(f)
+            for dom, val in (saved or {}).items():
+                if isinstance(val, (int, float)):
+                    self.rate[dom] = min(MAX_RATE, max(MIN_RATE, float(val)))
+        except (OSError, ValueError):
+            pass
+
+    def _save(self):
+        try:
+            os.makedirs(os.path.dirname(LIMITER_STATE), exist_ok=True)
+            tmp = LIMITER_STATE + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self.rate, f)
+            os.replace(tmp, LIMITER_STATE)
+        except OSError:
+            pass
 
     def _rate(self, domain):
         return self.rate.get(domain, self._default)
@@ -69,6 +89,7 @@ class DomainLimiter:
         with self.lock:
             self.rate[domain] = max(MIN_RATE, self._rate(domain) / 2)
             self.streak[domain] = 0
+            self._save()
 
     def reward(self, url):
         domain = urlsplit(url).netloc
@@ -77,6 +98,7 @@ class DomainLimiter:
             self.streak[domain] = streak
             if streak % 20 == 0:                      # recover slowly
                 self.rate[domain] = min(MAX_RATE, self.rate.get(domain, self._default) * 1.5)
+                self._save()
 
 
 _RULE_RE = {}
@@ -180,11 +202,12 @@ class RobotsCache:
     process restarts don't refetch every robots.txt. Disable with ``ROBOTS_CACHE=0``.
     """
 
-    def __init__(self, cache_path=None, ttl=None, persist=None, session=None, timeout=15):
+    def __init__(self, cache_path=None, ttl=None, persist=None, session=None, timeout=15, public=False):
         self._mem = {}
         self.cache = self._mem                    # 兼容旧属性名
         self.lock = threading.RLock()
         self.session = session
+        self.public = public
         self.timeout = timeout
         self.ttl = float(os.environ.get("ROBOTS_TTL", str(ROBOTS_TTL_DEFAULT))) if ttl is None else float(ttl)
         self.persist = _env_enabled("ROBOTS_CACHE") if persist is None else bool(persist)
@@ -218,6 +241,17 @@ class RobotsCache:
     # ---------- fetching / parsing ----------
     def _fetch_text(self, url):
         headers = {"User-Agent": UA}
+        if self.public:
+            from crawler.public_urls import public_get
+            with public_get(requests.get, url, same_host=urlsplit(url).netloc,
+                            headers=headers, timeout=self.timeout, stream=True) as response:
+                chunks = response.iter_content(chunk_size=8192)
+                body = bytearray()
+                for chunk in chunks:
+                    body.extend(chunk)
+                    if len(body) >= 512 * 1024:
+                        break
+                return response.status_code, body.decode(response.encoding or "utf-8", errors="replace")
         if self.session is not None:
             r = self.session.get(url, headers=headers, timeout=self.timeout)
         else:
@@ -270,3 +304,5 @@ class RobotsCache:
         with self.lock:
             self._mem.clear()
             self._disk.clear()
+
+PUBLIC_ROBOTS = RobotsCache(persist=False, public=True)

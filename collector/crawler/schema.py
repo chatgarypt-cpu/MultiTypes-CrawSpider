@@ -20,6 +20,7 @@ REQUIRED = {
     "html": ["base"],
     "json-api": ["base", "api"],
     "json-list": ["base", "api_list", "api_url"],
+    "archive": ["base"],
 }
 
 # every key a channel may carry (plus the universally shared ones)
@@ -27,26 +28,36 @@ SHARED = {"domain", "aliases", "name", "country", "lang", "type", "channel", "ba
           "url_filter", "link_pattern", "min_text", "note", "notes", "detected", "no_embed",
           "pages", "page_step", "discover_cap", "orderby", "order", "via_posts", "via_pages", "via_media", "wp_per_page", "wp_fields",
           # html 页面流水线（crawler.htmlpage）：schema=XPath→字段，llm_fields=让可选 LLM 补的空字段
-          "schema", "llm_fields", "llm_override", "noise_gate", "seed_urls",
+          "schema", "llm_fields", "llm_override", "noise_gate", "seed_urls", "prune_xpath",
           # robots: false = 该站不按 robots.txt 限制（用户显式决定）；ego_wait_ms = 浏览器加载后等待
           "robots", "ego_wait_ms", "playwright_wait_ms", "block_resources", "headless",
           # 人工确认不可采（无列表入口/站点下线/反爬）：不算配置错误，单独归类
-          "disabled", "disabled_reason", "coverage_all", "brightdata_zone", "camoufox_wait_ms", "ignore_https_errors", "http_version"}
+          "disabled", "disabled_reason", "coverage_all", "brightdata_zone", "camoufox_wait_ms", "ignore_https_errors", "http_version",
+          "documents", "retry_http_statuses", "backfill_revision", "premium_marker",
+          # 付费墙/反爬回退（crawler.paywall）：13ft 取文链路开关
+          "paywall_fallback", "paywall_service",
+          # 出口代理池（crawler.proxies）：换 IP / 虚拟出口
+          "proxy", "proxy_pool", "proxy_sticky"}
 OPTIONAL = {
     "wp-api": {"api", "wp_types", "wp_fields_media", "wp_empty_page_limit", "wp_empty_retries"},
     "sitemap": set(),
     "rss": set(),
     "html": {"list_url", "list_urls", "item_selector"},
     "json-api": {"api_query", "api_page_size", "api_category", "api_items"},
-    "json-list": {"api_categories", "api_items", "free_field", "premium_marker",
-                  "scan_mode", "known_pages_stop", "max_pages_per_run"},
+    "json-list": {"api_categories", "api_items", "free_field", "include_premium",
+                  "scan_mode", "known_pages_stop", "max_pages_per_run", "skip_detail_failures"},
+    "archive": {"cdx"},
 }
-VIA = {"direct", "impersonate", "cloud", "browser", "ego", "playwright", "brightdata", "camoufox"}
+VIA = {"direct", "impersonate", "cloud", "browser", "ego", "playwright", "brightdata", "camoufox",
+       "proxy", "archive"}
 TYPES = {
+    "prune_xpath": list,
+    "include_premium": bool, "premium_marker": str, "free_field": str,
+    "documents": bool, "retry_http_statuses": list, "backfill_revision": dict,
     "aliases": list,
     "wp_types": dict,
     "wp_empty_page_limit": int, "wp_empty_retries": int,
-    "ignore_https_errors": bool, "http_version": str,
+    "ignore_https_errors": bool, "http_version": str, "skip_detail_failures": bool,
     "list_urls": list, "api_categories": list, "pages": int, "page_step": int,
     "api_page_size": int, "no_embed": bool, "min_text": int,
     "schema": dict, "llm_fields": list, "llm_override": bool,
@@ -54,6 +65,9 @@ TYPES = {
     "playwright_wait_ms": int, "block_resources": bool, "headless": bool,
     "scan_mode": str, "known_pages_stop": int, "max_pages_per_run": int,
     "disabled": bool, "disabled_reason": str,
+    "paywall_fallback": str, "paywall_service": str,
+    "proxy": str, "proxy_pool": str, "proxy_sticky": bool,
+    "cdx": dict,
 }
 REGEX_KEYS = ("link_pattern", "url_filter")
 
@@ -119,12 +133,28 @@ def validate_site(site):
         typ = TYPES.get(key)
         if typ and key in site and not isinstance(site[key], typ):
             errors.append(f"{domain}: {key} must be {typ.__name__}")
+    if isinstance(site.get("prune_xpath"), list):
+        from lxml import etree
+        for expr in site["prune_xpath"]:
+            if not isinstance(expr, str) or not expr.strip():
+                errors.append(f"{domain}: prune_xpath must contain XPath strings")
+                continue
+            try:
+                etree.XPath(expr)
+            except etree.XPathSyntaxError:
+                errors.append(f"{domain}: invalid prune_xpath: {expr!r}")
     if isinstance(site.get("wp_types"), dict):
         for kind, route in site["wp_types"].items():
             if not isinstance(kind, str) or not re.fullmatch(r"[a-z][a-z0-9_-]*", kind):
                 errors.append(f"{domain}: invalid WP collection name {kind!r}")
             if not isinstance(route, str) or not re.fullmatch(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)+", route):
                 errors.append(f"{domain}: invalid WP REST route {route!r}")
+    if isinstance(site.get("retry_http_statuses"), list):
+        if any(type(code) is not int or not 400 <= code <= 599 for code in site["retry_http_statuses"]):
+            errors.append(f"{domain}: retry_http_statuses must contain HTTP error codes")
+    if isinstance(site.get("backfill_revision"), dict):
+        if any(not isinstance(k, str) or type(v) is not int or v < 1 for k, v in site["backfill_revision"].items()):
+            errors.append(f"{domain}: backfill_revision requires collection names and positive integer versions")
     # noise_gate 允许 bool 或数字（数字=按站覆盖链接密度阈值，见 crawler/htmlpage.py）
     ng = site.get("noise_gate")
     if ng is not None and not isinstance(ng, bool) and not isinstance(ng, (int, float)):

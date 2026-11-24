@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Alert, Badge, Button, Card, InputNumber, Layout, Progress, Space, Statistic, Table, Tabs, Tag, Tooltip } from 'antd'
+import type { TableColumnsType } from 'antd'
+import { AppstoreOutlined, CloudServerOutlined, DatabaseOutlined, DashboardOutlined, DownloadOutlined, GlobalOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import CrawlPanel from './CrawlPanel'
 
 type KindState = { n: number; page: number; pages: number | null; done: boolean; updated: string; status?: string; last_reason?: string }
@@ -65,31 +68,37 @@ function useConfig() {
   const [saved, setSaved] = useState(4)
   const [draft, setDraft] = useState(4)
   const [pending, setPending] = useState(false)
+  const [configError, setConfigError] = useState('')
   useEffect(() => {
     fetch('/api/config')
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json() })
       .then((c) => {
         setSaved(c.concurrency)
         setDraft(c.concurrency)
       })
-      .catch(() => {})
+      .catch(() => setConfigError('无法读取并发配置'))
   }, [])
   const apply = async (value: number) => {
     const n = Math.max(1, Math.trunc(value))
     setPending(true)
+    setConfigError('')
     try {
-      const c = await (await fetch('/api/concurrency', {
+      const response = await fetch('/api/concurrency', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ n }),
-      })).json()
+      })
+      if (!response.ok) throw new Error()
+      const c = await response.json()
       setSaved(c.concurrency)
       setDraft(c.concurrency)
+    } catch {
+      setConfigError('并发设置未保存，请重试')
     } finally {
       setPending(false)
     }
   }
-  return { saved, draft, setDraft, apply, pending }
+  return { saved, draft, setDraft, apply, pending, configError }
 }
 
 type Health = 'running' | 'blocked' | 'incomplete' | 'done' | 'config' | 'disabled' | 'idle'
@@ -126,245 +135,138 @@ function formatTime(iso: string) {
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString('zh-CN', { hour12: false })
 }
 
-function Figures({ data }: { data: Status | null }) {
-  return (
-    <dl className="figures">
-      <div className="figure">
-        <dt>已入库文章</dt>
-        <dd>{data ? nf.format(data.total) : '暂无'}</dd>
-      </div>
-      <div className="figure">
-        <dt>站点</dt>
-        <dd>
-          {data ? data.sites.length : '暂无'}
-          {data ? <small>{data.tasks_running} 个任务在跑</small> : null}
-        </dd>
-      </div>
-      <div className="figure">
-        <dt>当前速率</dt>
-        <dd>{data && data.rate > 0 ? nf.format(Math.round(data.rate)) : ''}<small>篇/秒</small></dd>
-      </div>
-      <div className="figure">
-        <dt>队列并发</dt>
-        <dd>{data ? data.concurrency : '0'}<small>路</small></dd>
-      </div>
-    </dl>
-  )
+const healthColors: Partial<Record<Health, string>> = {
+  running: 'processing', blocked: 'error', incomplete: 'warning', done: 'success', config: 'gold',
 }
 
-function Badge({ health, title }: { health: Health; title?: string }) {
-  return <span className="status" data-kind={health} title={title}>{HEALTH_LABEL[health]}</span>
-}
-
-// 覆盖率核对与"任务结束"是两件事：cursor done 只说明翻页结束，覆盖率核对看外部总量。
-function CoverageBadge({ site }: { site: Site }) {
-  const verdict = site.coverage_verdict || '未核对'
+function Coverage({ site }: { site: Site }) {
   const pct = site.coverage != null ? ` ${(site.coverage * 100).toFixed(1)}%` : ''
   const label = site.coverage_stale ? '待刷新' : ({
     '已核对': `已核对${pct}`, '不可验证': '无法核对', '覆盖率不足': `有缺口${pct}`,
     '核对失败': '核对失败', '口径异常': '口径异常',
-  }[verdict] || '未核对')
-  const time = site.coverage_checked_at ? new Date(site.coverage_checked_at).toLocaleString('zh-CN', {
+  }[site.coverage_verdict] || '未核对')
+  const checked = site.coverage_checked_at && new Date(site.coverage_checked_at).toLocaleString('zh-CN', {
     month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
-  }) : ''
-  return <div className="coverage-result" title={site.coverage_detail}>
-    <span className="coverage" data-kind={site.coverage_stale ? 'warn' : site.verified ? 'ok' : 'warn'}>{label}</span>
-    {time && <small>{site.coverage_stale ? '上次 ' : '核对 '}{time}</small>}
-    {!site.coverage_stale && site.coverage_missing != null && site.coverage_missing > 0 && <small>数量差额 {site.coverage_missing.toLocaleString()} 条</small>}
-    {site.coverage_detail && <small className="coverage-detail">{site.coverage_detail}</small>}
+  })
+  return <div className="coverage-cell">
+    <Tag color={site.coverage_stale ? 'warning' : site.verified ? 'success' : 'default'}>{label}</Tag>
+    {checked && <small>{site.coverage_stale ? '上次' : '核对于'} {checked}</small>}
+    {!site.coverage_stale && !!site.coverage_missing && site.coverage_missing > 0 &&
+      <small>数量差额 {nf.format(site.coverage_missing)} 条</small>}
+    {site.coverage_detail && <small>{site.coverage_detail}</small>}
   </div>
 }
 
-function SiteTable({ rows, running, blocked, compact = false }: {
-  rows: Site[]; running: string[]; blocked: string[]; compact?: boolean
+function SiteTable({ rows, running, blocked, showTime, paginate }: {
+  rows: Site[]; running: string[]; blocked: string[]; showTime?: boolean; paginate?: boolean
 }) {
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">站点</th>
-            <th scope="col">进度</th>
-            <th scope="col" className="num">页</th>
-            <th scope="col" className="num">文章</th>
-            <th scope="col" className="num">页面 / 媒体</th>
-            <th scope="col" className="num">大小</th>
-            <th scope="col">状态</th>
-            <th scope="col">覆盖率</th>
-            {compact ? null : <th scope="col" className="num">更新</th>}
-            <th scope="col" aria-label="打开 CSV" />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((site) => {
-            const health = healthOf(site, running, blocked)
-            const done = site.done
-            const pct = done ? 100 : site.channel === 'wp-api' && site.pages ? Math.min(99, Math.round((site.page / site.pages) * 100)) : null
-            const csvHref = `/csv/${encodeURIComponent(site.domain)}.csv`
-            const open = () => window.open(csvHref, '_blank', 'noopener')
-            return (
-              <tr key={site.domain} className="row" role="link" tabIndex={0} onClick={open}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }}
-                  aria-label={`打开 ${site.domain} 的 CSV`}>
-                <td className="domain">{site.domain}</td>
-                <td>
-                  {pct === null ? <span className="muted" /> : (
-                    <span className="progress">
-                      <span className="track"><span className="fill" data-live={health === 'running'} style={{ width: `${pct}%` }} /></span>
-                      <span className="pct">{pct}%</span>
-                    </span>
-                  )}
-                </td>
-                <td className="num muted">{site.pages ? `${nf.format(site.page)} / ${nf.format(site.pages)}` : `${nf.format(site.page)} 页`}</td>
-                <td className="num">{nf.format(site.saved)}</td>
-                <td className="num muted">{nf.format(site.pages_n)} / {nf.format(site.media_n)}</td>
-                <td className="num muted">{formatMb(site.mb)}</td>
-                <td><Badge health={health} title={site.disabled ? site.disabled_reason : Object.entries(site.kinds).filter(([, k]) => !k.done && k.status).map(([name, k]) => `${name}: ${k.status}${k.last_reason ? " · " + k.last_reason : ""}`).join("；")} /></td>
-                <td><CoverageBadge site={site} /></td>
-                {compact ? null : <td className="num muted">{formatTime(site.updated)}</td>}
-                <td className="open" aria-hidden="true">打开 CSV</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
+  const columns: TableColumnsType<Site> = [
+    { title: '站点', key: 'site', width: 220, render: (_, site) => <div className="site-name">
+      <strong>{site.domain}</strong>{site.channel && <small>{site.channel}</small>}
+    </div> },
+    { title: '采集进度', key: 'progress', width: 150, render: (_, site) => {
+      const pct = site.done ? 100 : site.channel === 'wp-api' && site.pages ? Math.min(99, Math.round((site.page / site.pages) * 100)) : null
+      return <div className="progress-cell">
+        <span>{nf.format(site.page)}{site.pages ? ` / ${nf.format(site.pages)}` : ''} 页</span>
+        {pct !== null && <Progress percent={pct} size="small" />}
+      </div>
+    } },
+    { title: '文章', dataIndex: 'saved', align: 'right', width: 90, render: n => nf.format(n),
+      sorter: (a, b) => a.saved - b.saved },
+    { title: '页面 / 媒体', key: 'collections', align: 'right', width: 108, render: (_, s) => `${nf.format(s.pages_n)} / ${nf.format(s.media_n)}` },
+    { title: '大小', dataIndex: 'mb', align: 'right', width: 90, render: formatMb },
+    { title: '状态', key: 'state', width: 98, render: (_, site) => {
+      const health = healthOf(site, running, blocked)
+      const reason = site.disabled ? site.disabled_reason : Object.entries(site.kinds)
+        .filter(([, kind]) => !kind.done && kind.status)
+        .map(([name, kind]) => `${name} · ${kind.status}${kind.last_reason ? ' · ' + kind.last_reason : ''}`).join('；')
+      return <Tooltip title={reason}><Tag color={healthColors[health]}>{HEALTH_LABEL[health]}</Tag></Tooltip>
+    } },
+    { title: '覆盖率核对', key: 'coverage', render: (_, site) => <Coverage site={site} /> },
+  ]
+  if (showTime) columns.push({ title: '更新', dataIndex: 'updated', width: 93, render: formatTime })
+  columns.push({ title: '导出', key: 'export', width: 85, render: (_, site) =>
+    <Button type="link" size="small" icon={<DownloadOutlined />} href={`/csv/${encodeURIComponent(site.domain)}.csv`}
+      target="_blank" rel="noreferrer" aria-label={`打开 ${site.domain} 的 CSV`}>CSV</Button>,
+  })
+  return <Table rowKey="domain" size="middle" columns={columns} dataSource={rows} scroll={{ x: showTime ? 1060 : 980 }}
+    pagination={paginate ? { pageSize: PAGE_SIZE, hideOnSinglePage: true, showSizeChanger: false } : false}
+    locale={{ emptyText: '当前没有符合条件的站点' }} />
 }
 
-function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) {
-  if (pages <= 1) return null
-  const nums: (number | '…')[] = []
-  for (let i = 1; i <= pages; i++) {
-    if (i === 1 || i === pages || Math.abs(i - page) <= 1) nums.push(i)
-    else if (nums[nums.length - 1] !== '…') nums.push('…')
-  }
-  return (
-    <nav className="pager" aria-label="分页">
-      <button type="button" className="button-quiet" onClick={() => onPage(Math.max(1, page - 1))} disabled={page === 1}>上一页</button>
-      {nums.map((n, i) => n === '…' ? (
-        <span key={`e${i}`} className="muted">…</span>
-      ) : (
-        <button key={n} type="button" className="button-page" aria-current={n === page ? 'page' : undefined}
-                onClick={() => onPage(n)}>{n}</button>
-      ))}
-      <button type="button" className="button-quiet" onClick={() => onPage(Math.min(pages, page + 1))} disabled={page === pages}>下一页</button>
-    </nav>
-  )
+function Overview({ data, error }: { data: Status | null; error: boolean }) {
+  const state = error ? '连接中断' : data?.queue_running ? '原队列运行中' : data?.running ? '原脚本采集中' : data ? '服务已连接' : '连接中'
+  return <section className="overview" aria-labelledby="overview-title">
+    <div className="overview-heading">
+      <div><h1 id="overview-title">网站内容采集</h1><p>试采校准、批量调度与信源覆盖监控</p></div>
+      <div className="live-state"><Badge status={error ? 'error' : data ? 'success' : 'processing'} /><span>{state}</span></div>
+    </div>
+    <div className="overview-metrics">
+      <Statistic title="已入库文章" prefix={<DatabaseOutlined />} value={data?.total ?? '—'} />
+      <Statistic title="监控站点" prefix={<GlobalOutlined />} value={data ? data.sites.length : '—'} />
+      <Statistic title="当前采集速率" prefix={<ThunderboltOutlined />} value={data ? Math.round(data.rate || 0) : '—'} suffix="篇/秒" />
+      <Statistic title="运行任务 / 队列并发" prefix={<CloudServerOutlined />}
+        value={data ? `${nf.format(data.tasks_running)} / ${nf.format(data.concurrency)}` : '—'} />
+    </div>
+  </section>
 }
 
 export default function App() {
   const { data, error } = useStream()
-  const { saved, draft, setDraft, apply, pending } = useConfig()
-  const [tab, setTab] = useState<'overview' | 'running' | 'done'>('overview')
-  const [page, setPage] = useState(1)
-  const dirty = draft !== saved
-
+  const { saved, draft, setDraft, apply, pending, configError } = useConfig()
   const sites = data?.sites ?? []
   const running = data?.running_domains ?? []
   const blocked = data?.blocked ?? []
+  const active = sites.filter(site => running.includes(site.domain))
+  const finished = sites.filter(site => !running.includes(site.domain) && (site.saved > 0 || site.done))
+  const counts = { running: 0, blocked: 0, incomplete: 0, done: 0, config: 0, disabled: 0, idle: 0 }
+  for (const site of sites) counts[healthOf(site, running, blocked)]++
+  const tableProps = { running, blocked }
+  const signals = [
+    { label: '运行中', count: counts.running, color: 'processing' },
+    { label: '不完整', count: counts.incomplete, color: 'warning' },
+    { label: '有阻碍', count: counts.blocked, color: 'error' },
+    { label: '任务结束', count: counts.done, color: 'default' },
+    { label: '覆盖率已核对', count: sites.filter(site => site.verified).length, color: 'success' },
+    { label: '缺入口或已停用', count: sites.filter(site => site.disabled || site.needs_config).length, color: 'gold' },
+    { label: '待采', count: counts.idle, color: 'default' },
+  ]
 
-  const active = useMemo(() => sites.filter((s) => running.includes(s.domain)), [sites, running])
-  const finished = useMemo(() => sites.filter((s) => !running.includes(s.domain) && (s.saved > 0 || s.done)), [sites, running])
-  const counts = useMemo(() => {
-    const c: Record<Health, number> = { running: 0, blocked: 0, incomplete: 0, done: 0, config: 0, disabled: 0, idle: 0 }
-    for (const s of sites) c[healthOf(s, running, blocked)]++
-    return c
-  }, [sites, running, blocked])
-  // 外部核对口径与"任务结束"分开：verified = coverage>=95% 且有独立上游总量
-  const coverageCounts = useMemo(() => {
-    let verified = 0, unavailable = 0
-    for (const s of sites) {
-      if (s.verified) verified++
-      if (s.disabled || s.needs_config) unavailable++
-    }
-    return { verified, unavailable }
-  }, [sites])
-
-  const totalPages = Math.max(1, Math.ceil(finished.length / PAGE_SIZE))
-  const currentPage = Math.min(page, totalPages)
-  const pageRows = finished.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
-
-  const switchTab = (next: typeof tab) => { setTab(next); setPage(1) }
-
-  return (
-    <div className="shell">
-      <header className="topbar">
-        <div className="brand">
-          <h1>网站内容采集</h1>
-          <span>{data ? `${sites.length} 个站点` : '连接中'}</span>
-        </div>
-        <div className="topbar-right">
-          <span className="state" data-live={data?.queue_running === true} aria-live="polite">
-            {data ? (data.queue_running ? '原队列运行中' : data.running ? '原脚本采集中' : '服务已连接') : '连接中'}
-          </span>
-          <div className="concurrency">
-            <label htmlFor="conc">并发</label>
-            <div className="stepper">
-              <button type="button" aria-label="减少并发" onClick={() => setDraft(Math.max(1, draft - 1))}>−</button>
-              <input id="conc" type="number" min={1} value={draft}
-                     onChange={(e) => setDraft(Math.max(1, Number(e.target.value) || 1))} />
-              <button type="button" aria-label="增加并发" onClick={() => setDraft(draft + 1)}>+</button>
-            </div>
-            <button type="button" className="button-primary" disabled={!dirty || pending} onClick={() => apply(draft)}>应用</button>
-          </div>
-        </div>
-      </header>
-
-      <nav className="tabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'overview'} className="tab" onClick={() => switchTab('overview')}>
-          总览
-        </button>
-        <button role="tab" aria-selected={tab === 'running'} className="tab" onClick={() => switchTab('running')}>
-          正在运行<span className="tab-count">{active.length}</span>
-        </button>
-        <button role="tab" aria-selected={tab === 'done'} className="tab" onClick={() => switchTab('done')}>
-          已结束<span className="tab-count">{finished.length}</span>
-        </button>
+  return <Layout className="console">
+    <header className="console-header">
+      <a className="console-brand" href="#top"><span className="brand-mark"><AppstoreOutlined /></span><strong>采集控制台</strong></a>
+      <nav className="console-nav" aria-label="工作区">
+        <a href="#workbench">采集工作台</a><a href="#jobs">任务队列</a><a href="#monitor">站点监控</a>
       </nav>
-
-      <main className="main">
-        <CrawlPanel />
-        {error && !data ? (
-          <div className="notice" data-kind="error"><strong>连不上状态流。</strong> 检查 collector/serve.py 是否在跑，浏览器会自动重连。</div>
-        ) : tab === 'overview' ? (
-          <>
-            <Figures data={data} />
-            <div className="summary">
-              <div className="summary-item"><span className="summary-n">{counts.running}</span><span className="summary-k">运行中</span></div>
-              <div className="summary-item"><span className="summary-n">{counts.incomplete}</span><span className="summary-k">不完整</span></div>
-              <div className="summary-item"><span className="summary-n">{counts.blocked}</span><span className="summary-k">有阻碍</span></div>
-              <div className="summary-item"><span className="summary-n">{counts.done}</span><span className="summary-k">任务结束</span></div>
-              <div className="summary-item"><span className="summary-n">{coverageCounts.verified}</span><span className="summary-k">覆盖率已核对</span></div>
-              <div className="summary-item"><span className="summary-n">{coverageCounts.unavailable}</span><span className="summary-k">缺入口/不可访问</span></div>
-              <div className="summary-item"><span className="summary-n">{counts.idle}</span><span className="summary-k">待采</span></div>
-            </div>
-            <div className="table-head"><h2>进度最快</h2><p>按文章数排序，前 8 个站点</p></div>
-            <SiteTable compact rows={[...sites].sort((a, b) => b.saved - a.saved).slice(0, 8)} running={running} blocked={blocked} />
-          </>
-        ) : tab === 'running' ? (
-          <>
-            <div className="table-head"><h2>正在运行</h2><p>{data ? `${active.length} 个站点 · ${data.tasks_running}/${data.concurrency} 个任务` : ''}</p></div>
-            {active.length ? <SiteTable rows={active} running={running} blocked={blocked} />
-              : <div className="notice">现在没有正在采集的站点，队列可能已空或已停止。</div>}
-          </>
-        ) : (
-          <>
-            <div className="table-head">
-              <h2>已结束</h2>
-              <p>{`共 ${finished.length} 个站点 · 第 ${currentPage}/${totalPages} 页`}</p>
-            </div>
-            {finished.length ? (
-              <>
-                <SiteTable rows={pageRows} running={running} blocked={blocked} />
-                <Pager page={currentPage} pages={totalPages} onPage={setPage} />
-              </>
-            ) : <div className="notice">还没有结束的站点。</div>}
-          </>
-        )}
-      </main>
-
-      <footer className="footer">状态自动更新 · 任务结束不代表全站覆盖率已核实</footer>
-    </div>
-  )
+      <Space className="queue-settings">
+        <label htmlFor="conc">队列并发</label>
+        <InputNumber id="conc" min={1} precision={0} size="small" value={draft}
+          onChange={value => { if (value !== null) setDraft(value) }} />
+        <Button size="small" aria-label="保存并发" disabled={draft === saved} loading={pending} onClick={() => void apply(draft)}>应用</Button>
+      </Space>
+    </header>
+    <Layout.Content className="console-main" id="top">
+      <Overview data={data} error={error} />
+      {configError && <Alert type="error" showIcon title={configError} />}
+      <CrawlPanel />
+      <section id="monitor" aria-labelledby="monitor-title" className="console-section">
+        <Card className="panel-card" title={<h2 id="monitor-title"><DashboardOutlined /> 站点监控</h2>}
+          extra={<span className="panel-meta">原有脚本与站点覆盖</span>}>
+          {error && <Alert type="warning" showIcon title="状态流连接中断，浏览器正在重连" />}
+          <div className="monitor-signals">{signals.map(signal =>
+            <Tag key={signal.label} color={signal.color}>{signal.label} <strong>{signal.count}</strong></Tag>,
+          )}</div>
+          <Tabs items={[
+            { key: 'overview', label: '总览', children: <>
+              <p className="panel-caption">按已采文章数查看前 8 个站点</p>
+              <SiteTable {...tableProps} rows={[...sites].sort((a, b) => b.saved - a.saved).slice(0, 8)} />
+            </> },
+            { key: 'running', label: `正在运行 (${active.length})`, children: <SiteTable {...tableProps} rows={active} showTime /> },
+            { key: 'done', label: `已结束 (${finished.length})`, children: <SiteTable {...tableProps} rows={finished} showTime paginate /> },
+          ]} />
+        </Card>
+      </section>
+      <footer className="console-footer">任务状态自动更新。全站覆盖率以独立核对结果为准。</footer>
+    </Layout.Content>
+  </Layout>
 }

@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
+import { Alert, Button, Card, Collapse, Input, Segmented, Space, Table, Tag } from 'antd'
+import type { TableColumnsType } from 'antd'
+import { ApartmentOutlined, CloudUploadOutlined, DownloadOutlined, FileTextOutlined, PlayCircleOutlined, StopOutlined, UnorderedListOutlined } from '@ant-design/icons'
+import TrialPanel from './TrialPanel'
 
 type Result = { input: string; status: string; message: string }
 type Job = {
   id: string; url: string; status: string; stage: string; saved: number; scope?: string
-  error?: string; warnings?: string[]; created: number; log_url: string
+  selection?: { label: string; kinds: string[] }; error?: string; warnings?: string[]; created: number; log_url: string; channel?: string
   results?: Record<string, { status?: string; saved?: number; error?: string; reasons?: Record<string, number> }>
   files: { name: string; url: string }[]
 }
@@ -20,10 +24,12 @@ async function api(path: string, body?: unknown) {
   return data
 }
 export default function CrawlPanel() {
+  const [mode, setMode] = useState<'preview' | 'batch'>('preview')
   const [input, setInput] = useState('')
   const [jobs, setJobs] = useState<Job[]>([])
   const [results, setResults] = useState<Result[]>([])
   const [error, setError] = useState('')
+  const [pollError, setPollError] = useState('')
   const [pending, setPending] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -35,8 +41,8 @@ export default function CrawlPanel() {
     async function poll() {
       try {
         const data = await api('/api/jobs')
-        if (!stopped) { setJobs(data.jobs); setError('') }
-      } catch (e) { if (!stopped) setError((e as Error).message) }
+        if (!stopped) { setJobs(data.jobs); setPollError('') }
+      } catch (e) { if (!stopped) setPollError((e as Error).message) }
       if (!stopped) timer = setTimeout(poll, 3000)
     }
     poll()
@@ -60,38 +66,92 @@ export default function CrawlPanel() {
     catch (e) { setError((e as Error).message) }
     finally { setBusy(null) }
   }
-  const pageCount = Math.max(1, Math.ceil(jobs.length / 10))
-  const current = Math.min(page, pageCount)
-  return <section className="crawl-panel" aria-labelledby="crawl-heading">
-    <div className="crawl-intro"><span className="eyebrow">新建采集任务</span><h2 id="crawl-heading">输入域名，开始采集</h2>
-      <p>自动识别站点并遍历可发现的公开内容。不设条数上限，支持批量排队与断点继续。</p></div>
-    <form onSubmit={submit} className="crawl-form">
-      <label htmlFor="domains">网站域名或网址 <span>每行一个</span></label>
-      <textarea id="domains" rows={4} value={input} onChange={e => setInput(e.target.value)}
-        placeholder={'example.com\nhttps://another-site.org'} spellCheck={false} required aria-describedby="crawl-help" />
-      <div className="crawl-submit"><p id="crawl-help">同域名自动合并。登录内容、附件原文件及部分动态页面可能需要专门适配。</p>
-        <button className="button-primary" disabled={pending || !urls.length}>{pending ? '正在提交…' : urls.length > 1 ? `加入 ${urls.length} 个网站` : '开始采集'}</button></div>
-    </form>
-    {error && <div className="notice" data-kind="error" role="alert">{error}</div>}
-    {!!results.length && <details className="submission-results" open><summary>提交结果 · {results.filter(x => x.status === 'queued').length} 个已入队</summary>
-      <ul>{results.map((r, i) => <li key={i} data-invalid={r.status === 'invalid'}><strong>{r.input}</strong><span>{r.message}</span></li>)}</ul></details>}
-    <div className="table-head"><h2>网页采集任务</h2><p>{jobs.length ? `${jobs.length} 个任务 · 自动刷新` : '提交后，进度和下载文件会出现在这里'}</p></div>
-    {!jobs.length ? <div className="job-empty">还没有网页任务。可以先添加一个网站，也可以一次粘贴整份域名清单。</div> :
-      <div className="job-list">{jobs.slice((current - 1) * 10, current * 10).map(job => <article className="crawl-job" key={job.id}>
-        <div className="job-title"><h3>{job.url}</h3><span className="job-state" data-state={job.status}>{labels[job.status] || job.status}</span></div>
-        <div className="job-meta"><span>{job.stage}</span><strong>已保存 {job.saved.toLocaleString()} 条</strong><time>{new Date(job.created * 1000).toLocaleString('zh-CN')}</time></div>
-        {job.scope && <p className="job-scope">采集范围：{job.scope}</p>}
-        {job.status === 'finished' && <p className="job-scope">已完成当前发现范围；尚未独立核实整个网站的历史总量。</p>}
-        {job.error && <p className="job-error">{job.error}</p>}
-        {!!job.warnings?.length && <p className="job-scope">{job.warnings.join('；')}</p>}
-        {job.results && <details><summary>查看内容集合结果</summary><ul>{Object.entries(job.results).map(([kind, r]) => <li key={kind}>{kind} · {r.status} · 本次新增 {r.saved || 0} 条 {r.error || ''} {r.reasons ? JSON.stringify(r.reasons) : ''}</li>)}</ul></details>}
-        <div className="job-actions">
-          {['queued', 'running'].includes(job.status) ? <button className="button-quiet" disabled={busy === job.id} onClick={() => action(job.id, 'stop')}>停止</button> : job.status !== 'finished' && <button className="button-quiet" disabled={busy === job.id} onClick={() => action(job.id, 'resume')}>继续采集</button>}
-          {job.status !== 'queued' && <a href={job.log_url} target="_blank" rel="noreferrer">查看日志</a>}
-          {job.files.map(file => <a className="download-link" key={file.name} href={file.url} download>下载 {file.name}</a>)}
+  async function enqueue(previewId: string) {
+    const data = await api('/api/crawl', { preview_id: previewId })
+    const result: Result = data.results[0]
+    if (result.status === 'invalid') throw new Error(result.message)
+    setPage(1)
+    void refresh().catch((e: Error) => setPollError(e.message))
+    return result.message
+  }
+  const colors: Record<string, string> = { queued: 'default', running: 'processing', finished: 'success', partial: 'warning', failed: 'error', interrupted: 'gold' }
+  const columns: TableColumnsType<Job> = [
+    { title: '站点', dataIndex: 'url', width: 310, render: (url, job) => <div className="site-name">
+      <strong>{url}</strong><small>{new Date(job.created * 1000).toLocaleString('zh-CN')}</small>
+    </div> },
+    { title: '状态', dataIndex: 'status', width: 112, render: state => <Tag color={colors[state]}>{labels[state] || state}</Tag> },
+    { title: '当前步骤', key: 'stage', render: (_, job) => <div className="site-name">
+      <span>{job.stage}</span>{job.channel && <small>{job.channel}</small>}
+      {job.error && <span className="task-error">{job.error}</span>}
+    </div> },
+    { title: '已保存', dataIndex: 'saved', width: 96, align: 'right', render: saved => saved.toLocaleString('zh-CN') },
+    { title: '操作', key: 'actions', width: 210, render: (_, job) => {
+      const active = ['queued', 'running'].includes(job.status)
+      return <Space size="small" wrap>
+        {job.status !== 'finished' && <Button size="small" loading={busy === job.id}
+          icon={active ? <StopOutlined /> : <PlayCircleOutlined />}
+          onClick={() => void action(job.id, active ? 'stop' : 'resume')}>{active ? '停止' : '继续采集'}</Button>}
+        {job.status !== 'queued' && <Button size="small" type="link" href={job.log_url}
+          target="_blank" rel="noreferrer" icon={<FileTextOutlined />}>日志</Button>}
+      </Space>
+    } },
+  ]
+
+  return <>
+    <section id="workbench" aria-labelledby="crawl-heading" className="console-section">
+      <Card className="panel-card workbench-card" title={<h2 id="crawl-heading"><ApartmentOutlined /> 采集工作台</h2>}
+        extra={<Segmented aria-label="任务方式" value={mode} onChange={setMode}
+          options={[{ value: 'preview', label: '试采预览' }, { value: 'batch', label: '批量入队' }]} />}>
+        <div hidden={mode !== 'preview'}><TrialPanel request={api} enqueue={enqueue} /></div>
+        <div hidden={mode !== 'batch'} className="batch-panel">
+          <form onSubmit={submit} className="batch-form">
+            <label htmlFor="domains">网站域名或网址</label>
+            <Input.TextArea id="domains" rows={4} value={input} onChange={e => setInput(e.target.value)}
+              placeholder={'example.com\nhttps://another-site.org'} spellCheck={false} required aria-describedby="crawl-help" />
+            <div className="batch-actions">
+              <span id="crawl-help">每行一个网址，同域名自动合并。</span>
+              <Button htmlType="submit" type="primary" icon={<CloudUploadOutlined />} disabled={!urls.length} loading={pending}>
+                {urls.length > 1 ? `加入 ${urls.length} 个网站` : '开始采集'}
+              </Button>
+            </div>
+          </form>
+          {!!results.length && <Collapse defaultActiveKey={['receipts']} items={[{ key: 'receipts',
+            label: `提交结果 · ${results.filter(x => x.status === 'queued').length} 个已入队`,
+            children: <ul className="batch-results">{results.map((result, i) => <li key={i}>
+              <Tag color={result.status === 'invalid' ? 'error' : result.status === 'queued' ? 'success' : 'default'}>{result.message}</Tag>
+              <span>{result.input}</span>
+            </li>)}</ul>,
+          }]} />}
         </div>
-      </article>)}</div>}
-    {pageCount > 1 && <div className="pager"><button className="button-quiet" disabled={current === 1} onClick={() => setPage(current - 1)}>上一页</button><span>{current} / {pageCount}</span><button className="button-quiet" disabled={current === pageCount} onClick={() => setPage(current + 1)}>下一页</button></div>}
-    <div className="legacy-heading"><h2>已有采集数据</h2><p>以下为原有脚本的数据与队列；上方网页任务独立保存。</p></div>
-  </section>
+      </Card>
+    </section>
+    <section id="jobs" aria-labelledby="jobs-heading" className="console-section">
+      <Card className="panel-card" title={<h2 id="jobs-heading"><UnorderedListOutlined /> 网页采集任务</h2>}
+        extra={<span className="panel-meta">{jobs.length} 个任务 · 自动刷新</span>}>
+        {error && <Alert type="error" showIcon title={error} />}
+        {pollError && <Alert type="warning" showIcon title={pollError} />}
+        <Table<Job> rowKey="id" size="middle" columns={columns} dataSource={jobs} scroll={{ x: 930 }}
+          pagination={{ current: page, onChange: setPage, pageSize: 10, hideOnSinglePage: true, showSizeChanger: false }}
+          locale={{ emptyText: '还没有网页任务。确认试采结果或批量提交后，任务会出现在这里。' }}
+          expandable={{
+            rowExpandable: job => !!(job.scope || job.selection || job.results || job.warnings?.length || job.files.length),
+            expandedRowRender: job => <div className="job-detail">
+              {job.selection && <p><strong>范围设置</strong> {job.selection.label}
+                {!!job.selection.kinds.length && ` · ${job.selection.kinds.join('、')}`}</p>}
+              {job.scope && <p><strong>采集范围</strong> {job.scope}</p>}
+              {job.status === 'finished' && <p>已完成本轮发现的范围。全站覆盖率可在站点监控里查看。</p>}
+              {!!job.warnings?.length && <Alert type="warning" showIcon title={job.warnings.join('；')} />}
+              {job.results && <ul>{Object.entries(job.results).map(([kind, result]) => <li key={kind}>
+                <strong>{kind}</strong> · {result.status} · 本次新增 {result.saved || 0} 条 {result.error}
+                {result.reasons && <ul>{Object.entries(result.reasons).map(([reason, count]) =>
+                  <li key={reason}>{reason} · {count} 条</li>)}</ul>}
+              </li>)}</ul>}
+              <Space wrap>{job.files.map(file => <Button key={file.name} size="small" href={file.url} download icon={<DownloadOutlined />}>
+                下载 {file.name}
+              </Button>)}</Space>
+            </div>,
+          }} />
+      </Card>
+    </section>
+  </>
 }

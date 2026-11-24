@@ -9,11 +9,11 @@ done 语义（2026-11 事故后）：
 - 队列还剩工作（limit 到了 / 有 unprocessed）→ paused / interrupted；
 - 每个 URL 的失败原因计数写进 cursor.reasons，不再只留在内存 Counter。
 """
-import os, time
+import os, re, time
 from collections import Counter
 
-from crawler import cursor
-from crawler.htmlpage import page_error
+from crawler import cursor, paywall
+from crawler.htmlpage import page_error, paywall_signal
 from crawler.extract import extract_best, extract_metadata
 from crawler.pipeline import normalize, validate
 from crawler.request import RequestQueue
@@ -67,13 +67,14 @@ def _dead_letters(domain, kind):
 
 def _gone_404(errors):
     """死信是否都是 404/410（链接已删除，不是采集失败）。"""
-    return bool(errors) and all(("404" in e) or ("410" in e) for e in errors)
+    return bool(errors) and all(re.match(r"^http_(404|410)\b", e) for e in errors)
 
 
 def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count=None,
                  discovery_failures=None):
     domain = site["domain"]
     channel = site.get("channel", "")
+    paywall.reset_budget()
     retryable_disc, gone_disc = _split_discovery_failures(discovery_failures)
     disc_reasons = Counter("discovery_http_%s" % f.get("status") for f in (discovery_failures or []))
     cur = cursor.load(domain, kind)
@@ -84,7 +85,9 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     if repaired:
         log.info("repair_missing_rows domain=%s count=%d", domain, repaired)
     q.seed_done(known_urls, channel=channel)
-    requeued = q.retry_transient(cooldown=RETRY_COOLDOWN)
+    if site.get("documents"):
+        q.retry_documents()
+    requeued = q.retry_transient(cooldown=RETRY_COOLDOWN, statuses=site.get("retry_http_statuses", ()))
     if requeued:
         log.info("retry_transient domain=%s requeued=%d", domain, requeued)
     if cur["status"] == "complete" and not urls:
@@ -177,17 +180,50 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
         for req, status, body in fetcher.stream_requests(batch, workers=workers):
             key = req.key
             responded.add(key)
-            rejection = page_error(body) if status == 200 else ""
+            rejection = page_error(body) if status == 200 and isinstance(body, str) else ""
             if rejection:
                 status = 403 if rejection == "challenge" else 503
+            if status != 200 and isinstance(body, str) and paywall.enabled(site):
+                # 403 / 挑战页：按站点开关试 13ft 链路（Googlebot → 存档 / Freedium）
+                new_status, new_body, source = paywall.recover(req.url, site, body, status)
+                if source:
+                    status, body, rejection = new_status, new_body, ""
+                    _count(reasons, run_reasons, "paywall_" + source)
+                    log.info("paywall recovered domain=%s url=%s source=%s", domain, req.url, source)
+            if status == 200 and isinstance(body, str):
+                # 付费墙检测只对配了 premium_marker 的站生效（保持其它站点的既有行为）
+                marker = site.get("premium_marker", "")
+                restriction = paywall_signal(body, marker) if marker else ""
+                if restriction and paywall.enabled(site):
+                    hit = restriction
+                    _, new_body, source = paywall.recover(req.url, site, body, status)
+                    if source:
+                        body, restriction, rejection = new_body, "", ""
+                        _count(reasons, run_reasons, "paywall_" + source)
+                        log.info("paywall recovered domain=%s url=%s source=%s restriction=%s",
+                                 domain, req.url, source, hit)
+                if restriction:
+                    q.mark_skipped([key], "access_restricted")
+                    _count(reasons, run_reasons, restriction)
+                    continue
             if status != 200:
                 errors += 1
                 _count(reasons, run_reasons, "http_%s" % status)
                 q.mark_error([key], {key: f"http_{status} {(body if isinstance(body, str) else '')[:200]}"})
                 continue
-            row = extract_best(req.url, body, site, min_text=0)
-            if row is None:
-                row = extract_metadata(req.url, body, site)   # 元数据兜底：无正文也保留条目
+            if isinstance(body, bytes):
+                from crawler.documents import extract_pdf
+                try:
+                    row = extract_pdf(req.url, body, site)
+                except Exception as exc:
+                    q.mark_error([key], {key: f"document_error {exc}"})
+                    errors += 1
+                    _count(reasons, run_reasons, "document_error")
+                    continue
+            else:
+                row = extract_best(req.url, body, site, min_text=0)
+                if row is None:
+                    row = extract_metadata(req.url, body, site)   # 元数据兜底：无正文也保留条目
             if row is None:
                 q.mark_skipped([key], "no_text")
                 _count(reasons, run_reasons, "no_text")

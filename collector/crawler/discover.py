@@ -2,7 +2,7 @@
 import html, json, logging, math, os, re, sqlite3, subprocess, sys, tempfile, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlsplit
 
 import requests, trafilatura
 from lxml import html as lxml_html
@@ -68,32 +68,105 @@ def wp_type_inventory(site, fetcher):
 def sitemap_urls(site, fetcher, limit, failures=None):
     return list(iter_sitemap_urls(site, fetcher, limit, failures=failures))
 
+
+def declared_feed_urls(page_url, doc):
+    """Resolve HTML feed declarations on the same site."""
+    host = urlparse(page_url).netloc
+    urls = []
+    for link in doc.xpath("//head/link[@href and @type and @rel]"):
+        mime = link.get("type").partition(";")[0].strip().lower()
+        if "alternate" not in link.get("rel").lower().split() or mime not in {
+            "application/rss+xml", "application/atom+xml", "application/rdf+xml"
+        }:
+            continue
+        href = link.get("href").strip()
+        if not href or re.search(r"\bcomments?\s+(?:rss|feed)\b", link.get("title", ""), re.I):
+            continue
+        try:
+            url = urljoin(page_url, href)
+            target = urlparse(url)
+        except ValueError:
+            continue
+        if target.path.rstrip("/").endswith("/comments/feed"):
+            continue
+        if target.scheme in ("http", "https") and target.netloc == host:
+            urls.append(url)
+    return list(dict.fromkeys(urls))
+
+
+def parse_feed(body, feed_url):
+    """Return article links from RSS, RDF, or Atom. None means malformed or not a feed."""
+    from lxml import etree
+    if not isinstance(body, (str, bytes)) or not body:
+        return None
+    try:
+        text_input = isinstance(body, str)
+        root = etree.fromstring(body.encode("utf-8") if text_input else body,
+                                etree.XMLParser(encoding="UTF-8" if text_input else None,
+                                                resolve_entities=False, no_network=True))
+    except (ValueError, etree.XMLSyntaxError):
+        return None
+    kind = etree.QName(root).localname.lower()
+    if kind == "feed":
+        links = root.xpath("./*[local-name()='entry']/*[local-name()='link'][@href and (not(@rel) or @rel='alternate')]")
+    elif kind in ("rss", "rdf"):
+        links = root.xpath("./*[local-name()='channel']/*[local-name()='item']/*[local-name()='link']"
+                           " | ./*[local-name()='item']/*[local-name()='link']")
+    else:
+        return None
+    urls = []
+    for link in links:
+        raw = (link.get("href") or link.text or "").strip()
+        if not raw:
+            continue
+        try:
+            url = urljoin(urljoin(feed_url, link.base or ""), raw)
+            parsed = urlparse(url)
+        except ValueError:
+            continue
+        if parsed.scheme in ("http", "https") and parsed.hostname and not parsed.username and not parsed.password:
+            urls.append(url)
+    return list(dict.fromkeys(urls))
+
+
+def in_path_scope(url, site):
+    prefix = site.get("_path_scope")
+    if not prefix:
+        return True
+    target = urlsplit(url)
+    path = target.path or "/"
+    return target.netloc == urlsplit(site["base"]).netloc and (
+        prefix == "/" or path == prefix or path.startswith(prefix + "/")
+    )
+
+
 def rss_urls(site, fetcher, limit, failures=None):
     """RSS/Atom 条目 URL。feed 可带 {start} 或 {page} 占位符做翻页（配合 page_step/pages）。"""
     tpl = site.get("feed", "/feed/")
     count = int(site.get("pages", 1) or 1)
     if "{start}" in tpl:
         step = int(site.get("page_step", 10))
-        feeds = [site["base"] + tpl.replace("{start}", str(i * step)) for i in range(count)]
+        feeds = [tpl.replace("{start}", str(i * step)) for i in range(count)]
     elif "{page}" in tpl:
         step = int(site.get("page_step", 1))
-        feeds = [site["base"] + tpl.replace("{page}", str(1 + i * step)) for i in range(count)]
+        feeds = [tpl.replace("{page}", str(1 + i * step)) for i in range(count)]
     else:
-        feeds = [site["base"] + tpl]
+        feeds = [tpl]
+    feeds = [urljoin(site["base"].rstrip("/") + "/", feed) for feed in feeds]
     out = []
     for u, status, body in fetcher.get_many(feeds):
-        if status != 200 or not re.search(r"<(?:rss|feed)(?:\s|>)", body or "", re.I):
+        entries = parse_feed(body, u) if status == 200 else None
+        if entries is None:
             if failures is not None:
                 failures.append({"url": u, "status": status if status != 200 else 0})
             continue
-        for block in re.findall(r"<(?:item|entry)[\s>].*?</(?:item|entry)>", body, re.S | re.I):
-            m = re.search(r"<link[^>]*>([^<]+)</link>", block) or re.search(r'<link[^>]*href="([^"]+)"', block)
-            if m: out.append(html.unescape(m.group(1).strip()))
+        out.extend(entries)
     for u in site.get("seed_urls") or []:
         full = u if u.startswith("http") else site["base"].rstrip("/") + u
         if full not in out:
             out.append(full)
-    return out[:limit] if limit else out if limit else out
+    out = list(dict.fromkeys(u for u in out if in_path_scope(u, site)))
+    return out[:limit] if limit else out
 
 def _page_urls(site):
     """列表页地址（支持 {page} / {offset} 占位符，page_step 为步长）。"""
@@ -171,6 +244,7 @@ def html_urls(site, fetcher, limit, failures=None):
         full = u if u.startswith("http") else site["base"].rstrip("/") + u
         if full not in seen:
             seen.add(full); out.append(full)
+    out = [url for url in out if in_path_scope(url, site)]
     return out[:limit] if limit else out
 
 
@@ -205,11 +279,13 @@ def iter_sitemap_urls(site, fetcher, cap=0, chunk_children=5, failures=None):
                 seen.update(locs)
                 continue
             for l in locs:
-                if re.search(r"\.(jpg|jpeg|png|gif|css|js|pdf|xml)$", l, re.I):
+                if re.search(r"\.(jpg|jpeg|png|gif|css|js|xml)$", l, re.I) or (not site.get("documents") and re.search(r"\.pdf$", l, re.I)):
                     continue
                 if filt and not re.search(filt, l):
                     continue
                 if pat and not re.search(pat, l):
+                    continue
+                if not in_path_scope(l, site):
                     continue
                 yield l
                 yielded += 1

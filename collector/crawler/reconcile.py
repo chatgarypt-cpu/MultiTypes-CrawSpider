@@ -1,4 +1,13 @@
-"""Reconcile persisted requests with the per-site URL registry."""
+"""Reconcile the durable request queue with the URL store on disk.
+
+When a run is killed, when `mark_error` used to reset a whole site (the 2026-11-07
+matangitonga regression), or when URLs were imported by a tool that bypassed the
+queue, state.db can still list rows as `unprocessed` although their URL is already
+in `urls.txt`. This module flips exactly those rows to `done`, so the next run does
+not fetch and store them again.
+
+    reconcile(domain=None, dry_run=False) -> {"updated": n, "by_domain": {domain: n}}
+"""
 import glob, os, sqlite3, time
 
 from crawler import config

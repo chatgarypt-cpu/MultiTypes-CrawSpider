@@ -16,6 +16,7 @@ import atexit
 import glob
 import os
 import time
+from urllib.parse import urlsplit
 
 BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
 # 挑战页特征：SiteGround / Cloudflare 的过渡页。命中后等它自动跳转再取一次。
@@ -58,11 +59,12 @@ _CONTEXT = None
 _OPTIONS = None
 
 
-def _context(headless=True, user_agent=None, block_resources=False, ignore_https_errors=False):
+def _context(headless=True, user_agent=None, block_resources=False, ignore_https_errors=False,
+             public_host=None):
     """整个进程复用一个浏览器上下文：挑战通过后的 cookie 能带到后续页面，
     避免每批 URL 重新过 Cloudflare / SiteGround 挑战。"""
     global _PW, _BROWSER, _CONTEXT, _OPTIONS
-    options = (headless, user_agent, block_resources, ignore_https_errors)
+    options = (headless, user_agent, block_resources, ignore_https_errors, public_host)
     if _CONTEXT is not None and _OPTIONS != options:
         close()
     if _CONTEXT is not None:
@@ -70,12 +72,31 @@ def _context(headless=True, user_agent=None, block_resources=False, ignore_https
     from playwright.sync_api import sync_playwright
     _PW = sync_playwright().start()
     _BROWSER = _PW.chromium.launch(headless=headless, executable_path=_executable(),
-                                   args=STEALTH_ARGS)
+                                   args=[] if public_host else STEALTH_ARGS)
     _CONTEXT = _BROWSER.new_context(ignore_https_errors=ignore_https_errors,
+                                  **({"service_workers": "block", "accept_downloads": False} if public_host else {}),
                                   **({"user_agent": user_agent} if user_agent else {}))
     _OPTIONS = options
-    _CONTEXT.add_init_script(STEALTH_JS)
-    if block_resources:
+    if public_host:
+        def public_request(route):
+            p = urlsplit(route.request.url)
+            if (p.scheme in ("http", "https") and p.netloc == public_host
+                    and route.request.method in ("GET", "HEAD")):
+                response = route.fetch(max_redirects=0)
+                try:
+                    if 300 <= response.status < 400 and response.headers.get("location"):
+                        route.abort()
+                    else:
+                        route.fulfill(response=response)
+                finally:
+                    response.dispose()
+            else:
+                route.abort()
+        _CONTEXT.route("**/*", public_request)
+        _CONTEXT.route_web_socket("**/*", lambda socket: socket.close())
+    else:
+        _CONTEXT.add_init_script(STEALTH_JS)
+    if block_resources and not public_host:
         _CONTEXT.route("**/*", lambda route: (
             route.abort() if route.request.resource_type in BLOCK_TYPES else route.continue_()))
     atexit.register(close)
@@ -110,7 +131,7 @@ def _read_html(page, timeout):
 
 
 def fetch_many(urls, wait_ms=None, headless=True, block_resources=False,
-               timeout=None, user_agent=None, ignore_https_errors=False):
+               timeout=None, user_agent=None, ignore_https_errors=False, public_host=None):
     """抓取一批 URL，返回 [(url, status, html)]；浏览器复用同一个实例。
 
     单个 URL 失败只返回 status=0 + 错误文本，不中断整批（与 browser_ego 行为一致）。
@@ -128,7 +149,7 @@ def fetch_many(urls, wait_ms=None, headless=True, block_resources=False,
     out = []
     from crawler.htmlpage import page_error
     context = _context(headless=headless, user_agent=user_agent, block_resources=block_resources,
-                       ignore_https_errors=ignore_https_errors)
+                       ignore_https_errors=ignore_https_errors, **({"public_host": public_host} if public_host else {}))
     page = context.new_page()
     navigation = []
     def on_response(response):
@@ -144,7 +165,7 @@ def fetch_many(urls, wait_ms=None, headless=True, block_resources=False,
                 page.wait_for_timeout(wait_ms)
                 html = _read_html(page, timeout)
                 # SiteGround/Cloudflare 挑战页会自动跳转：最多再等 18 秒，直到正文出现
-                if page_error(html) == "challenge":
+                if not public_host and page_error(html) == "challenge":
                     deadline = time.time() + 18
                     while time.time() < deadline and page_error(html) == "challenge":
                         page.wait_for_timeout(2500)

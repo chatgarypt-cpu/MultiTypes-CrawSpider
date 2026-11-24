@@ -12,9 +12,10 @@
 import json
 import os
 import re
+from urllib.parse import urljoin, urlsplit
 
 import trafilatura
-from lxml import html as lxml_html
+from lxml import etree, html as lxml_html
 
 # 允许 LLM 补的字段（31 列里的自由文本字段；数值/URL 字段不让模型猜）
 LLM_ALLOWED = {"title", "created_at", "user_author_name", "channel_text", "description",
@@ -22,14 +23,23 @@ LLM_ALLOWED = {"title", "created_at", "user_author_name", "channel_text", "descr
 
 
 # ---------- 剪枝与降噪 ----------
-def markdown(body, url=""):
+BODY_PRUNING = ("//nav", "//footer", "//aside", "//form", "//select",
+                "//*[@role='dialog' or @role='navigation' or @aria-hidden='true' or @hidden]")
+
+
+def body_pruning(site):
+    return [*BODY_PRUNING, *((site or {}).get("prune_xpath") or [])]
+
+
+def markdown(body, url="", site=None):
     """正文 → 干净 Markdown；失败返回空串（调用方回退到纯文本候选）。"""
     if not body:
         return ""
     try:
         return trafilatura.extract(body, url=url, output_format="markdown",
                                    include_formatting=True, include_links=False,
-                                   include_comments=False, include_tables=True) or ""
+                                   include_comments=False, include_tables=True,
+                                   prune_xpath=body_pruning(site)) or ""
     except Exception:
         return ""
 
@@ -46,6 +56,34 @@ def _doc(body):
 
 def _norm(text):
     return " ".join((text or "").split())
+
+
+def boolean_flag(value):
+    """Read common JSON flag formats without treating the string 'false' as true."""
+    if type(value) in (bool, int) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str):
+        value = value.strip().lower()
+        if value in ("true", "1", "yes", "false", "0", "no"):
+            return value in ("true", "1", "yes")
+    return None
+
+
+def paywall_signal(body, marker=""):
+    if marker:
+        match = re.fullmatch(r'id=["\']([^"\']+)["\']', marker)
+        if match:
+            doc = _doc(body)
+            if doc is not None and doc.xpath("//*[@id=$id]", id=match[1]):
+                return "paywall_element"
+        elif marker in body:
+            return "paywall_marker"
+    if "isAccessibleForFree" in body:
+        from crawler.extract import jsonld_blocks
+        for node in jsonld_blocks(body):
+            if boolean_flag(node.get("isAccessibleForFree")) is False:
+                return "structured_access_restricted"
+    return ""
 
 
 def link_ratio(body):
@@ -87,7 +125,7 @@ def gate_setting(site):
     - 缺省：html 通道默认启用，其它通道默认关闭；
     - true/false：显式开关，用默认阈值 0.35；
     - 0.65 这类数字：启用并改用该阈值（有些站点文章页导航链接多，默认 0.35 会误杀，
-      例如正文页和导航页的链接密度可能存在明显差异）。"""
+      如 upng 的文章页 link_ratio≈0.57，而列表页≈0.73）。"""
     gate = site.get("noise_gate")
     if gate is None:
         return site.get("channel") == "html", GATE_RATIO
@@ -108,23 +146,69 @@ def looks_like_listing(body, md="", ratio=GATE_RATIO):
     return link_ratio(body) > ratio
 
 
+def is_navigation_page(url, body, site=None, doc=None):
+    """Recognize listings from the site configuration and explicit page signals."""
+    site = site or {}
+    from crawler.request import canonical_key
+    candidate = canonical_key(url)
+    base = site.get("base") or url
+    detected = site.get("detected") or {}
+    configured_lists = [] if detected.get("link_pattern") == "heuristic" else [
+        site.get("list_url"), *(site.get("list_urls") or [])]
+    for entry in configured_lists:
+        if not entry:
+            continue
+        pattern = re.escape(canonical_key(urljoin(base.rstrip("/") + "/", entry)))
+        for field in ("%7Bpage%7D", "%7Boffset%7D", "{page}", "{offset}"):
+            pattern = pattern.replace(re.escape(field), r"\d+")
+        if re.fullmatch(pattern, candidate):
+            return True
+    if candidate in {canonical_key(urljoin(base.rstrip("/") + "/", u)) for u in site.get("seed_urls") or []}:
+        return False
+    if doc is None:
+        doc = _doc(body)
+    if doc is None:
+        return False
+    kinds = {value.lower() for value in doc.xpath("//meta[@property='og:type']/@content")}
+    if "article" in kinds:
+        return False
+    classes = set(" ".join(doc.xpath("//body/@class")).lower().split())
+    if classes & {"home", "blog", "archive", "category", "search-results", "tag"}:
+        return True
+    path = urlsplit(url).path
+    pagination = doc.xpath("//a[@rel='next' or @rel='prev'] | //link[@rel='next' or @rel='prev']")
+    if pagination and re.search(r"/(?:page|offset)/\d+/?$", path):
+        return True
+    if not path.strip("/") or pagination:
+        # Root and paginated pages often expose repeated linked headlines before any CMS metadata.
+        headlines = doc.xpath(
+            "//*[self::h2 or self::h3][not(ancestor::nav or ancestor::header or ancestor::footer or ancestor::aside)]"
+            "/a[@href]/@href")
+        return len({urljoin(url, href) for href in headlines if href and not href.startswith("#")}) >= 3
+    return False
+
+
 # ---------- 结构化提取：XPath schema ----------
-def xpath_value(body, expr):
-    """XPath → 第一个非空结果（属性/文本/元素文本均可）。expr 形如 //h1 或 //meta/@content。"""
+def xpath_result(body, expr):
+    """Explain an XPath evaluation for the field editor."""
     doc = _doc(body)
-    if doc is None or not expr:
-        return ""
+    if doc is None:
+        return {"status": "no_document", "matches": 0, "value": ""}
     try:
         found = doc.xpath(str(expr))
-    except Exception:
-        return ""
-    if not isinstance(found, list):
-        return _norm(str(found))
-    for item in found:
+    except (ValueError, TypeError, etree.XPathError):
+        return {"status": "invalid_xpath", "matches": 0, "value": ""}
+    values = found if isinstance(found, list) else [found]
+    for item in values:
         value = _norm(item.text_content()) if hasattr(item, "text_content") else _norm(str(item))
         if value:
-            return value
-    return ""
+            return {"status": "matched", "matches": len(values), "value": value}
+    return {"status": "empty_value" if values else "no_match", "matches": len(values), "value": ""}
+
+
+def xpath_value(body, expr):
+    """Return the first non-empty XPath value."""
+    return xpath_result(body, expr)["value"] if expr else ""
 
 
 def apply_schema(row, body, site):
@@ -200,7 +284,7 @@ def enrich(row, body, url, site):
     """抽取到手的一行 → 过闸门 + schema + 可选 LLM。被判定为列表页时返回 None。"""
     site = site or {}
     gate, ratio = gate_setting(site)          # html 默认开；noise_gate 可 false/数字
-    md = markdown(body, url) if (gate or site.get("llm_fields")) else ""
+    md = markdown(body, url, site) if (gate or site.get("llm_fields")) else ""
     if gate and looks_like_listing(body, md, ratio):
         return None
     if site.get("schema"):

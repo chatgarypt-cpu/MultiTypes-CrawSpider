@@ -37,6 +37,12 @@ def _export(site, kind):
         return str(exc)
 
 
+def _network_error(err: str) -> bool:
+    e = (err or "").lower()
+    return (e.startswith("conn:") or e.startswith("http_0") or "max retries" in e
+            or "connection" in e or "timed out" in e or "temporary failure" in e)
+
+
 def collect_site(site, limit, kind="posts"):
     t0 = time.time()
     site = dict(site, via=site.get(f"via_{kind}") or site.get("via"))
@@ -53,7 +59,20 @@ def collect_site(site, limit, kind="posts"):
         raise ValueError("; ".join(errors))
 
     fetcher = Fetcher(site)
-    r = runner(site, limit, log, fetcher, kind)
+    net_retry = int(os.environ.get("NET_RETRY", "2"))
+    net_backoff = float(os.environ.get("NET_BACKOFF", "300"))
+    attempt = 0
+    while True:
+        r = runner(site, limit, log, fetcher, kind)
+        err = str(r.get("error") or "")
+        if not _network_error(err) or attempt >= net_retry:
+            break
+        delay = net_backoff * (2 ** attempt)
+        attempt += 1
+        r["network_retries"] = attempt
+        log.warning("%s network error (%s), retry %d/%d in %.0fs",
+                    site["domain"], err[:80], attempt, net_retry, delay)
+        time.sleep(delay)
 
     c = db(); now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     c.execute("INSERT INTO runs(domain,channel,started,finished,discovered,saved,errors,status,note) VALUES(?,?,?,?,?,?,?,?,?)",
