@@ -25,3 +25,5 @@ collector/ui/dist/
 collector.bak-*/
 sources.yaml.bak-*
 *.bak
+
+/AGENTS.md
