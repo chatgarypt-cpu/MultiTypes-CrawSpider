@@ -2,6 +2,32 @@
 
 一个脚本 + 一张站点表 + 一个状态库。无框架、无数据库服务。
 
+## 快速开始（从零）
+
+仓库里**不含任何站点配置**：`collector/sources.yaml` 是运营数据，默认被 gitignore
+（模板 `collector/sources.example.yaml` 内容是 `[]`）。第一次运行：
+
+```bash
+uv sync                                              # 装依赖
+cp collector/sources.example.yaml collector/sources.yaml
+$EDITOR collector/sources.yaml                       # 加站点，最小一条：
+
+# - domain: example.com
+#   base: https://example.com
+#   channel: sitemap
+#   sitemap: /sitemap.xml
+
+uv run python collector/collect.py --validate        # 配置自检
+uv run python collector/collect.py --site example.com --limit 10
+./deploy/start-web                                   # 看板（会先构建前端）
+```
+
+空信源时的行为（都不是故障）：`--validate` 打印 `0 sites`；`--all` 提示"没有可采集的站点"
+并退出 0；`supervisor.py` 空闲常驻；`serve.py` 显示空看板。
+
+只要命令行、不要网页的话，跳过 `./deploy/start-web`，用
+`uv run python collector/cli.py status` 看进度。
+
 ## 依赖与环境
 
 依赖写在仓库根的 [pyproject.toml](../pyproject.toml)，用 uv 管理（Python >= 3.12）：
@@ -30,7 +56,7 @@ REA_CrawlSpider/
 │   ├── verify.py         采后核对（分页完整性 + 浏览器首尾比对）
 │   ├── bb_fetch.mjs      Browserbase CDP 客户端（零依赖）
 │   ├── bb_batch.mjs      会话隧道批量 fetch
-│   ├── sources.yaml      管理员维护的站点配置
+│   ├── sources.yaml      本地站点配置（gitignore；模板 sources.example.yaml）
 │   └── ui/               React 看板（Vite，构建产物 ui/dist）
 ├── data/                 运行数据（每站 jsonl / 游标 / 日志 / state.db / 队列状态）
 └── output/csv/           各站导出文件，如 <域名>.csv、<域名>.pages.csv、<域名>.media.csv
@@ -51,8 +77,8 @@ nohup uv run python collector/run_queue.py >> data/run_queue.out 2>&1 &
 uv run python collector/export_csv.py --all
 uv run python collector/export_csv.py --site <域名>
 
-# 看板
-uv run python collector/serve.py      # http://127.0.0.1:8787/
+# 看板（首次会 npm ci + 构建前端，随后启动 http://127.0.0.1:8787/）
+./deploy/start-web
 ```
 
 ## 渠道全景（2026-11-25：29 条，分四层）

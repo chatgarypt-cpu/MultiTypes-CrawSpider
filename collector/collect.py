@@ -262,6 +262,13 @@ def main():
             print(f"skip {len(skipped_disabled)} disabled site(s): "
                   + ", ".join(skipped_disabled), flush=True)
 
+    if not sites:
+        print("没有可采集的站点：collector/sources.yaml 为空，或全部被 disabled 过滤掉了。\n"
+              "从零开始：cp collector/sources.example.yaml collector/sources.yaml，"
+              "加一个站点后跑 --validate 自检（见 collector/README.md「快速开始」）。",
+              file=sys.stderr)
+        return 0
+
     failed = False
     for s in sites:
         from crawler.config import site_kinds
