@@ -1,0 +1,48 @@
+name: Publish macOS Apple Silicon DMG
+on:
+  push:
+    tags: ['macos-v*']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install build tools
+        run: |
+          python3 -m venv "$RUNNER_TEMP/build-tools"
+          "$RUNNER_TEMP/build-tools/bin/pip" install uv==0.11.7
+          echo "$RUNNER_TEMP/build-tools/bin" >> "$GITHUB_PATH"
+      - name: Build arm64 disk image
+        run: deploy/macos/build-dmg "${GITHUB_REF_NAME#macos-v}" "$RUNNER_TEMP/dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64
+          path: ${{ runner.temp }}/dmg/
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-arm64
+          path: dmg
+      - name: Publish macOS release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          (cd dmg && sha256sum -c SHA256SUMS)
+          gh release create "$GITHUB_REF_NAME" dmg/*.dmg dmg/SHA256SUMS --verify-tag --latest=false \
+            --title "macOS Apple Silicon ${GITHUB_REF_NAME#macos-v}" --notes-file deploy/macos/release.md

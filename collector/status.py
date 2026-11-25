@@ -232,7 +232,7 @@ def all_domains():
         and any(os.path.exists(os.path.join(d, f)) for f in site_files))
     return sorted(set(doms) | set(on_disk))
 
-def build_status():
+def build_status(web_domains=None):
     import time as _t
     global _last
     rows = [site_row(os.path.join(DATA, d)) for d in all_domains()]
@@ -251,8 +251,10 @@ def build_status():
     rate = 0 if stale else _last.get("shown", 0)
     return {"generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "rate": round(rate, 1),
-            "running": running(), "queue_running": queue_running(), "tasks_running": tasks_running(),
-            "running_domains": running_domains(), "blocked": blocked_domains(),
+            "running": running() if web_domains is None else bool(web_domains),
+            "queue_running": queue_running() if web_domains is None else False,
+            "tasks_running": tasks_running() if web_domains is None else len(web_domains),
+            "running_domains": running_domains() if web_domains is None else sorted(web_domains), "blocked": blocked_domains(),
             "concurrency": concurrency(), "total": total, "sites": rows}
 
 def main():

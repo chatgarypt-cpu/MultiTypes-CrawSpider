@@ -33,6 +33,7 @@ MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采
 
 | 使用场景 | 入口 |
 | --- | --- |
+| Apple Silicon Mac 本机使用（macOS 15+） | 下载 [macOS arm64 DMG](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/tag/macos-v0.1.0)，拖入「应用程序」后打开，工作台会在默认浏览器启动。首次打开提示见发布说明。 |
 | 本地运行、开发适配器或维护站点配置 | `main`，包含采集器前后端、测试和开发记录 |
 | CentOS Linux 8.4 x86_64 服务器部署 | [`deploy/centos8`](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/tree/deploy/centos8)，提供独立服务器源码和 Podman 安装脚本 |
 

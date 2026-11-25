@@ -24,10 +24,14 @@ _STATUS_CACHE = {'at': 0, 'payload': ''}
 STATUS_LOCK = threading.Lock()
 
 
-def cached_status():
+def cached_status(desktop=False):
     with STATUS_LOCK:
         if time.time() - _STATUS_CACHE['at'] > 3:
-            _STATUS_CACHE.update(at=time.time(), payload=json.dumps(status_mod.build_status(), ensure_ascii=False))
+            domains = None
+            if desktop:
+                with web_jobs.LOCK:
+                    domains = [urlsplit(job['url']).netloc for job in web_jobs.jobs() if job['status'] == 'running']
+            _STATUS_CACHE.update(at=time.time(), payload=json.dumps(status_mod.build_status(domains), ensure_ascii=False))
         return _STATUS_CACHE['payload']
 
 
@@ -56,6 +60,9 @@ class H(BaseHTTPRequestHandler):
         self.send(code, json.dumps(obj, ensure_ascii=False))
 
     def authorized(self):
+        if self.server.desktop and self.headers.get('Host') != f'127.0.0.1:{self.server.server_port}':
+            self.send(403, '无效的本机服务地址')
+            return False
         password = os.environ.get('CRAWL_WEB_PASSWORD', '')
         if password:
             expected = 'Basic ' + base64.b64encode(('admin:' + password).encode()).decode()
@@ -131,7 +138,7 @@ class H(BaseHTTPRequestHandler):
         self.end_headers()
         try:
             while not self.server.stop.is_set():
-                self.wfile.write(f'data: {cached_status()}\n\n'.encode())
+                self.wfile.write(f'data: {cached_status(self.server.desktop)}\n\n'.encode())
                 self.wfile.flush()
                 self.server.stop.wait(2)
         except (BrokenPipeError, ConnectionResetError):
@@ -201,7 +208,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--host', default=os.getenv('CRAWL_HOST', '127.0.0.1'))
     parser.add_argument('--port', type=int, default=int(os.getenv('CRAWL_PORT', '8787')))
+    parser.add_argument('--desktop', action='store_true', help='open a private loopback listener and report its port')
     args = parser.parse_args()
+    if args.desktop:
+        args.host, args.port = '127.0.0.1', 0
     if args.host not in ('localhost', '127.0.0.1', '::1') and not os.getenv('CRAWL_WEB_PASSWORD'):
         parser.error('对外监听必须设置 CRAWL_WEB_PASSWORD；登录用户名为 admin')
     if not (UI / 'index.html').exists():
@@ -213,12 +223,16 @@ def main():
     except BlockingIOError:
         parser.error('此数据目录已有网页服务运行，请使用现有服务或选择另一数据目录')
     server = ThreadingHTTPServer((args.host, args.port), H)
+    server.desktop = args.desktop
     server.daemon_threads = True
     server.stop = threading.Event()
     threading.Thread(target=web_jobs.scheduler, args=(server.stop,), daemon=True).start()
     from verify_coverage import refresh_registered
     threading.Thread(target=refresh_registered, args=(server.stop,), daemon=True).start()
-    print(f'采集页面：http://{args.host}:{server.server_port}/  数据目录：{DATA}', flush=True)
+    if args.desktop:
+        print(server.server_port, flush=True)  # first stdout line is the launcher handshake
+    else:
+        print(f'采集页面：http://{args.host}:{server.server_port}/  数据目录：{DATA}', flush=True)
     def shutdown(*_):
         server.stop.set()
         threading.Thread(target=server.shutdown, daemon=True).start()

@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Build the tagged public tree, isolated from the operator's checkout and data.
+set -euo pipefail
+version="${1:?usage: build-dmg VERSION EMPTY_OUTPUT_DIRECTORY}"
+out="${2:?specify an empty output directory}"
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 2
+[[ "$(uname -sm)" == "Darwin arm64" ]] || { echo "Requires Apple Silicon macOS" >&2; exit 1; }
+mkdir -p "$out"
+out="$(cd "$out" && pwd)"
+[[ -z "$(ls -A "$out")" ]] || { echo "Output directory must be empty" >&2; exit 1; }
+repo="$(cd "$(dirname "$0")/../.." && pwd)"
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
+mkdir -p "$scratch/source"
+git -C "$repo" archive HEAD -- pyproject.toml uv.lock deploy/macos collector/ui \
+  collector/sources.example.yaml collector/crawler collector/serve.py collector/status.py \
+  collector/web_jobs.py collector/web_worker.py collector/web_preview.py collector/verify_coverage.py \
+  collector/export_csv.py collector/cdx_seed.py | tar -xf - -C "$scratch/source"
+cd "$scratch/source"
+test "$(cat collector/sources.example.yaml)" = '[]'
+app="$scratch/image/MultiTypes-CrawlSpider.app"
+resources="$app/Contents/Resources"
+mkdir -p "$resources/collector/ui" "$app/Contents/MacOS"
+npm --prefix collector/ui ci --no-audit --no-fund
+(cd collector/ui && node --input-type=module -e "import { build } from 'vite'; await build({build:{license:true}})")
+cp -R collector/crawler collector/*.py "$resources/collector/"
+cp collector/sources.example.yaml "$resources/collector/"
+cp -R collector/ui/dist "$resources/collector/ui/"
+
+# Use the relocatable CPython distribution, never the build machine's Python environment.
+runtime='cpython-3.12.13+20260414-aarch64-apple-darwin-pgo+lto-full.tar.zst'
+curl -fsSL --retry 3 -o "$scratch/python.tar.zst" \
+  "https://github.com/astral-sh/python-build-standalone/releases/download/20260414/$runtime"
+(cd "$scratch" && echo '612b1af85f33fe57351c0e8e40677c95d9ef63774c1f13ae8054c59c785a84ca  python.tar.zst' | shasum -a 256 -c -)
+tar -xf "$scratch/python.tar.zst" -C "$scratch" --exclude '*.a' --exclude 'python/install/lib/python3.12/site-packages' \
+  python/install/bin/python3.12 python/install/lib python/licenses
+mv "$scratch/python/install" "$resources/python"
+mv "$scratch/python/licenses" "$resources/python/licenses"
+python="$resources/python/bin/python3.12"
+site="$resources/python/lib/python3.12/site-packages"
+uv export --locked --no-dev --no-emit-project --output-file "$scratch/requirements.txt" >/dev/null
+uv pip install --python "$python" --target "$site" --link-mode copy --only-binary :all: \
+  --require-hashes -r "$scratch/requirements.txt"
+# Console scripts record the temporary build path; desktop jobs invoke the bundled interpreter.
+rm -rf "$site/bin"
+find "$resources" -name __pycache__ -type d -prune -exec rm -rf {} +
+cp deploy/macos/Info.plist "$app/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $version" "$app/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $version" "$app/Contents/Info.plist"
+xcrun swiftc -swift-version 5 -target arm64-apple-macos15.0 -O deploy/macos/Launcher.swift -o "$app/Contents/MacOS/CrawlSpider"
+# Sign native modules first; the outer signature seals the finished bundle.
+find "$resources/python" -type f \( -name '*.dylib' -o -name '*.so' -o -name python3.12 \) -print0 |
+  while IFS= read -r -d '' native; do
+    codesign --force --sign - --timestamp=none "$native"
+  done
+codesign --force --sign - --timestamp=none "$app"
+codesign --verify --deep --strict "$app"
+ln -s /Applications "$scratch/image/Applications"
+name="MultiTypes-CrawlSpider-macOS-arm64-$version.dmg"
+hdiutil create -quiet -fs HFS+ -format UDZO -volname 'MultiTypes-CrawlSpider' \
+  -srcfolder "$scratch/image" "$out/$name"
+(cd "$out" && shasum -a 256 "$name" > SHA256SUMS)
