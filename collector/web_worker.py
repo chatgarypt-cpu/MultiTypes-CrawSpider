@@ -8,17 +8,23 @@ import sys
 import time
 from urllib.parse import urljoin, urlsplit
 
-from crawler.config import DATA, ROOT, site_kinds
+from crawler.config import DATA, ROOT, site_kinds, sources_path
 from web_jobs import read, write, normalize_url
 from crawler.public_urls import public_get
 
 
 def crawl_links(site, progress, separate=False):
     """Persistent same-host frontier. Save content before acknowledging each URL."""
+    from crawler.store import collection_lock
+    with collection_lock(site["domain"], wait=False):
+        return _crawl_links(site, progress, separate)
+
+
+def _crawl_links(site, progress, separate):
     from lxml import html
     from crawler.discover import ASSET, declared_feed_urls, parse_feed
     from crawler.extract import extract_best, extract_metadata
-    from crawler.htmlpage import is_navigation_page, page_error, paywall_signal
+    from crawler.htmlpage import is_navigation_page, page_error, paywall_signal, structured_body
     from crawler.pipeline import normalize, validate
     from crawler.request import RequestQueue, canonical_key
     from crawler.store import append_rows, load_known
@@ -27,7 +33,7 @@ def crawl_links(site, progress, separate=False):
     from crawler.runner import _export
 
     domain = site['domain']
-    paywall.reset_budget()
+    paywall.reset_budget(site.get("paywall_budget"))
     paywall.reset_health()
     q = RequestQueue(domain, 'web-pages' if separate else 'posts')
     known = {canonical_key(url) for url in load_known(domain, 'posts')}
@@ -106,7 +112,7 @@ def crawl_links(site, progress, separate=False):
                         if not links and not feeds and not restriction and not (row or {}).get('text'):
                             raise ValueError('渲染后未发现链接或正文')
                     except Exception as exc:
-                        render_error = str(exc).splitlines()[0]
+                        render_error = (str(exc).splitlines() or [type(exc).__name__])[0]
                         q.mark_error([req.key], {req.key: f'render_unverified {render_error}'}, max_retries=1)
                         continue
                 if restriction and not recovered:
@@ -117,6 +123,8 @@ def crawl_links(site, progress, separate=False):
                         links, feeds, row, restriction, navigation, _ = inspect(req.url, body)
                 q.add_many(feeds, channel='rss', label='feed')
                 q.add_many(links, channel='html')
+                if restriction and structured_body(body):
+                    restriction = ''          # 前端墙：JSON 里有全文
                 if restriction:
                     q.mark_skipped([req.key], 'access_restricted')
                 elif navigation:
@@ -159,7 +167,7 @@ def resolve_site(url, *, check_entry=False, channel="auto"):
     from crawler.adhoc import detect
     from crawler.web import PUBLIC_ROBOTS
 
-    sources = yaml.safe_load((Path(ROOT) / 'sources.yaml').read_text()) or []
+    sources = yaml.safe_load(sources_path(ROOT).read_text()) or []
     if isinstance(sources, dict):
         sources = sources.get('sites', [])
     host = urlsplit(url).netloc
@@ -198,7 +206,7 @@ def run(directory):
         (directory / 'worker.pid').write_text(str(os.getpid()))
         job = read(path)
         def update(**fields):
-            job.update(fields)
+            job.update(progress_epoch=time.time(), **fields)
             write(path, job)
         def stop(*_):
             raise KeyboardInterrupt()

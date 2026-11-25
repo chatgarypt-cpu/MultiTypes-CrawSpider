@@ -117,6 +117,41 @@ def close():
     _PW = _BROWSER = _CONTEXT = None
 
 
+AMP_UNHIDE_CSS = ("amp-access-hide, .amp-access-hide, [amp-access], .subscription-section,"
+                  " .paywall, .regwall { display: block !important; visibility: visible !important; }"
+                  " body, html { overflow: auto !important; position: static !important; }")
+
+
+def bpc_patterns(url):
+    """该 URL 的 Bypass Paywalls Clean 拦截正则（无规则返回空列表）。"""
+    try:
+        from crawler import bpc
+        return (bpc.plan(url) or {}).get("block") or []
+    except Exception:
+        return []
+
+
+def should_block(url, patterns):
+    """纯函数：命中任一 BPC 正则就拦（单独抽出来便于离线测试）。"""
+    import re
+    for pat in patterns or ():
+        try:
+            if re.search(pat, url):
+                return True
+        except re.error:
+            continue
+    return False
+
+
+def _apply_amp_style(page, url):
+    try:
+        from crawler import bpc
+        if (bpc.plan(url) or {}).get("amp_unhide"):
+            page.add_style_tag(content=AMP_UNHIDE_CSS)
+    except Exception:
+        pass
+
+
 def _read_html(page, timeout):
     """取当前 DOM；挑战页跳转期间 content() 会报错，重试到超时一半。"""
     html = ""
@@ -130,8 +165,13 @@ def _read_html(page, timeout):
     return html
 
 
-def fetch_many(urls, wait_ms=None, headless=True, block_resources=False,
-               timeout=None, user_agent=None, ignore_https_errors=False, public_host=None):
+def fetch_many(urls, *args, **kwargs):
+    return list(iter_fetch(urls, *args, **kwargs))
+
+
+def iter_fetch(urls, wait_ms=None, headless=True, block_resources=False,
+               timeout=None, user_agent=None, ignore_https_errors=False, public_host=None,
+               bpc_rules=False):
     """抓取一批 URL，返回 [(url, status, html)]；浏览器复用同一个实例。
 
     单个 URL 失败只返回 status=0 + 错误文本，不中断整批（与 browser_ego 行为一致）。
@@ -146,12 +186,22 @@ def fetch_many(urls, wait_ms=None, headless=True, block_resources=False,
 
     wait_ms = int(wait_ms or os.environ.get("PW_WAIT_MS", "1500"))
     timeout = int(timeout or os.environ.get("PW_TIMEOUT_MS", "30000"))
-    out = []
     from crawler.htmlpage import page_error
     context = _context(headless=headless, user_agent=user_agent, block_resources=block_resources,
                        ignore_https_errors=ignore_https_errors, **({"public_host": public_host} if public_host else {}))
     page = context.new_page()
     navigation = []
+    patterns = []
+
+    def handle_bpc(route):
+        if should_block(route.request.url, patterns):
+            route.abort()
+        else:
+            route.fallback()
+
+    if bpc_rules:
+        page.route("**/*", handle_bpc)
+
     def on_response(response):
         if response.request.is_navigation_request() and response.frame == page.main_frame:
             navigation.append(response)
@@ -161,8 +211,11 @@ def fetch_many(urls, wait_ms=None, headless=True, block_resources=False,
             resp = None
             navigation.clear()
             try:
+                patterns = bpc_patterns(u) if bpc_rules else []
                 resp = page.goto(u, wait_until="domcontentloaded", timeout=timeout)
                 page.wait_for_timeout(wait_ms)
+                if bpc_rules:
+                    _apply_amp_style(page, u)
                 html = _read_html(page, timeout)
                 # SiteGround/Cloudflare 挑战页会自动跳转：最多再等 18 秒，直到正文出现
                 if not public_host and page_error(html) == "challenge":
@@ -183,13 +236,12 @@ def fetch_many(urls, wait_ms=None, headless=True, block_resources=False,
                     inner = page.evaluate("() => document.body ? document.body.innerText : ''")
                     if inner.strip().startswith(("{", "[")):
                         html = inner
-                out.append((u, status, html))
+                result = (u, status, html)
             except Exception as e:
-                status = resp.status if resp is not None else 0
-                out.append((u, status or 0, str(e)[:150]))
+                result = (u, 0, str(e)[:150])
+            yield result
     finally:
         try:
             page.close()
         except Exception:
             pass
-    return out

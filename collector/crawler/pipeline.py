@@ -9,13 +9,13 @@ from crawler.request import canonical_key
 MIN_TEXT = {"posts": 0, "pages": 0, "media": 0}
 
 
-def threshold(site, kind):
+def threshold(site: dict | None, kind: str) -> int:
     if site and site.get("min_text") is not None:
         return int(site["min_text"])
     return MIN_TEXT.get(kind, 0)
 
 
-def normalize(row, site=None):
+def normalize(row: dict, site: dict | None = None) -> dict:
     """Trim whitespace, absolutise URLs, fill host; never invent content."""
     for k in ("title", "text", "description", "author", "tag", "created_at"):
         if isinstance(row.get(k), str):
@@ -35,7 +35,7 @@ def normalize(row, site=None):
     return row
 
 
-def validate(row, site, kind):
+def validate(row: dict, site: dict, kind: str) -> tuple[bool, str]:
     """(ok, reason). Reasons are counters, so a run can explain its own drop rate."""
     if not row.get("url"):
         return False, "no_url"
@@ -46,5 +46,5 @@ def validate(row, site, kind):
     return True, ""
 
 
-def dedupe_key(row):
+def dedupe_key(row: dict) -> str:
     return canonical_key(row.get("url") or "")

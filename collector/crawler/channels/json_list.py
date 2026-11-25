@@ -18,7 +18,8 @@ from concurrent.futures import ThreadPoolExecutor
 from crawler.config import DATA, UA
 from crawler import cursor, paywall
 from crawler.extract import extract_best, extract_metadata
-from crawler.htmlpage import boolean_flag, page_error, paywall_signal
+from crawler.htmlpage import boolean_flag, page_error, paywall_signal, structured_body
+from crawler.quality import DetailCounts
 from crawler.pipeline import normalize, validate
 from crawler.request import canonical_key, RequestQueue
 from crawler.store import append_rows, load_known
@@ -85,7 +86,8 @@ def fetch_page(pat, base, page, cats, items_key="stories", workers=None):
 
 
 def collect_json_list(site, limit=0, log=None):
-    paywall.reset_budget()
+    counts = DetailCounts()
+    paywall.reset_budget(site.get("paywall_budget"))
     base = site["base"].rstrip("/")
     cats = site.get("api_categories") or [None]
     pat = site.get("api_list") or ""
@@ -143,6 +145,9 @@ def collect_json_list(site, limit=0, log=None):
         batch_size = int(os.environ.get("QUEUE_BATCH", "200"))
         while q.pending() and (not limit or saved < limit):
             requests_ = q.next_batch(min(batch_size, limit - saved) if limit else batch_size)
+            if not requests_:
+                break
+            counts.attempted += len(requests_)
             by_url = {r.url: r for r in requests_}
             responded, rows, keys = set(), [], []
             batch_keys, labels = set(), []
@@ -157,6 +162,7 @@ def collect_json_list(site, limit=0, log=None):
                     status, body, recovered = paywall.recover(
                         req.url, site, body if isinstance(body, str) else "", status)
                     if not recovered:
+                        counts.request_failures[f"http_{status}"] += 1
                         q.mark_error([req.key], {req.key: f"http_{status} {str(body)[:120]}"})
                         continue
                     log.info("%s paywall recovered source=%s url=%s", site["domain"], recovered, req.url)
@@ -171,11 +177,16 @@ def collect_json_list(site, limit=0, log=None):
                         log.info("%s paywall recovered source=%s restriction=%s url=%s",
                                  site["domain"], recovered, restriction, req.url)
                         restriction = ""
+                if restriction and structured_body(body):
+                    restriction = ""          # 前端墙：JSON 里有全文
+                    it["detail_access"] = "structured_body"
                 if restriction:
+                    counts.rejections["access_restricted"] += 1
                     it["detail_access"] = restriction
                     q.update_labels([(req.key, json.dumps(it, ensure_ascii=False))])
                     q.mark_skipped([req.key], "access_restricted")
                     continue
+                rejection_reason = "extraction_failed"
                 try:
                     row = extract_best(u, body, site, min_text=0) or extract_metadata(u, body, site)
                     if not row:
@@ -186,8 +197,10 @@ def collect_json_list(site, limit=0, log=None):
                     row = normalize(row, site)
                     valid, reason = validate(row, site, "posts")
                     if not valid:
+                        rejection_reason = reason
                         raise ValueError(reason)
                 except Exception as exc:
+                    counts.rejections[rejection_reason] += 1
                     q.mark_error([req.key], {req.key: f"extraction_failed {exc}"})
                     continue
                 key = canonical_key(row["url"])
@@ -199,6 +212,7 @@ def collect_json_list(site, limit=0, log=None):
                 labels.append((req.key, json.dumps(it, ensure_ascii=False)))
             for u in set(by_url) - responded:
                 req = by_url[u]
+                counts.request_failures["no_response"] += 1
                 q.mark_error([req.key], {req.key: "http_0 no_response"})
             if rows:
                 written = append_rows(site["domain"], rows, "posts")
@@ -229,6 +243,7 @@ def collect_json_list(site, limit=0, log=None):
                 if premium is True and not include_premium:
                     continue
                 link = _detail_url(site, base, url_tpl, it, cat)
+                counts.discovered += 1
                 if canonical_key(link) in known:
                     continue
                 label = {k: it.get(k) for k in ("heading", "published_at_iso", "summary")}
@@ -284,6 +299,7 @@ def collect_json_list(site, limit=0, log=None):
         "state='skipped' AND error IN ('access_restricted','premium')", (site["domain"],)).fetchone()[0]
     if state == "complete" and restricted:
         state, last_error = "partial", "access_restricted"
+    result["quality"] = counts.report()
     result["queue"] = q.stats()
     result["access_restricted"] = restricted
     result["status"] = state

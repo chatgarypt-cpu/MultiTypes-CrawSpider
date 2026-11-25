@@ -109,6 +109,11 @@ def placeholder(body):
     return next((p for p in PLACEHOLDER_TITLES if p in title), "")
 
 
+def _is_html(text):
+    head = (text or "")[:400].lower()
+    return "<html" in head or "<body" in head or "<!doctype" in head
+
+
 def usable(body, previous=""):
     """一份响应是否值得交给提取器：非空、长度够、不是挑战/错误页、且正文确实变多了。
 
@@ -125,28 +130,25 @@ def usable(body, previous=""):
     if body.strip() == previous.strip():
         return False
     try:
-        old_len = len(markdown(previous) or "")
-        new_len = len(markdown(body) or "")
+        old_len = len(markdown(previous) or "") if _is_html(previous) else len(previous)
+        new_len = len(markdown(body) or "") if _is_html(body) else len(body)
     except Exception:
         return True
     return new_len >= old_len + 400 and new_len >= old_len * 1.2
 
 
 def _get(url, headers, timeout=(10, 25), allow_redirects=True, verify=True):
+    from crawler.web import read_body_capped
     try:
         r = SESSION.get(url, headers=headers, timeout=timeout, allow_redirects=allow_redirects,
-                        verify=verify)
-    except Exception:
+                        verify=verify, stream=True)
+        try:
+            body = read_body_capped(r, strict=True) if r.status_code == 200 else ""
+            return r.status_code, body, r.url or url
+        finally:
+            r.close()
+    except (ValueError, OSError, requests.RequestException):
         return 0, "", ""
-    if r.status_code != 200:
-        final = r.url or url
-        r.close()
-        return r.status_code, "", final
-    try:
-        r.encoding = r.apparent_encoding or "utf-8"
-        return 200, r.text or "", r.url or url
-    finally:
-        r.close()
 
 
 def _service(url, base):
@@ -163,6 +165,59 @@ def _service(url, base):
         return r.status_code, "", ""
     try:
         return 200, r.text or "", r.url or base
+    finally:
+        r.close()
+
+
+READER_BASE = os.environ.get("PAYWALL_READER_BASE", "https://r.jina.ai/")
+
+
+def _reader(url):
+    """第三方 Reader 服务取文：从对方的 IP 抓，绕开"按出口 IP 限流"的站。
+
+    返回 Markdown（`Title: ... / Markdown Content:` 结构），交给 extract 的纯文本直通。
+    只在链尾兜底，避免把每次回退都变成外部请求。
+    """
+    if os.environ.get("PAYWALL_READER", "1").strip().lower() in ("0", "false", "off"):
+        return 0, "", ""
+    try:
+        r = requests.get(READER_BASE + url, headers={"Accept": "text/plain"},
+                         timeout=(10, 45))
+    except Exception:
+        return 0, "", ""
+    if r.status_code != 200:
+        r.close()
+        return r.status_code, "", ""
+    try:
+        text = r.text or ""
+    finally:
+        r.close()
+    if "Markdown Content:" not in text:
+        return 0, "", ""
+    return 200, text, url
+
+
+def _bpc(url):
+    """按 Bypass Paywalls Clean 规则取文：换 UA / 干净会话 / 伪造来源。
+
+    规则来自上游 sites.js，语义见 crawler/bpc.py 的表；这里只执行"HTTP 层能做的"，
+    block_regex（拦截付费墙脚本）留给浏览器路径。
+    """
+    from crawler import bpc as bpc_mod
+    plan = bpc_mod.plan(url)
+    if not plan:
+        return 0, "", ""
+    try:
+        session = requests.Session()          # 无 cookie = 上游 remove_cookies 的效果
+        r = session.get(url, headers=bpc_mod.headers(url), timeout=(10, 25), allow_redirects=True)
+    except Exception:
+        return 0, "", ""
+    if r.status_code != 200:
+        r.close()
+        return r.status_code, "", ""
+    try:
+        r.encoding = r.apparent_encoding or "utf-8"
+        return 200, r.text or "", r.url or url
     finally:
         r.close()
 
@@ -190,12 +245,16 @@ def _archive_org(url):
         return 0, "", ""
     import json
     try:
-        snapshot = (json.loads(raw).get("archived_snapshots") or {}).get("closest") or {}
-    except ValueError:
+        payload = json.loads(raw)
+    except (ValueError, TypeError):
         return 0, "", ""
-    if not snapshot.get("available") or not snapshot.get("url"):
+    snapshots = payload.get("archived_snapshots") if isinstance(payload, dict) else None
+    snapshot = snapshots.get("closest") if isinstance(snapshots, dict) else None
+    if not isinstance(snapshot, dict) or not snapshot.get("available"):
         return 0, "", ""
-    target = snapshot["url"]
+    target = snapshot.get("url")
+    if not isinstance(target, str) or not target.startswith(("https://", "http://")):
+        return 0, "", ""
     if target.startswith("http://"):
         target = "https://" + target[len("http://"):]
     # 取 id_ 原始快照：存档器不加横幅/改写链接，正文更干净
@@ -240,12 +299,21 @@ def _candidates(url, site):
     if m == "freedium":
         return [("freedium", lambda: _freedium(url))] if medium else []
     chain = []
+    # BPC 规则最便宜（一次请求，不改 UA 之外的行为），有规则就先试
+    try:
+        from crawler import bpc as bpc_mod
+        has_rule = bool(bpc_mod.match(url)[0])
+    except Exception:
+        has_rule = False
+    if has_rule:
+        chain.append(("bpc", lambda: _bpc(url)))
     if not medium:
         chain.append(("googlebot", lambda: _googlebot(url)))
     if medium:
         chain.append(("freedium", lambda: _freedium(url)))
     chain += [("archive_org", lambda: _archive_org(url)),
-              ("archive_today", lambda: _archive_today(url))]
+              ("archive_today", lambda: _archive_today(url)),
+              ("reader", lambda: _reader(url))]
     return chain
 
 

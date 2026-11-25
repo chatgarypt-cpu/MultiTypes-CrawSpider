@@ -9,9 +9,11 @@ not fetch and store them again.
     reconcile(domain=None, dry_run=False) -> {"updated": n, "by_domain": {domain: n}}
 """
 import glob, os, sqlite3, time
+from contextlib import nullcontext
 
 from crawler import config
 from crawler.request import canonical_key
+from crawler.store import CollectionBusy, collection_lock, _recover_append
 
 
 def _url_files(domain_dir):
@@ -64,23 +66,31 @@ def reconcile(domain=None, dry_run=False):
             url_files = _url_files(os.path.join(data_dir, dom))
             updated = 0
             for kind, path in sorted(url_files.items()):
-                known = _keys_on_disk(path)
-                if not known:
+                lock = nullcontext() if dry_run else collection_lock(dom, kind, wait=False, data_dir=data_dir)
+                try:
+                    with lock:
+                        if not dry_run:
+                            filename = "articles.jsonl" if kind == "posts" else f"{kind}.jsonl"
+                            _recover_append(os.path.join(os.path.dirname(path), filename), path)
+                        known = _keys_on_disk(path)
+                        if not known:
+                            continue
+                        pending = [key for (key,) in conn.execute(
+                            "SELECT key FROM requests WHERE domain=? AND kind=? AND state='unprocessed'",
+                            (dom, kind)) if key in known]
+                        if dry_run:
+                            updated += len(pending)
+                        elif pending:
+                            before = conn.total_changes
+                            with conn:
+                                conn.executemany(
+                                    "UPDATE requests SET state='done', updated=? "
+                                    "WHERE domain=? AND kind=? AND key=? AND state='unprocessed'",
+                                    [(now, dom, kind, key) for key in pending])
+                            updated += conn.total_changes - before
+                except CollectionBusy:
+                    # The collector already reconciles this collection before draining it.
                     continue
-                pending = [k for (k,) in conn.execute(
-                    "SELECT key FROM requests WHERE domain=? AND kind=? AND state='unprocessed'",
-                    (dom, kind)) if k in known]
-                if not pending:
-                    continue
-                if dry_run:
-                    updated += len(pending)
-                else:
-                    before = conn.total_changes
-                    conn.executemany(
-                        "UPDATE requests SET state='done', updated=? "
-                        "WHERE domain=? AND kind=? AND key=? AND state='unprocessed'",
-                        [(now, dom, kind, key) for key in pending])
-                    updated += conn.total_changes - before
             if updated:
                 result["by_domain"][dom] = updated
                 result["updated"] += updated

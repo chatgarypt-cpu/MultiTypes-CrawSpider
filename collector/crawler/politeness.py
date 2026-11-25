@@ -206,6 +206,7 @@ class RobotsCache:
         self._mem = {}
         self.cache = self._mem                    # 兼容旧属性名
         self.lock = threading.RLock()
+        self._fetch_locks = {}
         self.session = session
         self.public = public
         self.timeout = timeout
@@ -240,46 +241,56 @@ class RobotsCache:
 
     # ---------- fetching / parsing ----------
     def _fetch_text(self, url):
+        from contextlib import closing
+        from crawler.web import read_body_capped
+
         headers = {"User-Agent": UA}
         if self.public:
             from crawler.public_urls import public_get
-            with public_get(requests.get, url, same_host=urlsplit(url).netloc,
-                            headers=headers, timeout=self.timeout, stream=True) as response:
-                chunks = response.iter_content(chunk_size=8192)
-                body = bytearray()
-                for chunk in chunks:
-                    body.extend(chunk)
-                    if len(body) >= 512 * 1024:
-                        break
-                return response.status_code, body.decode(response.encoding or "utf-8", errors="replace")
-        if self.session is not None:
-            r = self.session.get(url, headers=headers, timeout=self.timeout)
+            response = public_get(requests.get, url, same_host=urlsplit(url).netloc,
+                                  headers=headers, timeout=self.timeout, stream=True)
         else:
-            r = requests.get(url, headers=headers, timeout=self.timeout)
-        return getattr(r, "status_code", 0), getattr(r, "text", "") or ""
+            response = (self.session or requests).get(url, headers=headers, timeout=self.timeout, stream=True)
+        with closing(response):
+            body = read_body_capped(response, max_bytes=512 * 1024, deadline=self.timeout)
+            return response.status_code, body
+
+    def _cached(self, root):
+        entry = self._mem.get(root) or self._disk.get(root)
+        if entry and time.time() - float(entry.get("ts") or 0) < self.ttl:
+            self._mem[root] = entry
+            return entry
+        return None
 
     def _entry(self, root):
-        now = time.time()
         with self.lock:
-            entry = self._mem.get(root) or self._disk.get(root)
-            if entry and now - float(entry.get("ts") or 0) < self.ttl:
-                self._mem[root] = entry
+            entry = self._cached(root)
+            if entry is not None:
                 return entry
+            fetch_lock = self._fetch_locks.setdefault(root, threading.Lock())
+        with fetch_lock:
+            with self.lock:
+                entry = self._cached(root)
+            if entry is not None:
+                return entry
+            now = time.time()
             try:
                 status, text = self._fetch_text(root + "/robots.txt")
             except Exception:
                 # 网络失败：本次放行，只放内存，不持久化（下次重试）
                 entry = {"ts": now, "status": 0, "rules": [], "crawl_delay": None}
-                self._mem[root] = entry
+                with self.lock:
+                    self._mem[root] = entry
                 return entry
             if int(status or 0) == 200:
                 rules, delay = parse_robots(text)
                 entry = {"ts": now, "status": 200, "rules": [list(r) for r in rules], "crawl_delay": delay}
             else:
                 entry = {"ts": now, "status": int(status or 0), "rules": [], "crawl_delay": None}
-            self._mem[root] = entry
-            self._disk[root] = entry
-            self._save_disk()
+            with self.lock:
+                self._mem[root] = entry
+                self._disk[root] = entry
+                self._save_disk()
             return entry
 
     def _rules(self, url):

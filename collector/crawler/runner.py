@@ -1,9 +1,10 @@
 """Run one site: pick the channel module, log the run, refresh the per-site CSV."""
 import json, logging, os, sys, time
+from contextlib import closing
 from datetime import datetime, timezone
 
 from crawler.config import DATA
-from crawler.store import db, existing_urls, load_cursor
+from crawler.store import collection_lock, db, existing_urls, load_cursor, _paths
 from crawler.web import Fetcher
 from crawler.channels import REGISTRY
 from crawler.schema import validate_site
@@ -43,7 +44,31 @@ def _network_error(err: str) -> bool:
             or "connection" in e or "timed out" in e or "temporary failure" in e)
 
 
-def collect_site(site, limit, kind="posts"):
+def _record_run(site, channel, kind, started, result):
+    quality = result.get("quality")
+    note = {"kind": kind, "error": result.get("error"), "skipped": result.get("skipped"),
+            "reasons": result.get("reasons", {}), "quality": quality}
+    with closing(db()) as conn, conn:
+        conn.execute("INSERT INTO runs(domain,channel,started,finished,discovered,saved,errors,status,note) "
+                     "VALUES(?,?,?,?,?,?,?,?,?)",
+                     (site["domain"], channel, started, datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                      quality["discovered"] if quality else result.get("discovered", 0),
+                      result.get("saved", 0), result.get("errors", 0),
+                      result.get("status") or ("interrupted" if result.get("error") else "ok"),
+                      json.dumps(note, ensure_ascii=False)))
+
+
+def collect_site(site, limit, kind="posts", *, export_csv=True, reset=False):
+    with collection_lock(site["domain"], kind, wait=False):
+        if reset:
+            try:
+                os.unlink(_paths(site["domain"], kind)[2])
+            except FileNotFoundError:
+                pass
+        return _collect_site(site, limit, kind, export_csv=export_csv)
+
+
+def _collect_site(site, limit, kind, *, export_csv):
     t0 = time.time()
     site = dict(site, via=site.get(f"via_{kind}") or site.get("via"))
     log = site_logger(site)
@@ -63,7 +88,13 @@ def collect_site(site, limit, kind="posts"):
     net_backoff = float(os.environ.get("NET_BACKOFF", "300"))
     attempt = 0
     while True:
-        r = runner(site, limit, log, fetcher, kind)
+        started = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        try:
+            r = runner(site, limit, log, fetcher, kind)
+        except Exception as exc:
+            _record_run(site, channel, kind, started, {"status": "failed", "error": type(exc).__name__})
+            raise
+        _record_run(site, channel, kind, started, r)
         err = str(r.get("error") or "")
         if not _network_error(err) or attempt >= net_retry:
             break
@@ -74,14 +105,7 @@ def collect_site(site, limit, kind="posts"):
                     site["domain"], err[:80], attempt, net_retry, delay)
         time.sleep(delay)
 
-    c = db(); now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    c.execute("INSERT INTO runs(domain,channel,started,finished,discovered,saved,errors,status,note) VALUES(?,?,?,?,?,?,?,?,?)",
-              (site["domain"], channel, now, now, r.get("discovered") or r.get("pages") or 0,
-               r.get("saved", 0), r.get("errors", 0), r.get("status") or ("interrupted" if r.get("error") else "ok"),
-               json.dumps({"kind": kind, "error": r.get("error"), "reasons": r.get("reasons", {})}, ensure_ascii=False)))
-    c.commit()
-
-    if channel in ("wp-api", "json-api", "json-list", "sitemap", "rss", "html"):
+    if export_csv and channel in ("wp-api", "json-api", "json-list", "sitemap", "rss", "html"):
         export_error = _export(site, kind)
         if export_error:
             r["export_error"] = export_error

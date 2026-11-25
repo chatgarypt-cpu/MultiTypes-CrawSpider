@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Card, InputNumber, Layout, Progress, Space, Stati
 import type { TableColumnsType } from 'antd'
 import { AppstoreOutlined, CloudServerOutlined, DatabaseOutlined, DashboardOutlined, DownloadOutlined, GlobalOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import CrawlPanel from './CrawlPanel'
+import SiteQuality from './SiteQuality'
 
 type KindState = { n: number; page: number; pages: number | null; done: boolean; updated: string; status?: string; last_reason?: string }
 type Site = {
@@ -202,7 +203,7 @@ function Overview({ data, error }: { data: Status | null; error: boolean }) {
       <div className="live-state"><Badge status={error ? 'error' : data ? 'success' : 'processing'} /><span>{state}</span></div>
     </div>
     <div className="overview-metrics">
-      <Statistic title="已入库文章" prefix={<DatabaseOutlined />} value={data?.total ?? '—'} />
+      <Statistic title="已登记文章 URL" prefix={<DatabaseOutlined />} value={data?.total ?? '—'} />
       <Statistic title="监控站点" prefix={<GlobalOutlined />} value={data ? data.sites.length : '—'} />
       <Statistic title="当前采集速率" prefix={<ThunderboltOutlined />} value={data ? Math.round(data.rate || 0) : '—'} suffix="篇/秒" />
       <Statistic title="运行任务 / 队列并发" prefix={<CloudServerOutlined />}
@@ -261,6 +262,7 @@ export default function App() {
               <p className="panel-caption">按已采文章数查看前 8 个站点</p>
               <SiteTable {...tableProps} rows={[...sites].sort((a, b) => b.saved - a.saved).slice(0, 8)} />
             </> },
+            { key: 'quality', label: '近 7 天质量', children: <SiteQuality /> },
             { key: 'running', label: `正在运行 (${active.length})`, children: <SiteTable {...tableProps} rows={active} showTime /> },
             { key: 'done', label: `已结束 (${finished.length})`, children: <SiteTable {...tableProps} rows={finished} showTime paginate /> },
           ]} />

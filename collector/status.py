@@ -4,7 +4,7 @@ import json, os, glob, re, subprocess
 from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-from crawler.config import DATA
+from crawler.config import DATA, sources_path
 
 def running():
     try:
@@ -211,7 +211,7 @@ _last = {"total": None, "at": 0.0, "rate": 0.0}
 def source_cfg():
     try:
         import yaml
-        return {x["domain"]: x for x in yaml.safe_load(open(os.path.join(ROOT, "sources.yaml")))}
+        return {x["domain"]: x for x in yaml.safe_load(open(sources_path(ROOT)))}
     except Exception:
         return {}
 
@@ -219,7 +219,7 @@ def all_domains():
     """Every configured site, not just the ones that already produced rows."""
     try:
         import yaml
-        sites = yaml.safe_load(open(os.path.join(ROOT, "sources.yaml")))
+        sites = yaml.safe_load(open(sources_path(ROOT)))
         doms = [s["domain"] for s in sites]
     except Exception:
         doms = []
@@ -232,7 +232,7 @@ def all_domains():
         and any(os.path.exists(os.path.join(d, f)) for f in site_files))
     return sorted(set(doms) | set(on_disk))
 
-def build_status():
+def build_status(web_domains=None):
     import time as _t
     global _last
     rows = [site_row(os.path.join(DATA, d)) for d in all_domains()]
@@ -251,8 +251,10 @@ def build_status():
     rate = 0 if stale else _last.get("shown", 0)
     return {"generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "rate": round(rate, 1),
-            "running": running(), "queue_running": queue_running(), "tasks_running": tasks_running(),
-            "running_domains": running_domains(), "blocked": blocked_domains(),
+            "running": running() if web_domains is None else bool(web_domains),
+            "queue_running": queue_running() if web_domains is None else False,
+            "tasks_running": tasks_running() if web_domains is None else len(web_domains),
+            "running_domains": running_domains() if web_domains is None else sorted(web_domains), "blocked": blocked_domains(),
             "concurrency": concurrency(), "total": total, "sites": rows}
 
 def main():

@@ -1,4 +1,4 @@
-import html, json, logging, math, os, re, sqlite3, subprocess, sys, tempfile, time
+import hashlib, html, json, logging, math, os, re, sqlite3, subprocess, sys, tempfile, time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -61,11 +61,17 @@ def _parse_page(st, body):
     posts = web.parse_json_tolerant(text)
     if posts is None:
         return "retry", "non_json"       # 挑战页/坏响应：不是"到底"
-    if not isinstance(posts, list):
+    if not isinstance(posts, list) or any(not isinstance(item, dict) for item in posts):
         return "retry", "bad_json"
     if not posts:
         return "empty", None
     return "ok", posts
+
+
+def _page_fingerprint(posts):
+    keys = [str(item.get("id") or item.get("link") or item.get("source_url")
+                or json.dumps(item, sort_keys=True)) for item in posts]
+    return hashlib.sha256(json.dumps(sorted(keys)).encode()).hexdigest()
 
 
 def _retry_empty_page(site, page, kind, impersonate):
@@ -180,6 +186,8 @@ def collect_wp(site, limit=0, workers=8, progress=True, kind="posts"):
                           reasons=dict(reasons), saved=cur["saved"])
 
     next_page = int(cur.get("next_page") or 1)
+    previous_page = cur.get("last_page_fingerprint") if cur.get("fingerprint_page") == next_page - 1 else None
+    seen_pages = {previous_page} if previous_page else set()
     final = None
     empty_streak = 0
     while True:
@@ -241,6 +249,13 @@ def collect_wp(site, limit=0, workers=8, progress=True, kind="posts"):
                 page_kind, info = "ok", posts
 
             posts = info
+            fingerprint = _page_fingerprint(posts)
+            if fingerprint in seen_pages:
+                reasons["repeated_page"] += 1
+                terminal = ("interrupted", "repeated_page")
+                break
+            seen_pages.add(fingerprint)
+            cur.update(last_page_fingerprint=fingerprint, fingerprint_page=p)
             empty_streak = 0
             cur["seen"] = int(cur.get("seen") or 0) + len(posts)
             batch_rows.extend(_collect_rows(posts, site, kind, known))
@@ -274,7 +289,8 @@ def collect_wp(site, limit=0, workers=8, progress=True, kind="posts"):
         fields = dict(next_page=next_page, total_pages=total_pages, total_posts=total_posts,
                       saved=cur["saved"], seen=cur.get("seen"), skipped_pages=skipped_pages,
                       skipped_page_numbers=skipped_numbers,
-                      reasons=dict(reasons))
+                      reasons=dict(reasons), last_page_fingerprint=cur.get("last_page_fingerprint"),
+                      fingerprint_page=cur.get("fingerprint_page"))
         if final:
             if final == "partial" and not reasons.get("skipped_pages") and skipped_pages:
                 fields["last_reason"] = "skipped_pages"
@@ -331,6 +347,8 @@ def _legacy_browser(site, limit, kind, log, fetcher):
     batch_pages = int(os.environ.get("EGO_PAGES", "4"))
     saved, t0 = 0, time.time()
     next_page = int(cur.get("next_page") or 1)
+    previous_page = cur.get("last_page_fingerprint") if cur.get("fingerprint_page") == next_page - 1 else None
+    seen_pages = {previous_page} if previous_page else set()
     empty_streak = 0
     final = None
 
@@ -392,6 +410,13 @@ def _legacy_browser(site, limit, kind, log, fetcher):
                 page_kind, info = "ok", posts
 
             posts = info
+            fingerprint = _page_fingerprint(posts)
+            if fingerprint in seen_pages:
+                reasons["repeated_page"] += 1
+                terminal = ("interrupted", "repeated_page")
+                break
+            seen_pages.add(fingerprint)
+            cur.update(last_page_fingerprint=fingerprint, fingerprint_page=p)
             empty_streak = 0
             cur["seen"] = int(cur.get("seen") or 0) + len(posts)
             for post in posts:
@@ -408,10 +433,11 @@ def _legacy_browser(site, limit, kind, log, fetcher):
             if limit and saved + len(batch_rows) >= limit:
                 terminal = ("paused", "limit")
                 break
-        if batch_rows:
-            append_rows(domain, batch_rows, kind)
-        saved += len(batch_rows)
-        cur["saved"] = int(cur.get("saved") or 0) + len(batch_rows)
+        written = append_rows(domain, batch_rows, kind) if batch_rows else 0
+        if not isinstance(written, int):
+            written = len(batch_rows)
+        saved += written
+        cur["saved"] = int(cur.get("saved") or 0) + written
         if terminal:
             final, reason = terminal
             if final == "complete" and skipped_pages:
@@ -428,7 +454,8 @@ def _legacy_browser(site, limit, kind, log, fetcher):
         fields = dict(next_page=next_page, total_pages=total_pages, saved=cur["saved"],
                       seen=cur.get("seen"), skipped_pages=skipped_pages,
                       skipped_page_numbers=skipped_numbers,
-                      reasons=dict(reasons))
+                      reasons=dict(reasons), last_page_fingerprint=cur.get("last_page_fingerprint"),
+                      fingerprint_page=cur.get("fingerprint_page"))
         if final:
             if final == "partial" and skipped_pages and not reason:
                 fields["last_reason"] = "skipped_pages"

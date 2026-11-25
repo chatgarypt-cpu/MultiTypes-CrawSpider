@@ -1,11 +1,8 @@
 """出口代理池：给采集换"虚拟 IP"（HTTP/HTTPS/SOCKS5），按域粘性 + 失败冷却 + 健康检查。
 
-为什么需要：13ft 那类回退能绕付费墙，但绕不过"按出口 IP 拦"的站（tokelau.org.nz 的
-CloudFront 403、部分 Cloudflare 1006）和按 IP 计数的限流。换出口比换 UA 有用。
-
 用法（默认关闭，站点显式声明才生效）：
 
-    - domain: www.tokelau.org.nz
+    - domain: example.org
       via: proxy
       proxy_pool: data/proxies.txt      # 一行一个；也可写 http://user:pass@host:port
       proxy_sticky: true                # 同一域名固定用同一个出口（默认 true）

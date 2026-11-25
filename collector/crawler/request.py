@@ -16,11 +16,11 @@ TRACKING_PARAMS = {"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_
                    "fbclid", "gclid", "ref", "referrer"}
 
 
-def canonical_key(url):
+def canonical_key(url: str) -> str:
     """Stable identity for a URL: lowercase host, no fragment, no tracking params, no trailing slash."""
     try:
         p = urlsplit(url.strip())
-    except Exception:
+    except ValueError:
         return url.strip()
     query = [(k, v) for k, v in parse_qsl(p.query, keep_blank_values=True) if k.lower() not in TRACKING_PARAMS]
     path = p.path.rstrip("/") or "/"
@@ -63,6 +63,7 @@ class RequestQueue:
             state TEXT, retries INTEGER DEFAULT 0, error TEXT,
             created TEXT DEFAULT CURRENT_TIMESTAMP, updated TEXT DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (domain, kind, key))""")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS requests_state ON requests(domain, kind, state)")
         self.conn.commit()
 
     # ---------- writing ----------
@@ -89,13 +90,14 @@ class RequestQueue:
         self.conn.commit()
 
     def seed_done(self, urls, channel=""):
-        """Remember URLs we already have on disk so they are never fetched twice."""
+        """A persisted row wins over stale queue state after an interrupted run."""
         now = time.strftime("%Y-%m-%dT%H:%M:%S")
         rows = [(self.domain, self.kind, canonical_key(u), u, channel, "detail", "done", 0, "", now, now)
                 for u in urls if u]
         self.conn.executemany(
-            "INSERT OR IGNORE INTO requests(domain,kind,key,url,channel,label,state,retries,error,created,updated) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?)", rows)
+            "INSERT INTO requests(domain,kind,key,url,channel,label,state,retries,error,created,updated) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(domain,kind,key) DO UPDATE SET "
+            "state='done', error='', updated=excluded.updated WHERE requests.state<>'done'", rows)
         self.conn.commit()
 
     def requeue_missing_rows(self, known_urls):
@@ -118,18 +120,32 @@ class RequestQueue:
         """只更新这一批失败的 key。以前这里有一条整站 UPDATE，会把该域所有 done
         行重置成 unprocessed，导致每次出错都要把整站重抓一遍（matangi/lnc 都中过）。"""
         now = time.strftime("%Y-%m-%dT%H:%M:%S")
+        rows = []
+        for key in keys:
+            error = str(errors.get(key, ""))[:200]
+            rows.append((error, now, 1 if self.permanent_error(error) else max_retries,
+                         self.domain, self.kind, key))
         self.conn.executemany(
-            "UPDATE requests SET retries = retries + 1, error = ?, updated = ? "
-            "WHERE domain=? AND kind=? AND key=?",
-            [(str(errors.get(k, ""))[:200], now, self.domain, self.kind, k) for k in keys])
-        self.conn.executemany(
-            "UPDATE requests SET state = CASE WHEN retries >= ? THEN 'error' ELSE 'unprocessed' END "
-            "WHERE domain=? AND kind=? AND key=?",
-            [(max_retries, self.domain, self.kind, k) for k in keys])
+            "UPDATE requests SET retries = retries + 1, error = ?, updated = ?, "
+            "state = CASE WHEN retries + 1 >= ? THEN 'error' ELSE 'unprocessed' END "
+            "WHERE domain=? AND kind=? AND key=?", rows)
         self.conn.commit()
 
     RETRYABLE_MARKERS = ("http_0", "http_408", "http_425", "http_429", "http_5",
                          "document_error", "extraction_failed", "render_unverified")
+
+    @staticmethod
+    def permanent_error(error):
+        return (error or "").startswith(("http_0 archive_miss", "http_0 PDF exceeds response size limit",
+                                         "http_0 response_size_limit"))
+
+    @classmethod
+    def retryable_error(cls, error, statuses=()):
+        error = error or ""
+        if cls.permanent_error(error):
+            return False
+        match = re.match(r"http_(\d+)\b", error)
+        return bool(match and int(match.group(1)) in statuses) or error.startswith(cls.RETRYABLE_MARKERS)
 
     def retry_transient(self, cooldown=900, statuses=()):
         """把上一轮耗尽的"临时故障"死信重新入队（跨运行恢复）。
@@ -144,13 +160,11 @@ class RequestQueue:
             (self.domain, self.kind)).fetchall()
         retry = []
         for key, error, updated in rows:
-            match = re.match(r"http_(\d+)\b", error or "")
-            configured = match and int(match.group(1)) in statuses
-            if not configured and not any((error or "").startswith(m) for m in self.RETRYABLE_MARKERS):
+            if not self.retryable_error(error, statuses):
                 continue
             try:
                 ts = time.mktime(time.strptime(updated, "%Y-%m-%dT%H:%M:%S"))
-            except Exception:
+            except (ValueError, TypeError, OverflowError):
                 ts = 0
             if now - ts >= cooldown:
                 retry.append(key)
@@ -215,16 +229,20 @@ class RequestQueue:
 
     # ---------- reading ----------
     def next_batch(self, size=200):
+        if size < 1:
+            raise ValueError("QUEUE_BATCH must be a positive integer")
         cur = self.conn.execute(
             "SELECT url, channel, kind, label, state, retries, error, key FROM requests "
             "WHERE domain=? AND kind=? AND state='unprocessed' ORDER BY rowid LIMIT ?",
             (self.domain, self.kind, size))
         return [Request(*row) for row in cur.fetchall()]
 
-    def stats(self):
+    def stats(self) -> dict[str, int]:
         cur = self.conn.execute("SELECT state, COUNT(*) FROM requests WHERE domain=? AND kind=? GROUP BY state",
                                 (self.domain, self.kind))
         return dict(cur.fetchall())
 
-    def pending(self):
-        return self.stats().get("unprocessed", 0)
+    def pending(self) -> int:
+        return self.conn.execute(
+            "SELECT COUNT(*) FROM requests WHERE domain=? AND kind=? AND state='unprocessed'",
+            (self.domain, self.kind)).fetchone()[0]

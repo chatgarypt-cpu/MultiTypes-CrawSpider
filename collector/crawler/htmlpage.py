@@ -102,6 +102,118 @@ GATE_RATIO = 0.35          # 默认链接密度阈值：文字超过 35% 在 <a>
 GATE_MD_MAX = 1200         # Markdown 长于此值一律当正文（避免误杀长文章）
 
 
+# ---------- 结构化数据里的全文（前端付费墙的常见藏身处） ----------
+# 很多站把整篇文章塞进 JSON 里，只是前端按滚动"分段显示"或直接遮罩：
+#   - 部分 WordPress/Next.js 站：JSON-LD 的 articleBody 带全文（isAccessibleForFree=false）
+#   - Next.js：<script id="__NEXT_DATA__"> 里 props.pageProps.article.content
+#   - Nuxt：window.__NUXT__ = {...}
+#   - Vue/React SSR：window.__INITIAL_STATE__ = {...}
+# 这里只负责"把 JSON 里的长文本挖出来"，是否采用由 candidates 按长度与字段择优决定。
+_JSON_BLOB = re.compile(
+    r'<script[^>]*(?:id=["\']__NEXT_DATA__["\']|type=["\']application/(?:ld\+)?json["\'])[^>]*>(.*?)</script>',
+    re.S | re.I)
+_JS_STATE = re.compile(r'window\.__(?:NUXT|INITIAL_STATE|APOLLO_STATE|PRELOADED_STATE)__\s*=\s*(\{.*?\})\s*;?\s*(?:</script>|$)', re.S)
+_STRUCTURED_KEYS = ("articleBody", "articlebody", "content", "body", "html", "text", "markdown", "description")
+MIN_STRUCTURED = 600
+
+
+def _json_candidates(body):
+    """页面里所有可解析的 JSON blob（script 标签 + window.__X__ 状态）。"""
+    blobs = []
+    for m in _JSON_BLOB.finditer(body or ""):
+        raw = m.group(1).strip()
+        if len(raw) < 200:
+            continue
+        try:
+            blobs.append(json.loads(raw))
+        except Exception:
+            continue
+    for m in _JS_STATE.finditer(body or ""):
+        raw = m.group(1).strip()
+        try:
+            blobs.append(json.loads(raw))
+        except Exception:
+            continue
+    return blobs
+
+
+def _walk_text(node, out, depth=0):
+    """收集 JSON 里够长的字符串（正文常嵌在数组/对象深处）。"""
+    if depth > 8:
+        return
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if isinstance(value, str) and len(value) >= MIN_STRUCTURED and str(key).lower() in _STRUCTURED_KEYS:
+                out.append(value)
+            else:
+                _walk_text(value, out, depth + 1)
+    elif isinstance(node, list):
+        for value in node:
+            _walk_text(value, out, depth + 1)
+
+
+def _looks_like_prose(text):
+    """长字符串是不是正文：有句子、有空格、不是 base64/JSON 片段。"""
+    if len(text) < MIN_STRUCTURED:
+        return False
+    stripped = text.strip()
+    if stripped[:1] in "{[<" and stripped[-1:] in "}]>":
+        # 允许 HTML 片段，但纯 JSON/数组不算
+        if stripped[:1] in "{[":
+            return False
+    if " " not in stripped:
+        return False
+    if stripped.count(" ") < len(stripped) / 120:      # base64 / 压缩串
+        return False
+    return len(re.findall(r"[.!?。！？]\s", stripped)) >= 3
+
+
+MARKDOWN_LINE = re.compile(r"^Markdown Content:\s*$", re.M)
+
+
+def reader_document(body):
+    """第三方 Reader 服务的输出（`Title: ... / Markdown Content:`）→ (title, text)。
+
+    这类响应不是 HTML，走不了 trafilatura；直接按 Markdown 段落清洗。
+    """
+    if not body or "Markdown Content:" not in body:
+        return "", ""
+    title = ""
+    m = re.search(r"^Title:\s*(.+)$", body, re.M)
+    if m:
+        title = _norm(m.group(1))
+    parts = MARKDOWN_LINE.split(body, maxsplit=1)
+    text = parts[1] if len(parts) == 2 else body
+    lines = [line.rstrip() for line in text.splitlines()]
+    # 去掉纯链接行与图片行，保留段落
+    kept = [ln for ln in lines if ln.strip() and not re.fullmatch(r"\s*[-*]\s*\[.*\]\(.*\)\s*", ln)
+            and not ln.strip().startswith("![")]
+    cleaned = "\n".join(kept).strip()
+    return title, cleaned
+
+
+def structured_body(body, min_len=MIN_STRUCTURED):
+    """从 JSON-LD / __NEXT_DATA__ / __NUXT__ / __INITIAL_STATE__ 里挖出最长的正文。"""
+    best = ""
+    for blob in _json_candidates(body):
+        found = []
+        _walk_text(blob, found)
+        for text in found:
+            plain = _norm(_strip_tags(text))
+            if len(plain) >= min_len and _looks_like_prose(plain) and len(plain) > len(best):
+                best = plain
+    return best
+
+
+def _strip_tags(text):
+    if "<" not in text or ">" not in text:
+        return text
+    doc = _doc(text)
+    if doc is None:
+        return re.sub(r"<[^>]+>", " ", text)
+    return doc.text_content()
+
+
 def page_error(body):
     """Identify access/error documents before any article or metadata fallback."""
     title = re.search(r"<title[^>]*>(.*?)</title>", body or "", re.I | re.S)

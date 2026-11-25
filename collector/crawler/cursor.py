@@ -90,7 +90,12 @@ def save(domain, kind="posts", **fields):
     ``done`` 与 ``status`` 只能二选一：传了 ``done`` 就按它推导 status，
     传了 ``status`` 就忽略 ``done``（保持 done == status=="complete"）。
     """
-    fields = dict(fields)
+    from crawler.store import collection_lock
+    with collection_lock(domain, kind, data_dir=config.DATA):
+        return _save(domain, kind, fields)
+
+
+def _save(domain, kind, fields):
     d, path = _paths(domain, kind)
     cur = load(domain, kind)
     legacy_done = fields.pop("done", _MISSING)
