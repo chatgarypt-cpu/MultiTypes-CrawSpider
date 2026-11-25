@@ -46,9 +46,9 @@ uv run python collector/collect.py --all --limit 20
 空信源时的行为（都不是故障）：`--validate` 打印 `0 sites`；`--all` 提示"没有可采集的
 站点"并退出 0；`supervisor.py` 空闲常驻；`serve.py` 显示空看板。
 
-> 已知差异：看板提交的地址是"一次性 job"，自带探测结果、不写 `sources.yaml`；
-> `--site-url` 探测结果存进 `data/adhoc_sites.json`，但 `--all` 不会读它。
-> 要让一个站进入批量采集，仍需要写进 `sources.yaml`。
+> 在网页采集任务里点击「加入长期采集」，系统会停下试采、合并已采记录和可接续的待采链接，并把站点交给 Supervisor。
+> 已登记的站点沿用正式信源配置。新站复用试采规则写入 `sources.yaml`。
+> CLI 的 `--site-url` 把探测结果存进 `data/adhoc_sites.json`，正式批量采集读取 `sources.yaml`。
 
 ## 依赖与环境
 

@@ -2,6 +2,7 @@
 import json, logging, os, sys, time
 from contextlib import closing
 from datetime import datetime, timezone
+from pathlib import Path
 
 from crawler.config import DATA
 from crawler.store import collection_lock, db, existing_urls, load_cursor, _paths
@@ -61,11 +62,16 @@ def _record_run(site, channel, kind, started, result):
 def collect_site(site, limit, kind="posts", *, export_csv=True, reset=False):
     with collection_lock(site["domain"], kind, wait=False):
         if reset:
-            try:
-                os.unlink(_paths(site["domain"], kind)[2])
-            except FileNotFoundError:
-                pass
+            reset_progress(site, kind)
         return _collect_site(site, limit, kind, export_csv=export_csv)
+
+
+def reset_progress(site, kind):
+    """Reset discovery checkpoints while holding the collection lock."""
+    checkpoint = Path(_paths(site["domain"], kind)[2])
+    checkpoint.unlink(missing_ok=True)
+    if site.get("channel") == "json-list" and kind == "posts":
+        checkpoint.with_name("jsonlist.cursor.json").unlink(missing_ok=True)
 
 
 def _collect_site(site, limit, kind, *, export_csv):

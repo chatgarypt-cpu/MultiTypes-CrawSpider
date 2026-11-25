@@ -17,6 +17,7 @@ COLS = ["title","sub_title","url","channel_text","country_text","lang_text","use
         "third_channel","editor","updated_at","hit_num","read_num"]
 
 WORKERS = 8           # set by the CLI, used by the wp-api channel
+REQUEST_QUEUE_CHANNELS = frozenset({"sitemap", "html", "rss", "archive", "json-list"})
 
 
 def sources_path(directory=ROOT) -> Path:
@@ -30,7 +31,8 @@ def site_kinds(site):
     """Configured collections, including explicitly verified public WP types."""
     if site.get("channel") != "wp-api":
         return ("posts",)
-    return tuple(dict.fromkeys(("posts", "pages", "media", *(site.get("wp_types") or {}))))
+    kinds = tuple(dict.fromkeys(("posts", "pages", "media", *(site.get("wp_types") or {}))))
+    return tuple(kind for kind in kinds if not site.get("_scope_kinds") or kind in site["_scope_kinds"])
 
 
 def stored_kinds(directory):

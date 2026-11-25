@@ -198,6 +198,62 @@ def job_site(site):
     return result
 
 
+def run_site_action(job, update):
+    from contextlib import closing
+    from crawler.request import RequestQueue
+    from crawler.runner import collect_site, reset_progress
+    from crawler.store import CollectionBusy, collection_lock
+    from web_jobs import registered_site, require_backfill_enabled
+
+    site = registered_site(job['domain'])
+    if job['action'] == 'verify':
+        from verify_coverage import verify_and_store
+        update(stage='正在核对覆盖率')
+        record = verify_and_store(site, not_before=job.get('requested_at', job['created']))
+        failed = record['verdict'] == '核对失败'
+        update(status='failed' if failed else 'finished', stage=record['verdict'],
+               error=(record.get('verdict_detail') or record.get('source') or '核对失败') if failed else '',
+               finished=time.time())
+        return
+
+    kinds, mode = job['kinds'], job['mode']
+    if any(kind not in site_kinds(site) for kind in kinds):
+        raise ValueError('站点的采集集合已变化，请重新选择')
+    prepared = dict(job.get('prepared') or {})
+    results = dict(job.get('results') or {})
+    update(channel=site['channel'])
+    for kind in kinds:
+        if results.get(kind, {}).get('status') == 'complete' and not results[kind].get('error'):
+            continue
+        update(stage=f'补采 {kind}')
+        try:
+            require_backfill_enabled(site, [kind])
+            with collection_lock(site['domain'], kind, wait=False):
+                if kind not in prepared:
+                    requeued = 0
+                    if mode == 'retry':
+                        queue = RequestQueue(site['domain'], kind)
+                        with closing(queue.conn):
+                            requeued = queue.retry_transient(cooldown=0, statuses=site.get('retry_http_statuses') or ())
+                            requeued += queue.requeue_failed(
+                                ('no_text', 'short_text', 'extraction_failed', 'render_unverified'))['requeued']
+                    elif mode == 'rescan':
+                        reset_progress(site, kind)
+                    prepared[kind] = requeued
+                    update(prepared=prepared)
+                results[kind] = collect_site(site, 0, kind, export_csv=False)
+                results[kind]['requeued'] = prepared[kind]
+        except CollectionBusy:
+            results[kind] = {'status': 'interrupted', 'error': '该集合正在采集，请等当前任务结束后再试'}
+        except (OSError, ValueError, RuntimeError) as exc:
+            results[kind] = {'status': 'failed', 'error': str(exc)}
+        update(results=results, saved=sum(result.get('saved', 0) for result in results.values()))
+    errors = [result['error'] for result in results.values() if result.get('error')]
+    incomplete = any(result.get('status') != 'complete' for result in results.values())
+    update(status='failed' if len(errors) == len(kinds) else 'partial' if incomplete or errors else 'finished',
+           stage='补采本轮结束', error='；'.join(dict.fromkeys(errors)), finished=time.time())
+
+
 def run(directory):
     directory = Path(directory)
     path = directory / 'job.json'
@@ -212,6 +268,14 @@ def run(directory):
             raise KeyboardInterrupt()
         signal.signal(signal.SIGTERM, stop)
         try:
+            if job.get('action') == 'register':
+                from registration import register
+                register(job, update)
+                return
+            if job.get('action'):
+                run_site_action(job, update)
+                return
+
             from crawler.runner import collect_site
             from crawler.web import Fetcher
             from crawler.discover import wp_type_inventory
@@ -279,13 +343,16 @@ def run(directory):
                    warnings=warnings, finished=time.time(),
                    error='部分内容未采完，请查看各集合结果或日志后继续。' if bad else '')
         except KeyboardInterrupt:
-            export_available(locals().get('site'))
-            update(status='interrupted', stage='已停止', error='任务已停止，已保存的数据保留，可继续采集。')
+            if job.get('action') != 'verify':
+                export_available(locals().get('site'))
+            update(status='interrupted', stage='已停止', error='任务已停止，可在任务队列中继续。')
         except Exception as exc:
             import traceback
             traceback.print_exc()
             export_available(locals().get('site'))
-            update(status='failed', stage='采集失败', error=str(exc), finished=time.time())
+            stage = {'verify': '核对失败', 'register': '加入长期采集失败'}
+            update(status='failed', stage=stage.get(job.get('action'), '采集失败'),
+                   error=str(exc), finished=time.time())
 
 
 def export_available(site):

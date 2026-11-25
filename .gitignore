@@ -30,6 +30,7 @@ sources.yaml.bak-*
 
 # Operator catalogs, crawl snapshots and internal reports
 /collector/sources.yaml
+/collector/sources.yaml.lock
 /backfill_tasks.json
 /collector/STRATEGY.md
 /docs/sources/

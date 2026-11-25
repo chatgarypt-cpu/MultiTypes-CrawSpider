@@ -28,11 +28,19 @@ STATUS_LOCK = threading.Lock()
 def cached_status(desktop=False):
     with STATUS_LOCK:
         if time.time() - _STATUS_CACHE['at'] > 3:
-            domains = None
-            if desktop:
-                with web_jobs.LOCK:
-                    domains = [urlsplit(job['url']).netloc for job in web_jobs.jobs() if job['status'] == 'running']
-            _STATUS_CACHE.update(at=time.time(), payload=json.dumps(status_mod.build_status(domains), ensure_ascii=False))
+            with web_jobs.LOCK:
+                entries = web_jobs.jobs()
+            running = [job for job in entries if job['status'] == 'running']
+            domains = [urlsplit(job['url']).netloc for job in running
+                       if job.get('action') in (None, 'backfill')] if desktop else None
+            data = status_mod.build_status(domains)
+            if not desktop:
+                backfills = [job['domain'] for job in running if job.get('action') == 'backfill']
+                data['running_domains'] = sorted(set(data['running_domains']) | set(backfills))
+                data['running'] = data['running'] or bool(backfills)
+                data['tasks_running'] += len(backfills)
+            data['site_actions'] = web_jobs.latest_site_actions(entries)
+            _STATUS_CACHE.update(at=time.time(), payload=json.dumps(data, ensure_ascii=False))
         return _STATUS_CACHE['payload']
 
 
@@ -181,8 +189,12 @@ class H(BaseHTTPRequestHandler):
                     return self.json({'ok': True, 'results': confirm(body['preview_id'])}, 202)
                 values = body.get('urls', [body.get('url', '')])
                 return self.json({'ok': True, 'results': web_jobs.submit(values)}, 202)
+            if self.path == '/api/site-actions':
+                return self.json(web_jobs.submit_site_action(body), 202)
             if self.path.startswith('/api/jobs/'):
                 parts = self.path.split('/')
+                if len(parts) == 5 and parts[4] == 'register':
+                    return self.json(web_jobs.submit_registration(parts[3]), 202)
                 if len(parts) == 5 and parts[4] == 'resume':
                     web_jobs.resume(parts[3])
                     return self.json({'ok': True})

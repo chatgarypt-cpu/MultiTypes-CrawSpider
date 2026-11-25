@@ -88,7 +88,13 @@ def _impersonate(site):
     return "chrome" if (site or {}).get("via") in ("impersonate", "browser", "cloud") else None
 
 
-def http(url, timeout=45, impersonate=None, **options):
+def http(url, timeout=45, impersonate=None, public_host=None, **options):
+    if public_host:
+        import requests
+        from crawler.public_urls import public_get
+        from crawler.web import PUBLIC_ROBOTS
+        return public_get(requests.get, url, timeout=timeout, headers=UA, same_host=public_host,
+                          allow_target=PUBLIC_ROBOTS.allowed, **options)
     if impersonate:
         from curl_cffi import requests as cffi
         return cffi.get(url, impersonate=impersonate, timeout=timeout, headers=UA, **options)
@@ -98,9 +104,11 @@ def http(url, timeout=45, impersonate=None, **options):
 
 def transport_options(site):
     options = {}
+    if site.get("_public_host"):
+        options["public_host"] = site["_public_host"]
     if site.get("ignore_https_errors"):
         options["verify"] = False
-    if site.get("http_version") == "1.1" and _impersonate(site):
+    if site.get("http_version") == "1.1" and _impersonate(site) and not site.get("_public_host"):
         options["http_version"] = 2
     return options
 
@@ -180,7 +188,7 @@ def sitemap_urls(site, limit_children=None, state=None):
     if not path.startswith("http"):
         path = base + path
     seen, queue, urls = set(), [path], []
-    from crawler.discover import sitemap_locs
+    from crawler.discover import in_path_scope, sitemap_locs
     while queue and (not limit_children or len(seen) < limit_children):
         u = queue.pop(0)
         if u in seen:
@@ -222,7 +230,7 @@ def sitemap_urls(site, limit_children=None, state=None):
     if not filt and not pat and not site.get("coverage_all"):
         # 默认只把文章型 URL 计入总量；全站详情页规则下的站（coverage_all）按全部 <loc> 对账
         urls = [u for u in urls if ARTICLE_RE.search(u)]
-    return list(dict.fromkeys(urls))
+    return list(dict.fromkeys(url for url in urls if in_path_scope(url, site)))
 
 
 # ---------------------------------------------------------------- guard / diff (pure)
@@ -369,7 +377,7 @@ def verify_site(s, got):
                 rec["verdict_detail"] = "上游 sitemap 未返回任何 <loc>（expected 缺失/为 0），无法按同一范围核对"
         elif channel == "json-api":
             from crawler.channels.json_api import page_url
-            r = http(page_url(s, totals=True))
+            r = http(page_url(s, totals=True), **transport_options(s))
             if r.status_code != 200:
                 raise ValueError(f"HTTP {r.status_code}")
             rec["source"] = "Directus meta"
@@ -462,7 +470,7 @@ def print_table(payload):
     print(f"有可信上游总量 {payload['verified']} 站，其中已核对(>=95%) {payload['complete']} 站")
 
 
-def verify_and_store(site):
+def verify_and_store(site, *, not_before=None):
     """Publish a per-site receipt atomically, without replacing another site's history."""
     from pathlib import Path
     import fcntl
@@ -471,14 +479,23 @@ def verify_and_store(site):
     domain = site["domain"]
     if "/" in domain or "\\" in domain or domain.startswith("."):
         raise ValueError("invalid domain")
+    path = directory / (domain + ".json")
     with (directory / (domain + ".lock")).open("a") as lock:
         try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(lock, fcntl.LOCK_EX | (fcntl.LOCK_NB if not_before is None else 0))
         except BlockingIOError:
             return None
+        if not_before is not None:
+            # A concurrent check that published since the request already refreshed this site.
+            try:
+                if path.stat().st_mtime >= not_before:
+                    record = json.loads(path.read_text(encoding="utf-8"))
+                    if isinstance(record, dict) and record.get("domain") == domain:
+                        return record
+            except (OSError, ValueError):
+                pass
         got = {k: rows(domain, k) for k in site_kinds(site)}
         rec = verify_site(site, got)
-        path = directory / (domain + ".json")
         tmp = path.with_suffix(".tmp")
         tmp.write_text(json.dumps(rec, ensure_ascii=False, indent=1), encoding="utf-8")
         os.replace(tmp, path)

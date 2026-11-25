@@ -315,8 +315,10 @@ def main() -> int:
     completed, stalled, idle = [], [], []
     paused = set()
     attempts, ready_at = {}, {}
-    if os.environ.get("CRAWL_RESUME_STATE") == "1":
+    registrations = set()
+    if os.environ.get("CRAWL_RESUME_STATE") == "1" and STATE.is_file():
         queue, completed, stalled, idle, paused, attempts = resume_snapshot(queue, STATE)
+        registrations.update(json.loads(STATE.read_text(encoding="utf-8")).get("registrations", ()))
         log(f"resume snapshot pending={len(queue)} completed={len(completed)} "
             f"idle={len(idle)} stalled={len(stalled)} paused={len(paused)}")
     stop = False
@@ -324,9 +326,55 @@ def main() -> int:
     prior_pause = False
 
     def publish():
-        write_state(state_payload(DATA, running, queue, completed, stalled, attempts,
-                                    paused_by_user=[f"{d}:{k}" for d, k in paused], idle=idle))
+        payload = state_payload(DATA, running, queue, completed, stalled, attempts,
+                                paused_by_user=[f"{d}:{k}" for d, k in paused], idle=idle)
+        if registrations:
+            payload["registrations"] = sorted(registrations)
+        write_state(payload)
         _write_health(DATA, running, queue, stalled, completed)
+
+    def accept_registrations(skip):
+        requests = sorted((DATA / "supervisor-inbox").glob("*.json"))
+        if not requests:
+            return
+        import yaml
+        try:
+            configured = set(load_tasks())
+        except (OSError, ValueError, yaml.YAMLError):
+            return
+        acknowledged = []
+        for path in requests:
+            if path.stem not in registrations:
+                try:
+                    request = json.loads(path.read_text(encoding="utf-8"))
+                    domain, kinds = request["domain"], request["kinds"]
+                    if not isinstance(domain, str) or not isinstance(kinds, list) or not all(isinstance(kind, str) for kind in kinds):
+                        continue
+                    keys = [(domain, kind) for kind in kinds]
+                except (OSError, ValueError, KeyError, TypeError):
+                    continue
+                if not keys or not all(key in configured for key in keys):
+                    continue
+                for key in keys:
+                    if key in running or key in queue or key in paused:
+                        continue
+                    for parked in (completed, stalled, idle):
+                        if key in parked:
+                            parked.remove(key)
+                    attempts.pop(key, None)
+                    ready_at.pop(key, None)
+                    if f"{key[0]}:{key[1]}" in skip:
+                        paused.add(key)
+                    else:
+                        queue.append(key)
+                registrations.add(path.stem)
+                log(f"registered {domain} collections={','.join(kinds)} job={path.stem}")
+            acknowledged.append(path)
+        if acknowledged:
+            # Persist admission before deleting the request or starting a child.
+            publish()
+            for path in acknowledged:
+                path.unlink(missing_ok=True)
 
     def on_term(*_):
         nonlocal stop
@@ -420,6 +468,8 @@ def main() -> int:
                 ready_at.pop(key, None)
                 queue.append(key)
                 log(f"resume {key[0]} {key[1]} after CRAWL_SKIP")
+
+        accept_registrations(skip)
 
         if not globally_paused:
             for key in list(queue):

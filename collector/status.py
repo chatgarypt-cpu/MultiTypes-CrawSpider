@@ -4,7 +4,7 @@ import json, os, glob, re, subprocess
 from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-from crawler.config import DATA, sources_path
+from crawler.config import DATA, REQUEST_QUEUE_CHANNELS, site_kinds, sources_path
 
 def running():
     try:
@@ -161,10 +161,11 @@ def count_lines(path):
     return n
 
 
-def site_row(d):
-    cfg = source_cfg().get(os.path.basename(d), {})
-    os.makedirs(d, exist_ok=True)
+def site_row(d, cfg=None):
     dom = os.path.basename(d)
+    if cfg is None:
+        cfg = source_cfg().get(dom, {})
+    os.makedirs(d, exist_ok=True)
     disabled = cfg.get("disabled") is True
     cov = coverage_flags(dom)
     cur = {}
@@ -178,8 +179,8 @@ def site_row(d):
     ap = os.path.join(d, "articles.jsonl")
     if os.path.exists(ap): chars = os.path.getsize(ap)
     def kind_count(kind):
-        f = os.path.join(d, "pages.urls.txt" if kind == "pages" else "media.urls.txt")
-        c = os.path.join(d, "pages.cursor.json" if kind == "pages" else "media.cursor.json")
+        f = os.path.join(d, f"{kind}.urls.txt")
+        c = os.path.join(d, f"{kind}.cursor.json")
         n = count_lines(f) if os.path.exists(f) else 0
         cur2 = {}
         if os.path.exists(c):
@@ -187,24 +188,25 @@ def site_row(d):
             except Exception: pass
         return {"n": n, "page": cur2.get("next_page", 0), "pages": cur2.get("total_pages"),
                 "done": cur2.get("done", False), "status": cur2.get("status", ""), "last_reason": cur2.get("last_reason", ""), "updated": (cur2.get("updated") or "")[:19]}
+    collections = [kind for kind in site_kinds(cfg) if re.fullmatch(r"[a-z][a-z0-9_-]*", kind)] if cfg.get("base") and cfg.get("channel") else []
+    kinds = {kind: kind_count(kind) for kind in dict.fromkeys(("pages", "media", *collections)) if kind != "posts"}
+    kinds["posts"] = {"n": n, "page": cur.get("next_page", 0), "pages": cur.get("total_pages"),
+                      "done": cur.get("done", False), "status": cur.get("status", ""),
+                      "last_reason": cur.get("last_reason", ""), "updated": (cur.get("updated") or "")[:19]}
     return {"domain": dom, "saved": n,
             "page": cur.get("next_page", 0), "pages": cur.get("total_pages"),
             "posts": cur.get("total_posts"), "done": cur.get("done", False),
             "updated": (cur.get("updated") or "")[:19], "mb": round(chars / 1e6, 2),
-            "pages_n": kind_count("pages")["n"], "media_n": kind_count("media")["n"],
-            "channel": cfg.get("channel", ""),
+            "pages_n": kinds["pages"]["n"], "media_n": kinds["media"]["n"],
+            "channel": cfg.get("channel", ""), "collections": collections,
+            "can_retry_links": cfg.get("channel") in REQUEST_QUEUE_CHANNELS,
             # 三类必须分开：任务结束（done，前端另有"不完整"判定）、覆盖率已核对（verified）、
             # 缺入口或不可访问（needs_config / disabled）。disabled 站不再算"待配置"。
             **cov,
             "needs_config": bool(not disabled and cfg.get("channel") == "html"
                                  and not (cfg.get("list_url") or cfg.get("list_urls"))),
             "disabled": disabled, "disabled_reason": cfg.get("disabled_reason", ""),
-            "kinds": {"posts": {"n": n, "page": cur.get("next_page", 0), "pages": cur.get("total_pages"),
-                                # done/status 必须带上：前端"不完整"判定依赖每类的 done，
-                                # 之前 posts 缺 done 导致 30 个已完成的非 WP 站被误判为不完整
-                                "done": cur.get("done", False), "status": cur.get("status", ""), "last_reason": cur.get("last_reason", ""),
-                                "updated": (cur.get("updated") or "")[:19]},
-                      "pages": kind_count("pages"), "media": kind_count("media")}}
+            "kinds": kinds}
 
 _last = {"total": None, "at": 0.0, "rate": 0.0}
 
@@ -235,7 +237,8 @@ def all_domains():
 def build_status(web_domains=None):
     import time as _t
     global _last
-    rows = [site_row(os.path.join(DATA, d)) for d in all_domains()]
+    sites = source_cfg()
+    rows = [site_row(os.path.join(DATA, d), sites.get(d, {})) for d in all_domains()]
     rows.sort(key=lambda r: -r["saved"])
     total = sum(r["saved"] for r in rows)
     now = _t.time()

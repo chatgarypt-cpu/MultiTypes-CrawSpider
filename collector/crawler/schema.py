@@ -25,6 +25,7 @@ REQUIRED = {
 
 # every key a channel may carry (plus the universally shared ones)
 SHARED = {"domain", "aliases", "name", "country", "lang", "type", "channel", "base", "via", "sitemap", "feed",
+          "_public_host", "_path_scope",
           "url_filter", "link_pattern", "min_text", "note", "notes", "detected", "no_embed",
           "pages", "page_step", "discover_cap", "orderby", "order", "via_posts", "via_pages", "via_media", "wp_per_page", "wp_fields",
           # html 页面流水线（crawler.htmlpage）：schema=XPath→字段，llm_fields=让可选 LLM 补的空字段
@@ -39,7 +40,7 @@ SHARED = {"domain", "aliases", "name", "country", "lang", "type", "channel", "ba
           # 出口代理池（crawler.proxies）：换 IP / 虚拟出口
           "proxy", "proxy_pool", "proxy_sticky"}
 OPTIONAL = {
-    "wp-api": {"api", "wp_types", "wp_fields_media", "wp_empty_page_limit", "wp_empty_retries"},
+    "wp-api": {"api", "wp_types", "wp_fields_media", "wp_empty_page_limit", "wp_empty_retries", "_scope_kinds"},
     "sitemap": set(),
     "rss": set(),
     "html": {"list_url", "list_urls", "item_selector"},
@@ -51,6 +52,7 @@ OPTIONAL = {
 VIA = {"direct", "impersonate", "cloud", "browser", "ego", "playwright", "brightdata", "camoufox",
        "proxy", "archive"}
 TYPES = {
+    "_public_host": str, "_path_scope": str, "_scope_kinds": list,
     "prune_xpath": list,
     "include_premium": bool, "premium_marker": str, "free_field": str,
     "documents": bool, "retry_http_statuses": list, "backfill_revision": dict,
@@ -149,6 +151,11 @@ def validate_site(site):
                 errors.append(f"{domain}: invalid WP collection name {kind!r}")
             if not isinstance(route, str) or not re.fullmatch(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)+", route):
                 errors.append(f"{domain}: invalid WP REST route {route!r}")
+    if isinstance(site.get("_scope_kinds"), list):
+        wp_types = site.get("wp_types")
+        allowed_kinds = ("posts", "pages", "media", *(wp_types if isinstance(wp_types, dict) else ()))
+        if channel != "wp-api" or any(kind not in allowed_kinds for kind in site["_scope_kinds"]):
+            errors.append(f"{domain}: _scope_kinds must select configured WordPress collections")
     if isinstance(site.get("retry_http_statuses"), list):
         if any(type(code) is not int or not 400 <= code <= 599 for code in site["retry_http_statuses"]):
             errors.append(f"{domain}: retry_http_statuses must contain HTTP error codes")
