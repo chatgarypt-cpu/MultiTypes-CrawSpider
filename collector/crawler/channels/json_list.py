@@ -87,7 +87,7 @@ def fetch_page(pat, base, page, cats, items_key="stories", workers=None):
 
 def collect_json_list(site, limit=0, log=None):
     counts = DetailCounts()
-    paywall.reset_budget()
+    paywall.reset_budget(site.get("paywall_budget"))
     base = site["base"].rstrip("/")
     cats = site.get("api_categories") or [None]
     pat = site.get("api_list") or ""

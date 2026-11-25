@@ -168,6 +168,30 @@ def _looks_like_prose(text):
     return len(re.findall(r"[.!?。！？]\s", stripped)) >= 3
 
 
+MARKDOWN_LINE = re.compile(r"^Markdown Content:\s*$", re.M)
+
+
+def reader_document(body):
+    """第三方 Reader 服务的输出（`Title: ... / Markdown Content:`）→ (title, text)。
+
+    这类响应不是 HTML，走不了 trafilatura；直接按 Markdown 段落清洗。
+    """
+    if not body or "Markdown Content:" not in body:
+        return "", ""
+    title = ""
+    m = re.search(r"^Title:\s*(.+)$", body, re.M)
+    if m:
+        title = _norm(m.group(1))
+    parts = MARKDOWN_LINE.split(body, maxsplit=1)
+    text = parts[1] if len(parts) == 2 else body
+    lines = [line.rstrip() for line in text.splitlines()]
+    # 去掉纯链接行与图片行，保留段落
+    kept = [ln for ln in lines if ln.strip() and not re.fullmatch(r"\s*[-*]\s*\[.*\]\(.*\)\s*", ln)
+            and not ln.strip().startswith("![")]
+    cleaned = "\n".join(kept).strip()
+    return title, cleaned
+
+
 def structured_body(body, min_len=MIN_STRUCTURED):
     """从 JSON-LD / __NEXT_DATA__ / __NUXT__ / __INITIAL_STATE__ 里挖出最长的正文。"""
     best = ""

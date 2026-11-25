@@ -177,6 +177,11 @@ def extract_best(url, body, site=None, min_text=60):
 
     HTML 通道还会过列表页闸门、按 site 的 schema/llm_fields 补字段（crawler.htmlpage）。
     """
+    # 第三方 Reader 输出的是 Markdown，不是 HTML：直接当正文，别喂给 trafilatura
+    rtitle, rtext = htmlpage.reader_document(body)
+    if rtext and len(rtext) >= min_text:
+        return htmlpage.enrich({"url": url, "title": rtitle, "text": rtext,
+                                "_extractor": "reader_markdown"}, body, url, site)
     if htmlpage.page_error(body) or htmlpage.is_navigation_page(url, body, site):
         return None
     cands = candidates(url, body, site)

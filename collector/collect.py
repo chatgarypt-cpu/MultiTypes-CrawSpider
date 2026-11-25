@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import yaml                                              # noqa: E402
 
-from crawler.config import ROOT, DATA, sources_path     # noqa: E402
+from crawler.config import ROOT, DATA, sources_path, bypass   # noqa: E402
 from crawler.runner import collect_site                  # noqa: E402
 from crawler.store import load_cursor, append_rows, load_known, save_cursor  # noqa: E402  (legacy imports)
 from crawler.mapping import map_wp_post, map_wp_media, map_json_item, _flatten_rich  # noqa: E402
@@ -254,7 +254,8 @@ def main():
         sys.exit("need --site or --all")
 
     # 人工标记 disabled 的站不参与批量/类型采集；显式 --site 仍可单独跑（便于临时验证）
-    if not a.site:
+    # 全局放开（data/CRAWL_BYPASS）时 disabled 也一起采。
+    if not a.site and not bypass():
         skipped_disabled = [s["domain"] for s in sites if s.get("disabled")]
         sites = [s for s in sites if not s.get("disabled")]
         if skipped_disabled:

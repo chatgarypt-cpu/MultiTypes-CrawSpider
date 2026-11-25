@@ -62,9 +62,12 @@ def load_tasks(sources_path=None) -> list:
     if not path.exists():
         return []
     sites = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+    force = config.bypass()          # data/CRAWL_BYPASS：disabled 站也入队
     out = []
     for s in sites:
-        if not isinstance(s, dict) or not s.get("domain") or s.get("disabled"):
+        if not isinstance(s, dict) or not s.get("domain"):
+            continue
+        if s.get("disabled") and not force:
             continue
         dom = s["domain"]
         out.extend((dom, kind) for kind in site_kinds(s))

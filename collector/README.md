@@ -55,7 +55,12 @@ uv run python collector/export_csv.py --site <域名>
 uv run python collector/serve.py      # http://127.0.0.1:8787/
 ```
 
-## 通道
+## 渠道全景（2026-11-25：29 条，分四层）
+
+一次采集 = **发现 → 取文 →（被挡时）回退 → 提取**。四层各自可换，组合出 29 条渠道；
+但能砸开硬墙的只有 3 条半，其余 25 条负责"正常站采得全、采得稳"。
+
+### 1. 发现（7 条）——从哪儿知道有什么文章
 
 | channel | 发现方式 | 对象 |
 |---|---|---|
@@ -63,17 +68,70 @@ uv run python collector/serve.py      # http://127.0.0.1:8787/
 | `sitemap` | sitemap.xml（支持 `url_filter`） | 文章 |
 | `rss` | feed 条目 | 文章 |
 | `html` | 列表页 + `link_pattern`（或 `item_selector` XPath；未配置则跳过） | 文章 |
+| `json-api` | 站点自研 JSON 接口 | 文章 |
 | `json-list` | 列表 JSON `api_list`（分页 + 可选 `api_categories`）→ 详情页 | 文章 |
+| `archive` | **逆向**：Wayback CDX 里的历史页面清单 | 文章 |
 
 `json-list` 支持 `scan_mode: full|incremental`（增量只看前几页新内容）、`known_pages_stop`、
 `max_pages_per_run`（单轮翻页上限，避免长期占并发槽）；列表请求复用连接池并按域限速。
 
-出口：`direct`（默认）/ `cloud`（Browserbase `/v1/fetch`）/ `browser`（会话隧道，过 Cloudflare）/ `impersonate`（Chrome TLS 指纹）/ `ego`（本机 Chromium，macOS）/ `playwright`（服务器用 headless Chromium，需 `uv sync --extra browser` + `python -m playwright install --with-deps chromium`）。
+### 2. 取文出口（10 条，`via:`）——用谁的身份、从哪条路去拿
+
+| via | 本质 |
+|---|---|
+| `direct` | 正常请求（默认） |
+| `impersonate` | curl_cffi 伪造 Chrome TLS 指纹 |
+| `playwright` | 真 headless Chromium（服务器用，`uv sync --extra browser`） |
+| `ego` | 本机常驻 Chrome（macOS） |
+| `camoufox` | 反检测 Firefox |
+| `browser` | 远端浏览器会话（Browserbase 会话隧道，过 Cloudflare） |
+| `cloud` | Browserbase `/v1/fetch` 云取文 |
+| `brightdata` | 商业解锁器（对方 IP 池） |
+| `proxy` | 自建代理池（http/socks5、每域粘性、失败冷却，见下文「出口 IP」） |
+| `archive` | 逆向：只从 wayback 快照取，不碰源站（见下文「逆向采集」） |
 
 > `ego` 复用系统 Chrome 单实例，运行期间本地 Chrome 可能打不开。DSH Web 的浏览器插件
 > （ego-cast-worker）会自动拉起 ego，kill 后可能数秒内复活；要彻底停用需在 DSH web profile
 > 禁用该插件。日常采集优先 `playwright`；临时释放用 `scripts/stop-ego.sh`（只动 ego lite，
 > 不动系统 Chrome/DSH web 服务）。
+
+### 3. 墙后回退（6 条）——正面进不去时换说法
+
+| 源 | 干的事 | 详见 |
+|---|---|---|
+| `bpc` | Bypass Paywalls Clean 的 416 条站点规则（UA/referer/清 cookie/拦墙脚本） | 下文「BPC 规则」 |
+| `googlebot` | 伪装搜索引擎爬虫（新闻站为 SEO 对 Googlebot 放全文） | 下文「付费墙回退」 |
+| `freedium` | Medium 专用镜像（`freedium.cfd` 等） | 同上 |
+| `archive_org` | wayback `/web/<ts>id_/` 原始快照 | 同上 |
+| `archive_today` | `archive.ph/today/is/li` 四个镜像 | 同上 |
+| `reader` | r.jina.ai，从对方 IP 抓成 Markdown（对"按出口 IP 限流"的站有效） | 同上 |
+
+回退预算按站配置 `paywall_budget`（默认 80）：整站几百个详情页全失败时（如 `wallis` 的
+HTTP/2 `ENHANCE_YOUR_CALM`），预算会在前 80 条就耗光，后面的直接记 `http_0`——所以这类站
+要显式调大。`PAYWALL_READER=0` 可关掉 reader 兜底。
+
+### 4. 提取（6 条）——拿到手之后怎么把正文抠出来
+
+| extractor | 触发条件 |
+|---|---|
+| `trafilatura` | 主路径：剪枝降噪 + Markdown |
+| `jsonld` | JSON-LD 里有 `articleBody`（>200 字） |
+| `structured_json` | `__NEXT_DATA__` / `__NUXT__` / `__INITIAL_STATE__` 里有全文（前端付费墙常见） |
+| `html_text` | 剪枝结果明显不合格（< 粗抽的 40%）时兜底 |
+| `reader_markdown` | 第三方 Reader 输出，直接当正文，不进 trafilatura |
+| `+meta` | 正文抽不出来时保留题录（标题/日期/描述） |
+
+### 战斗力：这些渠道各能对付什么墙
+
+| 墙的类型 | 有效手段 | 状态 |
+|---|---|---|
+| Googlebot / 搜索引擎白名单 | `googlebot` UA | ✅ |
+| 前端遮罩 / 全文藏在 JSON | `bpc` 规则 + `structured_json` | ✅ |
+| 付费墙脚本驱动（meter.js 等） | `bpc` 规则 + Playwright `route.abort` | ✅ NYT 实测 403→200 |
+| 计量型（每月 N 篇） | 无 cookie 会话 + 换出口 IP | ✅ |
+| 登录墙 / 内容已删 | `archive_org` / `archive_today` | ✅ |
+| 按出口 IP 限流/拦截 | `reader`（r.jina.ai）或 `proxy` / `brightdata` | ✅ wallis 实测可用 |
+| 真订阅墙 + 无任何存档 | —— | ❌ 无解 |
 
 ## 付费墙 / 反爬回退（13ft，2026-11-24）
 
@@ -132,6 +190,42 @@ nonce/token 不同就不相等，会让 Googlebot 用摘要冒充成功、提前
 # 3) 单站补采；带关键词的日志里会出现 paywall recovered source=...
 .venv/bin/python collector/collect.py --site public.example.org --limit 50
 ```
+
+## BPC 规则（Bypass Paywalls Clean，2026-11-25）
+
+上游 [magnolia1234/bypass-paywalls-clean-filters](https://gitlab.com/magnolia1234/bypass-paywalls-clean-filters)
+（MIT）的站点规则库，**规则一行未改**地搬进来，采集端只负责执行：
+
+```
+collector/crawler/bpc_rules/
+├── sites.js        上游原文件（70 KB，sha256 记在 upstream.json）
+├── LICENSE         MIT, Copyright (c) 2020 magnolia1234
+├── upstream.json   来源 / commit / 获取日期 / 校验和 / 更新流程
+├── export.mjs      只做 JS→JSON 序列化（RegExp 保留 source/flags）
+└── rules.json      416 条规则（allow_cookies 325 / block_regex 227 / useragent 67 / group 66）
+```
+
+字段语义照搬上游（`crawler/bpc.py` 里有对照表）：`domain`/`group` 后缀匹配、`excluded_domains`
+排除、`useragent: googlebot|bingbot` 换 UA、`referer` 伪造来源、`random_ip` 造 `X-Forwarded-For`、
+`remove_cookies` 用无 cookie 会话等效实现、`block_regex` 透出给浏览器路径。
+
+**两层执行**：
+
+| 层 | 能做什么 | 不能做什么 |
+|---|---|---|
+| HTTP（`bpc.py`） | 换 UA / Referer / XFF、干净会话、命中即作为回退链首位 | 拦不了 `meter.js` 这类脚本 |
+| 浏览器（Playwright） | `page.route` 按 `block_regex` 拦截付费墙脚本 + `amp_unhide` 解锁 CSS | 需要 `via: playwright` + `paywall_fallback` |
+
+**实测**：
+
+| 站 | HTTP 层 | 浏览器层（拦 meter.js） |
+|---|---|---|
+| `thetimes.co.uk` | 200 / 正文 3175 字 | 200 / 3199 字（本来就能过） |
+| `nytimes.com` | 403（DataDome） | **200 / 正文 2526 字**（403 → 可读） |
+
+站点开了 `paywall_fallback` 时，`web.py` 的 playwright 分支才会传 `bpc_rules=True`，其他站行为不变。
+
+更新规则：替换 `sites.js` + 更新 `upstream.json` → `node collector/crawler/bpc_rules/export.mjs`。
 
 ## 逆向采集（channel: archive / via: archive，2026-11-24）
 

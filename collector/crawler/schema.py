@@ -35,7 +35,7 @@ SHARED = {"domain", "aliases", "name", "country", "lang", "type", "channel", "ba
           "disabled", "disabled_reason", "coverage_all", "brightdata_zone", "camoufox_wait_ms", "ignore_https_errors", "http_version",
           "documents", "retry_http_statuses", "backfill_revision", "premium_marker",
           # 付费墙/反爬回退（crawler.paywall）：13ft 取文链路开关
-          "paywall_fallback", "paywall_service",
+          "paywall_fallback", "paywall_service", "paywall_budget",
           # 出口代理池（crawler.proxies）：换 IP / 虚拟出口
           "proxy", "proxy_pool", "proxy_sticky"}
 OPTIONAL = {
@@ -65,7 +65,7 @@ TYPES = {
     "playwright_wait_ms": int, "block_resources": bool, "headless": bool,
     "scan_mode": str, "known_pages_stop": int, "max_pages_per_run": int,
     "disabled": bool, "disabled_reason": str,
-    "paywall_fallback": str, "paywall_service": str,
+    "paywall_fallback": str, "paywall_service": str, "paywall_budget": int,
     "proxy": str, "proxy_pool": str, "proxy_sticky": bool,
     "cdx": dict,
 }

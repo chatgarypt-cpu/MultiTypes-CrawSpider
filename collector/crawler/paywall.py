@@ -109,6 +109,11 @@ def placeholder(body):
     return next((p for p in PLACEHOLDER_TITLES if p in title), "")
 
 
+def _is_html(text):
+    head = (text or "")[:400].lower()
+    return "<html" in head or "<body" in head or "<!doctype" in head
+
+
 def usable(body, previous=""):
     """一份响应是否值得交给提取器：非空、长度够、不是挑战/错误页、且正文确实变多了。
 
@@ -125,8 +130,8 @@ def usable(body, previous=""):
     if body.strip() == previous.strip():
         return False
     try:
-        old_len = len(markdown(previous) or "")
-        new_len = len(markdown(body) or "")
+        old_len = len(markdown(previous) or "") if _is_html(previous) else len(previous)
+        new_len = len(markdown(body) or "") if _is_html(body) else len(body)
     except Exception:
         return True
     return new_len >= old_len + 400 and new_len >= old_len * 1.2
@@ -162,6 +167,34 @@ def _service(url, base):
         return 200, r.text or "", r.url or base
     finally:
         r.close()
+
+
+READER_BASE = os.environ.get("PAYWALL_READER_BASE", "https://r.jina.ai/")
+
+
+def _reader(url):
+    """第三方 Reader 服务取文：从对方的 IP 抓，绕开"按出口 IP 限流"的站。
+
+    返回 Markdown（`Title: ... / Markdown Content:` 结构），交给 extract 的纯文本直通。
+    只在链尾兜底，避免把每次回退都变成外部请求。
+    """
+    if os.environ.get("PAYWALL_READER", "1").strip().lower() in ("0", "false", "off"):
+        return 0, "", ""
+    try:
+        r = requests.get(READER_BASE + url, headers={"Accept": "text/plain"},
+                         timeout=(10, 45))
+    except Exception:
+        return 0, "", ""
+    if r.status_code != 200:
+        r.close()
+        return r.status_code, "", ""
+    try:
+        text = r.text or ""
+    finally:
+        r.close()
+    if "Markdown Content:" not in text:
+        return 0, "", ""
+    return 200, text, url
 
 
 def _bpc(url):
@@ -279,7 +312,8 @@ def _candidates(url, site):
     if medium:
         chain.append(("freedium", lambda: _freedium(url)))
     chain += [("archive_org", lambda: _archive_org(url)),
-              ("archive_today", lambda: _archive_today(url))]
+              ("archive_today", lambda: _archive_today(url)),
+              ("reader", lambda: _reader(url))]
     return chain
 
 

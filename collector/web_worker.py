@@ -33,7 +33,7 @@ def _crawl_links(site, progress, separate):
     from crawler.runner import _export
 
     domain = site['domain']
-    paywall.reset_budget()
+    paywall.reset_budget(site.get("paywall_budget"))
     paywall.reset_health()
     q = RequestQueue(domain, 'web-pages' if separate else 'posts')
     known = {canonical_key(url) for url in load_known(domain, 'posts')}

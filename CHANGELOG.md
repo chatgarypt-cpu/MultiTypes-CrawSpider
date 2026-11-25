@@ -1,5 +1,14 @@
 # 更新日志
 
+## 2026-11-25 · 未发布
+
+- 新增全局放开开关 `data/CRAWL_BYPASS`（或 `CRAWL_BYPASS=1`）：存在即同时关闭 robots 闸门
+  与 `disabled` 跳过，`sources.yaml` 不改也能整站全量采集；删除文件即恢复默认。环境变量显式写
+  `0` 优先于哨兵文件，供测试隔离使用。
+- `Fetcher` 在放开模式下列入 `robots=False`；`collect.py --all` 与 `supervisor.load_tasks()`
+  在放开模式下同样收录 `disabled` 站点。`disabled` 依旧只作为分类记录，不再阻挡调度。
+- 新增 `collector/tests/test_bypass.py` 覆盖开关的四种组合。
+
 ## 2026-11-24 · 未发布
 
 - 网页任务遇到接口缺失或采集不完整时，会沿公开栏目和分页查找详情。没有可见链接和正文的动态页面可用 Chromium 渲染。已识别的首页、栏目和分页只用于发现链接，正文和元数据提取均跳过这些入口页。

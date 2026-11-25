@@ -12,7 +12,7 @@ try:
     from curl_cffi.curl import CURL_WRITEFUNC_ERROR
 except Exception:
     cffi_requests = None
-from crawler.config import ROOT, DATA, DB, UA, COLS, MEDIA_COLS, WORKERS
+from crawler.config import ROOT, DATA, DB, UA, COLS, MEDIA_COLS, WORKERS, bypass
 from crawler.public_urls import normalize_url, public_get
 
 # ---------- shared connection pool ----------
@@ -285,7 +285,10 @@ class Fetcher:
             src = site.get("proxy_pool") or ([site["proxy"]] if site.get("proxy") else None)
             self.pool = proxy_mod.pool_for(src, sticky=site.get("proxy_sticky", True))
         # 默认遵守 robots；站点显式写 robots: false 才跳过（用户决定，记在 sources.yaml note 里）
+        # 全局放开开关（data/CRAWL_BYPASS 或 CRAWL_BYPASS=1）会覆盖单站配置。
         self.robots = site.get("robots", True) is not False
+        if bypass():
+            self.robots = False
 
     def get_many(self, urls, timeout=60):
         if not urls: return []
@@ -328,7 +331,8 @@ class Fetcher:
                              headless=self.site.get("headless", True),
                              block_resources=bool(self.site.get("block_resources")),
                              ignore_https_errors=bool(self.site.get("ignore_https_errors")),
-                             user_agent=site_ua(self.site)))
+                             user_agent=site_ua(self.site),
+                             **({"bpc_rules": True} if self.site.get("paywall_fallback") else {})))
         if warm:
             next(results, None)
             self._warmed = True

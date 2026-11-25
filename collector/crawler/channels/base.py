@@ -76,7 +76,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     domain = site["domain"]
     channel = site.get("channel", "")
     counts = DetailCounts(discovered=len(urls) if discovered_count is None else discovered_count)
-    paywall.reset_budget()
+    paywall.reset_budget(site.get("paywall_budget"))
     retryable_disc, gone_disc = _split_discovery_failures(discovery_failures)
     disc_reasons = Counter("discovery_http_%s" % f.get("status") for f in (discovery_failures or []))
     cur = cursor.load(domain, kind)
