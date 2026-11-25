@@ -35,7 +35,7 @@ MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采
 | --- | --- |
 | Apple Silicon Mac 本机使用（macOS 15+） | 下载 [macOS arm64 DMG](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/tag/macos-v0.1.0)，拖入「应用程序」后打开，工作台会在默认浏览器启动。首次打开提示见发布说明。 |
 | 本地运行、开发适配器或维护站点配置 | `main`，包含采集器前后端、测试和开发记录 |
-| CentOS Linux 8.4 x86_64 服务器部署 | [服务器发布包](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/tag/server-v0.4.1)，包含独立源码和 Podman 安装脚本 |
+| CentOS Linux 8.4 x86_64 服务器部署 | [服务器发布包](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/tag/server-v0.4.2)，包含独立源码和 Podman 安装脚本 |
 
 ### 本地运行
 
@@ -52,12 +52,12 @@ MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采
 下载服务器包、核对校验值并解压：
 
 ```bash
-release=https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/download/server-v0.4.1
-curl -fLO "$release/MultiTypes-CrawlSpider-server-v0.4.1.tar.gz"
+release=https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/download/server-v0.4.2
+curl -fLO "$release/MultiTypes-CrawlSpider-server-v0.4.2.tar.gz"
 curl -fLO "$release/SHA256SUMS"
 sha256sum -c SHA256SUMS
-tar -xzf MultiTypes-CrawlSpider-server-v0.4.1.tar.gz
-cd MultiTypes-CrawlSpider-server-v0.4.1
+tar -xzf MultiTypes-CrawlSpider-server-v0.4.2.tar.gz
+cd MultiTypes-CrawlSpider-server-v0.4.2
 sudo bash deploy/centos8/install.sh
 curl -fsS http://127.0.0.1:8787/healthz
 ```

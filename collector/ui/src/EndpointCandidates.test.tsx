@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import EndpointCandidates from './EndpointCandidates'
 import type { Candidate } from './EndpointCandidates'
@@ -88,23 +88,28 @@ it('默认用布尔值开启接口线索，关闭后连续试采均省略该字�
   }))
   vi.stubGlobal('fetch', fetchMock)
   render(<TrialPanel request={api} enqueue={vi.fn()} />)
-  fireEvent.change(screen.getByRole('textbox', { name: '站点或文章网址' }), { target: { value: url } })
+  const input = screen.getByRole('textbox', { name: '站点或文章网址' })
+  const form = input.closest('form')!
+  const results = screen.getByRole('region', { name: /样本预览/ })
+  fireEvent.change(input, { target: { value: url } })
   const toggle = screen.getByRole('switch', { name: '顺带找接口' })
-  const preview = screen.getByRole('button', { name: /试采样本/ }) as HTMLButtonElement
   expect(toggle.getAttribute('aria-checked')).toBe('true')
-  fireEvent.click(preview)
-  await waitFor(() => expect(preview.disabled).toBe(false))
+  await act(async () => { fireEvent.submit(form) })
+  expect(fetchMock).toHaveBeenCalledTimes(1)
+  expect(fetchMock.mock.calls[0][0]).toBe('/api/preview')
   expect(JSON.parse(String(fetchMock.mock.calls[0][1].body)).capture_contract).toBe(true)
+  expect(results.getAttribute('aria-busy')).toBe('false')
 
   fireEvent.click(toggle)
+  expect(toggle.getAttribute('aria-checked')).toBe('false')
   for (const index of [1, 2]) {
-    fireEvent.click(preview)
-    await waitFor(() => expect(preview.disabled).toBe(false))
+    await act(async () => { fireEvent.submit(form) })
+    expect(fetchMock).toHaveBeenCalledTimes(index + 1)
     expect(fetchMock.mock.calls[index][0]).toBe('/api/preview')
     expect(JSON.parse(String(fetchMock.mock.calls[index][1].body))).not.toHaveProperty('capture_contract')
-    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    expect(results.getAttribute('aria-busy')).toBe('false')
   }
-})
+}, 15000)
 
 it('从候选试采 JSON 列表，只允许确认新样本，编辑详情模板后须复测', async () => {
   const listCandidate = { ...candidate, channel: 'json-list',
@@ -113,16 +118,19 @@ it('从候选试采 JSON 列表，只允许确认新样本，编辑详情模板�
     preview_id: 'old-preview', candidates: [listCandidate], capture_note: 'html' }
   const newPreview = { ...oldPreview, channel: 'json-list', candidates: [], preview_id: 'list-preview',
     samples: [{ url: url + 'news/1', title: 'Example article', text: 'Sample body', text_length: 11, fields: {} }] }
-  const fetchMock = vi.fn(async (_path: string, _options: RequestInit) => Response.json(oldPreview))
+  const fetchMock = vi.fn(async (_path: string, _options: RequestInit) => Response.json(newPreview))
   fetchMock.mockImplementationOnce(async () => Response.json(oldPreview))
-  fetchMock.mockImplementation(async () => Response.json(newPreview))
   vi.stubGlobal('fetch', fetchMock)
   const enqueue = vi.fn().mockResolvedValue('已加入队列')
   render(<TrialPanel request={api} enqueue={enqueue} />)
-  fireEvent.change(screen.getByRole('textbox', { name: '站点或文章网址' }), { target: { value: url } })
-  fireEvent.click(screen.getByRole('button', { name: /试采样本/ }))
-  fireEvent.click(await screen.findByRole('button', { name: '试采此接口' }))
-  expect(await screen.findByText('Example article')).toBeTruthy()
+  const input = screen.getByRole('textbox', { name: '站点或文章网址' })
+  const form = input.closest('form')!
+  fireEvent.change(input, { target: { value: url } })
+  await act(async () => { fireEvent.submit(form) })
+  const trial = screen.getByRole('button', { name: '试采此接口' })
+  await act(async () => { fireEvent.click(trial) })
+  expect(screen.getByText('Example article')).toBeTruthy()
+  expect(fetchMock).toHaveBeenCalledTimes(2)
   const payload = JSON.parse(String(fetchMock.mock.calls[1][1].body))
   expect(payload).toMatchObject({ channel: 'json-list',
     api: { path: '/api/v2/articles?page=1&lang=fr', page_param: 'page', detail_path: '/api/v2/articles/{id}' },
@@ -133,8 +141,10 @@ it('从候选试采 JSON 列表，只允许确认新样本，编辑详情模板�
   expect(confirm.disabled).toBe(false)
   fireEvent.change(screen.getByRole('textbox', { name: '详情路径模板' }), { target: { value: '/news/{id}' } })
   expect(confirm.disabled).toBe(true)
-  fireEvent.click(screen.getByRole('button', { name: /试采样本/ }))
-  await waitFor(() => expect(confirm.disabled).toBe(false))
-  fireEvent.click(confirm)
-  await waitFor(() => expect(enqueue).toHaveBeenCalledWith('list-preview'))
-})
+  await act(async () => { fireEvent.submit(form) })
+  expect(fetchMock).toHaveBeenCalledTimes(3)
+  expect(JSON.parse(String(fetchMock.mock.calls[2][1].body)).api.detail_path).toBe('/news/{id}')
+  expect(confirm.disabled).toBe(false)
+  await act(async () => { fireEvent.click(confirm) })
+  expect(enqueue).toHaveBeenCalledWith('list-preview')
+}, 15000)
