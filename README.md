@@ -24,8 +24,8 @@ MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采
 | --- | --- |
 | **采集总览** | 查看已登记文章 URL 数、监控站点数量、当前采集速率和队列并发。 |
 | **采集工作台** | 自动识别或手动选择通道，设置栏目或路径范围，查看正文样本和失败诊断。可以调整 HTML 字段 XPath 再复测，也可以按行批量提交网址。 |
-| **网页采集任务** | 查看当前步骤、已保存数量、集合结果与日志。可停止或继续任务，并按集合下载 CSV。 |
-| **站点监控** | 查看原有站点任务的进度与覆盖率核对状态，筛选正在运行或已结束的站点，查看近 7 天的详情通过率和主要失败原因。 |
+| **网页采集任务** | 查看进度、集合结果与日志，停止、继续或转入长期采集，并按集合下载 CSV。 |
+| **站点监控** | 查看进度与覆盖率，批量刷新核对或补采，查看近 7 天的详情通过率和主要失败原因。 |
 
 ![任务队列截图。已完成任务显示采集范围、集合结果和 CSV 下载按钮。](docs/images/crawler-task-queue.png)
 
@@ -35,7 +35,7 @@ MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采
 | --- | --- |
 | Apple Silicon Mac 本机使用（macOS 15+） | 下载 [macOS arm64 DMG](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/tag/macos-v0.1.0)，拖入「应用程序」后打开，工作台会在默认浏览器启动。首次打开提示见发布说明。 |
 | 本地运行、开发适配器或维护站点配置 | `main`，包含采集器前后端、测试和开发记录 |
-| CentOS Linux 8.4 x86_64 服务器部署 | [`deploy/centos8`](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/tree/deploy/centos8)，提供独立服务器源码和 Podman 安装脚本 |
+| CentOS Linux 8.4 x86_64 服务器部署 | [服务器发布包](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/tag/server-v0.3.0)，包含独立源码和 Podman 安装脚本 |
 
 ### 本地运行
 
@@ -49,16 +49,20 @@ MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采
 
 ### CentOS 8 服务器部署
 
-从服务器分支构建新版工作台：
+下载服务器包、核对校验值并解压：
 
 ```bash
-git clone --single-branch --branch deploy/centos8 https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider.git
-cd MultiTypes-CrawlSpider
+release=https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/download/server-v0.3.0
+curl -fLO "$release/MultiTypes-CrawlSpider-server-v0.3.0.tar.gz"
+curl -fLO "$release/SHA256SUMS"
+sha256sum -c SHA256SUMS
+tar -xzf MultiTypes-CrawlSpider-server-v0.3.0.tar.gz
+cd MultiTypes-CrawlSpider-server-v0.3.0
 sudo bash deploy/centos8/install.sh
 curl -fsS http://127.0.0.1:8787/healthz
 ```
 
-部署脚本使用 Podman 构建和运行镜像，由 systemd 管理服务。Python、前端构建环境和浏览器依赖在镜像内。初始账号为 `admin`，密码保存在服务器的 `/etc/rea-crawler/web.env`。[CentOS 安装、升级和备份说明](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/blob/deploy/centos8/deploy/centos8/README.md) · [GitHub Releases](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases)
+部署脚本使用 Podman 构建和运行镜像，由 systemd 管理服务。Python、前端构建环境和浏览器依赖在镜像内。初始账号为 `admin`，密码保存在服务器的 `/etc/rea-crawler/web.env`。[CentOS 安装、升级和备份说明](deploy/centos8/README.md)
 
 ## 在工作台采集
 

@@ -1,6 +1,7 @@
 """Paths, constants and the shared HTTP user agent."""
 import os
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # collector/
 DATA = os.path.abspath(os.environ.get("CRAWL_DATA_DIR", os.path.join(ROOT, "data")))
@@ -20,11 +21,36 @@ WORKERS = 8           # set by the CLI, used by the wp-api channel
 REQUEST_QUEUE_CHANNELS = frozenset({"sitemap", "html", "rss", "archive", "json-list"})
 
 
+def catalog_path(directory=ROOT) -> Path:
+    """Writable catalog, optionally stored in the deployment's data volume."""
+    override = os.environ.get("CRAWL_SOURCES_FILE")
+    return Path(override) if override else Path(directory) / "sources.yaml"
+
+
 def sources_path(directory=ROOT) -> Path:
     """Use the operator's local catalog, or the empty template on a fresh checkout."""
     root = Path(directory)
-    local = root / "sources.yaml"
-    return local if local.exists() else root / "sources.example.yaml"
+    for local in (catalog_path(directory), root / "sources.yaml"):
+        if local.exists():
+            return local
+    return root / "sources.example.yaml"
+
+
+def seed_catalog(contents=None):
+    """Create the writable catalog once, including on an upgraded data volume."""
+    target = catalog_path()
+    if target.exists():
+        return
+    contents = sources_path().read_bytes() if contents is None else contents
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile(dir=target.parent) as staged:
+        staged.write(contents)
+        staged.flush()
+        os.fsync(staged.fileno())
+        try:
+            os.link(staged.name, target)
+        except FileExistsError:
+            pass
 
 
 def site_kinds(site):

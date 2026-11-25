@@ -52,6 +52,18 @@ PY
 # Build before stopping a running installation. Podman reuses the named data volume.
 podman build --format docker --layers --security-opt "seccomp=$SECCOMP_FILE" \
   -f deploy/Dockerfile -t localhost/rea-crawler:latest "$ROOT"
+
+# Preserve a pre-0.3 catalog baked into the existing container when upgrading.
+old_catalog="$(mktemp)"
+trap 'rm -f "$old_catalog"' EXIT
+if podman container exists rea-crawler &&
+   podman cp rea-crawler:/app/collector/sources.yaml "$old_catalog" 2>/dev/null &&
+   [[ -s "$old_catalog" ]] && [[ "$(cat "$old_catalog")" != '[]' ]]; then
+  podman run --rm --pull=never --security-opt "seccomp=$SECCOMP_FILE" \
+    --volume crawler-data:/data --env PYTHONPATH=/app/collector -i \
+    --entrypoint /app/.venv/bin/python localhost/rea-crawler:latest \
+    -c 'import sys; from crawler.config import seed_catalog; seed_catalog(sys.stdin.buffer.read())' < "$old_catalog"
+fi
 install -m 644 deploy/centos8/rea-crawler.service /etc/systemd/system/rea-crawler.service
 systemctl daemon-reload
 systemctl enable rea-crawler.service

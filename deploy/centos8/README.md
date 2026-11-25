@@ -46,17 +46,17 @@ sudo journalctl -u rea-crawler.service -f
 sudo systemctl restart rea-crawler.service
 ```
 
-升级时，下载并校验新版本服务器包。如已维护专用站点配置，先将 `collector/sources.yaml` 复制到新的解压目录。然后重新执行安装脚本。
+升级时，下载并校验新版本服务器包，然后重新执行安装脚本。首次从旧版升级时，安装脚本会把旧容器中的站点清单迁入数据卷。
 
 ```bash
 sudo bash deploy/centos8/install.sh
 ```
 
-镜像构建完成后才替换容器。升级复用配置文件、密码和 `crawler-data` 卷。系统重启后，服务会自动启动并调度排队任务。被中断的任务可在页面点「继续采集」。
+镜像构建完成后才替换容器。升级复用密码和 `crawler-data` 卷。系统重启后，网页服务与 Supervisor 自动启动并恢复调度。网页任务可在页面点「继续采集」或「加入长期采集」。
 
 ## 备份和恢复
 
-容器内的 `/data` 对应 Podman 命名卷 `crawler-data`，包含任务状态、断点、日志和 CSV。备份时停止服务并归档整个卷目录。
+容器内的 `/data` 对应 Podman 命名卷 `crawler-data`，包含正式信源、任务状态、断点、日志和 CSV。备份时停止服务并归档整个卷目录。
 
 ```bash
 sudo systemctl stop rea-crawler.service
@@ -69,7 +69,7 @@ sudo systemctl start rea-crawler.service
 
 ## 站点抓取方式
 
-运行镜像已包含直接 HTTP、TLS 指纹请求、Playwright Chromium 和 Camoufox。管理员可以在解压目录内的 `collector/sources.yaml` 配置自己的站点。新增或更换其中的站点配置后，可以检查发现结果和正文样本。命令中的域名需与配置中的 `domain` 对应。服务器包初始站点清单为空，可在网页直接提交网址。维护专用站点配置时，更新 `collector/sources.yaml` 后重新运行安装脚本。
+运行镜像包含直接 HTTP、TLS 指纹请求、Playwright Chromium 和 Camoufox。服务器包初始站点清单为空，可在网页提交网址并在任务行选择「加入长期采集」。首次安装也可把解压目录内的 `collector/sources.yaml` 用作初始配置。运行中的正式清单保存在数据卷内的 `/data/sources.yaml`。检查站点时，命令中的域名需与清单中的 `domain` 对应。
 
 ```bash
 sudo podman exec rea-crawler /app/.venv/bin/python collector/collect.py --check-extract example.com --samples 3

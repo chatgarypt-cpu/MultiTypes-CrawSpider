@@ -32,6 +32,8 @@ assert web_jobs.jobs() == [], "new installation contains jobs"
 PY
 if [[ "${1:-}" == "--release" ]]; then
   uv run --locked pytest collector/tests/test_quality_exports.py \
+    collector/tests/test_registration.py \
+    collector/tests/test_web_service.py::test_server_supervisor_resumes_registered_site \
     collector/tests/test_web_service.py::test_preview_keeps_samples_out_of_storage_and_confirms_the_tested_rule \
     collector/tests/test_web_service.py::test_monitor_csv_download_refreshes_without_background_export \
     collector/tests/test_web_service.py::test_stop_resume_preserves_rows \

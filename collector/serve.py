@@ -9,12 +9,14 @@ import mimetypes
 import os
 from pathlib import Path
 import signal
+import subprocess
+import sys
 import threading
 import time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import unquote, urlsplit
 
-from crawler.config import DATA, ROOT
+from crawler.config import DATA, ROOT, seed_catalog
 import status as status_mod
 import web_jobs
 from crawler.processes import signal_group
@@ -226,6 +228,7 @@ def main():
     parser.add_argument('--host', default=os.getenv('CRAWL_HOST', '127.0.0.1'))
     parser.add_argument('--port', type=int, default=int(os.getenv('CRAWL_PORT', '8787')))
     parser.add_argument('--desktop', action='store_true', help='open a private loopback listener and report its port')
+    parser.add_argument('--supervisor', action='store_true', help='run the long-term scheduler with the web service')
     args = parser.parse_args()
     if args.desktop:
         args.host, args.port = '127.0.0.1', 0
@@ -243,23 +246,39 @@ def main():
     server.desktop = args.desktop
     server.daemon_threads = True
     server.stop = threading.Event()
-    threading.Thread(target=web_jobs.scheduler, args=(server.stop,), daemon=True).start()
-    from verify_coverage import refresh_registered
-    threading.Thread(target=refresh_registered, args=(server.stop,), daemon=True).start()
-    if args.desktop:
-        print(server.server_port, flush=True)  # first stdout line is the launcher handshake
-    else:
-        print(f'采集页面：http://{args.host}:{server.server_port}/  数据目录：{DATA}', flush=True)
     def shutdown(*_):
         server.stop.set()
         threading.Thread(target=server.shutdown, daemon=True).start()
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
+    supervisor = None
     try:
+        if args.supervisor:
+            if os.environ.get('CRAWL_SOURCES_FILE'):
+                seed_catalog()
+            supervisor = subprocess.Popen([sys.executable, str(Path(ROOT) / 'supervisor.py')],
+                                          env=dict(os.environ, CRAWL_RESUME_STATE='1'))
+
+            def watch_supervisor():
+                supervisor.wait()
+                if not server.stop.is_set():
+                    shutdown()
+
+            threading.Thread(target=watch_supervisor, daemon=True).start()
+        threading.Thread(target=web_jobs.scheduler, args=(server.stop,), daemon=True).start()
+        from verify_coverage import refresh_registered
+        threading.Thread(target=refresh_registered, args=(server.stop,), daemon=True).start()
+        if args.desktop:
+            print(server.server_port, flush=True)  # first stdout line is the launcher handshake
+        else:
+            print(f'采集页面：http://{args.host}:{server.server_port}/  数据目录：{DATA}', flush=True)
         server.serve_forever()
     finally:
         server.stop.set()
         server.server_close()
+        if supervisor is not None and supervisor.poll() is None:
+            supervisor.terminate()
+            supervisor.wait()
         lock.close()
 
 

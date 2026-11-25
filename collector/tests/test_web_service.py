@@ -46,6 +46,8 @@ class Source(BaseHTTPRequestHandler):
             body = json.dumps(rows)
         elif path == '/robots.txt':
             body = 'User-agent: *\nAllow: /'
+        elif self.mode == 'sitemap' and path == '/sitemap.xml':
+            body = '<urlset>' + ''.join(f'<url><loc>{base}/story/{i}</loc></url>' for i in (1, 2)) + '</urlset>'
         elif self.mode == 'wp-partial' and path == '/':
             body = '<html><title>Home</title><nav><a href="/section/">News</a></nav></html>'
         elif self.mode == 'wp-partial' and path == '/section/' and query.get('p') == ['2']:
@@ -119,11 +121,17 @@ def service(tmp_path, request):
     env = dict(os.environ, CRAWL_DATA_DIR=str(tmp_path), CRAWL_ALLOW_PRIVATE='1',
                CRAWL_WEB_PASSWORD='test-password', WP_EMPTY_RETRIES='0', RETRY_BACKOFF='0')
     env.pop('CRAWL_HOST', None)
+    managed = getattr(request, 'param', None) == 'supervisor'
+    if managed:
+        catalog = tmp_path / 'sources.yaml'
+        catalog.write_text('[]\n')
+        env.update(CRAWL_SOURCES_FILE=str(catalog), CRAWL_STATE_EVERY='1')
     procs = []
     session = requests.Session(); session.auth = ('admin', 'test-password')
     def start(root=ROOT):
         python = root / '.venv/bin/python' if root != ROOT else sys.executable
-        proc = subprocess.Popen([str(python), str(root/'collector/serve.py'), '--port', str(port)], env=env,
+        args = ['--supervisor'] if managed else []
+        proc = subprocess.Popen([str(python), str(root/'collector/serve.py'), '--port', str(port), *args], env=env,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         procs.append(proc)
         def ready():
@@ -133,7 +141,7 @@ def service(tmp_path, request):
             except requests.RequestException: return False
         wait_for(ready)
         return proc
-    previous = os.environ.get('CRAWL_UPGRADE_FROM') if getattr(request, 'param', False) else None
+    previous = os.environ.get('CRAWL_UPGRADE_FROM') if getattr(request, 'param', False) is True else None
     proc = start(Path(previous) if previous else ROOT)
     yield url, session, tmp_path, start, proc
     # Stop fixture workers before removing their temporary data.
@@ -147,6 +155,40 @@ def service(tmp_path, request):
 def finished(session, url, count):
     jobs = session.get(url+'/api/jobs').json()['jobs']
     return jobs if len(jobs) == count and all(j['status'] not in ('queued', 'running') for j in jobs) else False
+
+
+@pytest.mark.parametrize('service', ['supervisor'], indirect=True)
+def test_server_supervisor_resumes_registered_site(service, source):
+    from contextlib import closing
+    from crawler.request import RequestQueue
+    import yaml
+
+    url, session, data, _start, _proc = service
+    target = source('sitemap')
+    domain = urlsplit(target).netloc
+    result = session.post(url+'/api/crawl', json={'urls': [target]}, timeout=5)
+    result.raise_for_status()
+    original = wait_for(lambda: finished(session, url, 1))[0]
+    assert original['channel'] == 'sitemap' and original['saved'] == 2
+    queue = RequestQueue(domain, db_path=str(data/'web-jobs'/original['id']/'data'/'state.db'))
+    with closing(queue.conn):
+        queue.add_many([target+'/story/3'], 'sitemap')
+
+    result = session.post(url+f"/api/jobs/{original['id']}/register", json={}, timeout=5)
+    result.raise_for_status()
+    registration_id = result.json()['job']['id']
+    jobs = wait_for(lambda: finished(session, url, 2))
+    registration = next(job for job in jobs if job['id'] == registration_id)
+    assert registration['status'] == 'finished' and registration['saved'] == 2
+    assert registration['results']['posts']['pending'] == 1
+
+    def supervisor_done():
+        state = json.loads((data/'supervise_state.json').read_text())
+        return registration_id in state.get('registrations', ()) and f'{domain}:posts' in state['completed']
+
+    wait_for(supervisor_done)
+    assert len((data/domain/'articles.jsonl').read_text().splitlines()) == 3
+    assert yaml.safe_load((data/'sources.yaml').read_text())[0]['domain'] == domain
 
 
 def test_batch_full_crawl_download_and_restart(service, source):

@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 
 import yaml
 
-from crawler.config import DATA, ROOT, REQUEST_QUEUE_CHANNELS, site_kinds, stored_kinds
+from crawler.config import DATA, ROOT, REQUEST_QUEUE_CHANNELS, catalog_path, site_kinds, stored_kinds
 from crawler.request import RequestQueue, canonical_key
 from crawler.schema import find_duplicate_keys, validate_site
 from crawler.store import _recover_append, append_rows, collection_lock, load_known, save_cursor
@@ -130,8 +130,9 @@ def register(job, update):
     if (detected.get('domain') != domain or not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9.:-]*', domain)
             or base.netloc != domain or base.scheme not in ('http', 'https')):
         raise ValueError('任务缺少有效的站点配置')
-    catalog = Path(ROOT) / 'sources.yaml'
-    with (catalog.parent / 'sources.yaml.lock').open('a') as lock:
+    catalog = catalog_path(ROOT)
+    catalog.parent.mkdir(parents=True, exist_ok=True)
+    with catalog.with_name(catalog.name + '.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         text = catalog.read_text(encoding='utf-8') if catalog.exists() else ''
         if find_duplicate_keys(text):

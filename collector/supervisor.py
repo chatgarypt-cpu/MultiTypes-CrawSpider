@@ -50,7 +50,7 @@ STALL_KILL = int(os.environ.get("CRAWL_STALL_KILL", "1200"))          # 20min é›
 QUEUE_RETRY_COOLDOWN = int(os.environ.get("RETRY_COOLDOWN", "900"))
 STATE_EVERY = int(os.environ.get("CRAWL_STATE_EVERY", "30"))
 
-SOURCES = HERE / "sources.yaml"
+SOURCES = config.catalog_path(HERE)
 
 
 def load_tasks(sources_path=None) -> list:
