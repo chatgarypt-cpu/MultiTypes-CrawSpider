@@ -1,0 +1,24 @@
+[Unit]
+Description=MultiTypes-CrawSpider Web Service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Environment=CRAWL_BIND=127.0.0.1 CRAWL_PORT=8787 SITE_WORKERS=4
+EnvironmentFile=/etc/rea-crawler/web.env
+# Podman 3.x can report a stopped container as configured after boot.
+ExecStartPre=-/usr/bin/podman stop --ignore --time 20 rea-crawler
+ExecStartPre=/usr/bin/podman rm --force --ignore rea-crawler
+ExecStart=/usr/bin/podman run --name rea-crawler --pull=never \
+    --security-opt seccomp=/etc/rea-crawler/seccomp.json \
+    --publish ${CRAWL_BIND}:${CRAWL_PORT}:8787 \
+    --env CRAWL_WEB_PASSWORD --env SITE_WORKERS \
+    --env BRIGHTDATA_API_KEY --env BRIGHTDATA_ZONE \
+    --volume crawler-data:/data localhost/rea-crawler:latest
+ExecStop=/usr/bin/podman stop --ignore --time 20 rea-crawler
+Restart=always
+RestartSec=3s
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=multi-user.target

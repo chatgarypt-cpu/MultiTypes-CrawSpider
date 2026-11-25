@@ -1,0 +1,16 @@
+services:
+  crawler:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${CRAWL_BIND:-127.0.0.1}:${CRAWL_PORT:-8787}:8787"
+    environment:
+      CRAWL_WEB_PASSWORD: ${CRAWL_WEB_PASSWORD:?请设置网页管理员密码}
+      SITE_WORKERS: ${SITE_WORKERS:-4}
+    volumes:
+      - crawler-data:/data
+volumes:
+  crawler-data:
