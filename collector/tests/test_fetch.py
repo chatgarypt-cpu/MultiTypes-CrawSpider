@@ -79,12 +79,12 @@ def test_get_text_reuses_module_session(fake_get):
 
 
 # ---------- 体积 / 时延 ----------
-def test_body_cap_truncates(fake_get, monkeypatch):
+def test_body_cap_rejects_incomplete_html_without_retry(fake_get, monkeypatch):
     monkeypatch.setattr(web, "MAX_BODY_BYTES", 1000)
     fake_get.push(FakeResponse(chunks=[b"x" * 700] * 5))
-    status, body = web.get_text("http://a.test/big", {})
-    assert status == 200
-    assert len(body) == 1000
+    with pytest.raises(web.ResponseSizeLimit):
+        web.get_text("http://a.test/big", {})
+    assert len(fake_get.calls) == 1
 
 
 def test_body_deadline_stops_slow_drip(monkeypatch):
@@ -187,14 +187,9 @@ class FakeRobotsSession:
         self.text = text
         self.calls = []
 
-    def get(self, url, headers=None, timeout=None):
+    def get(self, url, headers=None, timeout=None, stream=False):
         self.calls.append(url)
-
-        class R:
-            status_code = self.status
-            text = self.text
-
-        return R()
+        return FakeResponse(status=self.status, body=self.text.encode())
 
 
 def test_robots_ignores_non_star_groups():

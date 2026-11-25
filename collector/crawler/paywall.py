@@ -133,20 +133,17 @@ def usable(body, previous=""):
 
 
 def _get(url, headers, timeout=(10, 25), allow_redirects=True, verify=True):
+    from crawler.web import read_body_capped
     try:
         r = SESSION.get(url, headers=headers, timeout=timeout, allow_redirects=allow_redirects,
-                        verify=verify)
-    except Exception:
+                        verify=verify, stream=True)
+        try:
+            body = read_body_capped(r, strict=True) if r.status_code == 200 else ""
+            return r.status_code, body, r.url or url
+        finally:
+            r.close()
+    except (ValueError, OSError, requests.RequestException):
         return 0, "", ""
-    if r.status_code != 200:
-        final = r.url or url
-        r.close()
-        return r.status_code, "", final
-    try:
-        r.encoding = r.apparent_encoding or "utf-8"
-        return 200, r.text or "", r.url or url
-    finally:
-        r.close()
 
 
 def _service(url, base):
@@ -215,12 +212,16 @@ def _archive_org(url):
         return 0, "", ""
     import json
     try:
-        snapshot = (json.loads(raw).get("archived_snapshots") or {}).get("closest") or {}
-    except ValueError:
+        payload = json.loads(raw)
+    except (ValueError, TypeError):
         return 0, "", ""
-    if not snapshot.get("available") or not snapshot.get("url"):
+    snapshots = payload.get("archived_snapshots") if isinstance(payload, dict) else None
+    snapshot = snapshots.get("closest") if isinstance(snapshots, dict) else None
+    if not isinstance(snapshot, dict) or not snapshot.get("available"):
         return 0, "", ""
-    target = snapshot["url"]
+    target = snapshot.get("url")
+    if not isinstance(target, str) or not target.startswith(("https://", "http://")):
+        return 0, "", ""
     if target.startswith("http://"):
         target = "https://" + target[len("http://"):]
     # 取 id_ 原始快照：存档器不加横幅/改写链接，正文更干净

@@ -12,9 +12,21 @@ import glob, json, os, sys, tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from crawler import config
 from crawler.request import canonical_key
+from crawler.store import collection_lock, _recover_append
 
 
 def dedupe(domain, dry_run=False):
+    directory = os.path.join(config.DATA, domain)
+    if not os.path.isfile(os.path.join(directory, "articles.jsonl")):
+        return None
+    if dry_run:
+        return _dedupe(domain, dry_run=True)
+    with collection_lock(domain, data_dir=config.DATA):
+        _recover_append(os.path.join(directory, "articles.jsonl"), os.path.join(directory, "urls.txt"))
+        return _dedupe(domain, dry_run=False)
+
+
+def _dedupe(domain, dry_run):
     path = os.path.join(config.DATA, domain, "articles.jsonl")
     if not os.path.exists(path):
         return None
@@ -36,10 +48,12 @@ def dedupe(domain, dry_run=False):
     with tmp as fh:
         for row in best.values():
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-    os.replace(tmp.name, path)
-    with open(os.path.join(config.DATA, domain, "urls.txt"), "w", encoding="utf-8") as fh:
+    urls = os.path.join(config.DATA, domain, "urls.txt")
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=os.path.dirname(path), encoding="utf-8") as fh:
         for url in sorted(r["url"] for r in best.values() if r.get("url")):
             fh.write(url + "\n")
+    os.replace(tmp.name, path)
+    os.replace(fh.name, urls)
     return stats
 
 

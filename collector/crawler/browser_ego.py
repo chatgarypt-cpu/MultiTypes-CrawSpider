@@ -79,7 +79,11 @@ def available():
     return subprocess.run(["which", EGO_BIN], capture_output=True).returncode == 0
 
 
-def fetch_many(urls, timeout=600, json_mode=False, space=None, tabs=None, wait_ms=None):
+def fetch_many(urls, *args, **kwargs):
+    return list(iter_fetch(urls, *args, **kwargs))
+
+
+def iter_fetch(urls, timeout=600, json_mode=False, space=None, tabs=None, wait_ms=None):
     """Return [(url, status, body)] using the local ego browser.
 
     json_mode=True reads document.body.innerText (JSON endpoints render as a <pre>).
@@ -87,7 +91,6 @@ def fetch_many(urls, timeout=600, json_mode=False, space=None, tabs=None, wait_m
     挑战页通常要 2-3s）。
     """
     wait_ms = int(wait_ms or os.environ.get("EGO_WAIT_MS", "1000"))
-    results = []
     for i in range(0, len(urls), CHUNK):
         part = urls[i:i + CHUNK]
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
@@ -114,5 +117,4 @@ def fetch_many(urls, timeout=600, json_mode=False, space=None, tabs=None, wait_m
         if isinstance(data, dict) and data.get("error"):
             raise RuntimeError(f"ego runtime error: {data['error'][:200]}")
         for row in data:
-            results.append((row["url"], row.get("status", 0), row.get("html", "")))
-    return results
+            yield row["url"], row.get("status", 0), row.get("html", "")

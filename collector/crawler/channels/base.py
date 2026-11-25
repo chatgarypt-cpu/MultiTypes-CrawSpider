@@ -80,9 +80,10 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     retryable_disc, gone_disc = _split_discovery_failures(discovery_failures)
     disc_reasons = Counter("discovery_http_%s" % f.get("status") for f in (discovery_failures or []))
     cur = cursor.load(domain, kind)
-    cur["saved"] = len(load_known(domain, kind))
-    q = RequestQueue(domain, kind)
     known_urls = load_known(domain, kind)
+    saved_count_changed = cur["saved"] != len(known_urls)
+    cur["saved"] = len(known_urls)
+    q = RequestQueue(domain, kind)
     repaired = q.requeue_missing_rows(known_urls)
     if repaired:
         log.info("repair_missing_rows domain=%s count=%d", domain, repaired)
@@ -93,8 +94,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     if requeued:
         log.info("retry_transient domain=%s requeued=%d", domain, requeued)
     if cur["status"] == "complete" and not urls:
-        existing_queue = q
-        has_pending = bool(existing_queue.stats().get("unprocessed", 0))
+        current = q.stats()
         # 已完成站点若本次发现阶段有可重试失败（子 sitemap 503 等），不能继续显示 complete
         if retryable_disc:
             reasons = Counter(cur.get("reasons") or {})
@@ -108,7 +108,10 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
             return {"domain": domain, "channel": channel, "quality": counts.report(), "skipped": "reopened", "saved": 0,
                     "status": "partial", "reasons": dict(reasons),
                     "discovery_failed": _failed_sample(retryable_disc)}
-        if not has_pending and discovered_count:
+        if (not current.get("unprocessed") and not current.get("skipped") and discovered_count
+                and (not current.get("error") or _gone_404(_dead_letters(domain, kind)))):
+            if saved_count_changed or cur.get("queue") != current:
+                cursor.save(domain, kind, saved=cur["saved"], queue=current)
             return {"domain": domain, "channel": channel, "quality": counts.report(), "skipped": "done", "saved": 0,
                     "status": "complete", "reasons": dict(cur.get("reasons") or {})}
 
@@ -116,8 +119,9 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     reasons.update(disc_reasons)
     run_reasons = Counter()
     added = q.add_many(urls, channel=channel) if urls else 0
-    pending_start = q.stats().get("unprocessed", 0)
-    discovered = sum(q.stats().values())
+    current = q.stats()
+    pending_start = current.get("unprocessed", 0)
+    discovered = sum(current.values())
     if discovered_count is None:
         discovered_count = len(urls)
 
@@ -130,6 +134,8 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
             status, reason = "interrupted", "discovery_empty"
         elif dead_errs and not _gone_404(dead_errs):
             status, reason = "partial", "dead_letters"     # 429/5xx 等，仍需重试
+        elif current.get("skipped"):
+            status, reason = "partial", "skipped"
         else:
             status, reason = "complete", ("dead_404" if dead_errs else "nothing_new")
         reasons[reason] += 1
@@ -146,6 +152,8 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
         cur = cursor.save(domain, kind, status=status, reasons=dict(reasons),
                           discovered=discovered_count, next_page=1, total_pages=1,
                           last_reason=reason, saved=cur.get("saved", 0),
+                          queue=current, dead_letters=current.get("error", 0),
+                          skipped=current.get("skipped", 0),
                           discovery_failed=_failed_sample(retryable_disc))
         log.info("no work domain=%s reason=%s status=%s queue=%s", domain, reason, status,
                  q.stats())
@@ -158,6 +166,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     saved = errors = 0
     buf = []                                   # [(queue key, row)]，写盘成功后才标 done
     t0 = time.time()
+    last_activity = time.monotonic()
 
     def flush():
         """先把整批写进 articles/urls，成功后才把队列行标 done（审查问题 1）。"""
@@ -183,10 +192,16 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
         for req, status, body in fetcher.stream_requests(batch, workers=workers):
             key = req.key
             responded.add(key)
+            now = time.monotonic()
+            if now - last_activity >= 30:
+                flush()
+                log.info("request progress domain=%s processed=%d/%d", domain, len(responded), len(batch))
+                last_activity = now
             rejection = page_error(body) if status == 200 and isinstance(body, str) else ""
             if rejection:
                 status = 403 if rejection == "challenge" else 503
-            if status != 200 and isinstance(body, str) and paywall.enabled(site):
+            if (status != 200 and isinstance(body, str) and paywall.enabled(site)
+                    and not q.permanent_error(f"http_{status} {body}")):
                 # 403 / 挑战页：按站点开关试 13ft 链路（Googlebot → 存档 / Freedium）
                 new_status, new_body, source = paywall.recover(req.url, site, body, status)
                 if source:

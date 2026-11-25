@@ -4,7 +4,7 @@ from contextlib import closing
 from datetime import datetime, timezone
 
 from crawler.config import DATA
-from crawler.store import db, existing_urls, load_cursor
+from crawler.store import collection_lock, db, existing_urls, load_cursor, _paths
 from crawler.web import Fetcher
 from crawler.channels import REGISTRY
 from crawler.schema import validate_site
@@ -58,7 +58,17 @@ def _record_run(site, channel, kind, started, result):
                       json.dumps(note, ensure_ascii=False)))
 
 
-def collect_site(site, limit, kind="posts", *, export_csv=True):
+def collect_site(site, limit, kind="posts", *, export_csv=True, reset=False):
+    with collection_lock(site["domain"], kind, wait=False):
+        if reset:
+            try:
+                os.unlink(_paths(site["domain"], kind)[2])
+            except FileNotFoundError:
+                pass
+        return _collect_site(site, limit, kind, export_csv=export_csv)
+
+
+def _collect_site(site, limit, kind, *, export_csv):
     t0 = time.time()
     site = dict(site, via=site.get(f"via_{kind}") or site.get("via"))
     log = site_logger(site)

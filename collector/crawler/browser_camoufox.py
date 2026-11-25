@@ -53,13 +53,16 @@ def _read(page, timeout):
     return html
 
 
-def fetch_many(urls, wait_ms=8000, headless=True, timeout=45000, ignore_https_errors=False):
+def fetch_many(urls, *args, **kwargs):
+    return list(iter_fetch(urls, *args, **kwargs))
+
+
+def iter_fetch(urls, wait_ms=8000, headless=True, timeout=45000, ignore_https_errors=False):
     """Fetch URLs sequentially; return [(url, status, html)].
 
     202 is normalized to 200 when real HTML is present: SiteGround serves the
     challenge shell with 202 and the real page stays 202 after solving.
     """
-    out = []
     from crawler.htmlpage import page_error
     browser = _session(headless=headless, ignore_https_errors=ignore_https_errors)
     page = browser.new_page()
@@ -100,12 +103,12 @@ def fetch_many(urls, wait_ms=8000, headless=True, timeout=45000, ignore_https_er
                     status = 403
                 elif page_error(html) == "error_page" and status == 200:
                     status = 503
-                out.append((u, status, html))
+                result = (u, status, html)
             except Exception as e:
-                out.append((u, 0, str(e)[:150]))
+                result = (u, 0, str(e)[:150])
+            yield result
     finally:
         try:
             page.close()
         except Exception:
             pass
-    return out

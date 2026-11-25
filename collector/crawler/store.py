@@ -1,5 +1,6 @@
 """Shared helpers."""
-import html, json, logging, math, os, re, sqlite3, subprocess, sys, tempfile, threading, time
+import fcntl, html, json, logging, math, os, re, sqlite3, subprocess, sys, tempfile, threading, time
+from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from urllib.parse import urlparse
@@ -7,6 +8,37 @@ from urllib.parse import urlparse
 import requests, trafilatura
 from crawler.config import ROOT, DATA, DB, UA, COLS, MEDIA_COLS, WORKERS
 from crawler.request import canonical_key
+
+
+class CollectionBusy(RuntimeError):
+    pass
+
+
+_HELD = threading.local()
+
+
+@contextmanager
+def collection_lock(domain, kind="posts", *, wait=True, data_dir=None):
+    """Serialize a collection across processes, with nesting in the current thread."""
+    directory = os.path.realpath(os.path.join(data_dir or DATA, domain))
+    os.makedirs(directory, exist_ok=True)
+    key = os.getpid(), os.path.join(directory, f".{kind}.lock")
+    held = _HELD.paths if hasattr(_HELD, "paths") else set()
+    _HELD.paths = held
+    if key in held:
+        yield
+        return
+    with open(key[1], "a") as handle:
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | (0 if wait else fcntl.LOCK_NB))
+        except BlockingIOError as exc:
+            raise CollectionBusy(f"{domain}:{kind} is already being collected") from exc
+        held.add(key)
+        try:
+            yield
+        finally:
+            held.remove(key)
+
 
 def _paths(domain, kind="posts"):
     d = os.path.join(DATA, domain); os.makedirs(d, exist_ok=True)
@@ -22,16 +54,21 @@ def load_cursor(domain, kind="posts"):
     return {"next_page": 1, "total_pages": None, "saved": 0, "done": False, "updated": ""}
 
 def save_cursor(domain, cur, kind="posts"):
-    _, _, cp = _paths(domain, kind)
-    cur["updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    tmp = cp + ".tmp"
-    with open(tmp, "w") as f: json.dump(cur, f)
-    os.replace(tmp, cp)          # atomic: never leave a half-written cursor
+    with collection_lock(domain, kind):
+        _, _, cp = _paths(domain, kind)
+        cur["updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        tmp = cp + ".tmp"
+        with open(tmp, "w") as f: json.dump(cur, f)
+        os.replace(tmp, cp)
 
 def load_known(domain, kind="posts"):
-    _, up, _ = _paths(domain, kind)
-    if not os.path.exists(up): return set()
-    return {l.strip() for l in open(up, encoding="utf-8") if l.strip()}
+    ap, up, _ = _paths(domain, kind)
+    with collection_lock(domain, kind):
+        _recover_append(ap, up)
+        if not os.path.exists(up):
+            return set()
+        with open(up, encoding="utf-8") as handle:
+            return {line.strip() for line in handle if line.strip()}
 
 
 # ---------- append with dedupe ----------
@@ -42,7 +79,6 @@ def load_known(domain, kind="posts"):
 # changed (another process appended, or dedupe.py rewrote it).
 
 _KNOWN = {}                       # urls.txt path -> {"sig": (size, mtime_ns) | None, "keys": set}
-_KNOWN_LOCK = threading.RLock()
 
 
 def _stat_sig(path):
@@ -83,6 +119,42 @@ def _append_lines(path, lines):
         for line in lines:
             f.write(line)
         f.flush()
+        os.fsync(f.fileno())
+
+
+def _size(path):
+    return os.path.getsize(path) if os.path.exists(path) else 0
+
+
+def _sync_parent(path):
+    descriptor = os.open(os.path.dirname(path), os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _recover_append(articles, urls, *, rollback=False):
+    """Finish or undo the only pending append while holding the collection lock."""
+    journal = urls + ".append"
+    try:
+        with open(journal, encoding="utf-8") as handle:
+            pending = json.load(handle)
+    except FileNotFoundError:
+        return
+    paths = (articles, urls)
+    sizes = [_size(path) for path in paths]
+    if any(size < start or size > end for size, start, end in
+           zip(sizes, pending["start"], pending["end"], strict=True)):
+        raise OSError(f"Collection files changed outside the append transaction: {journal}")
+    if rollback or sizes != pending["end"]:
+        for path, size, start in zip(paths, sizes, pending["start"], strict=True):
+            if size != start:
+                with open(path, "r+b") as handle:
+                    handle.truncate(start)
+                    os.fsync(handle.fileno())
+        _KNOWN.pop(urls, None)
+    os.unlink(journal)
 
 
 def append_rows(domain, rows, kind="posts"):
@@ -98,33 +170,44 @@ def append_rows(domain, rows, kind="posts"):
     """
     ap, up, _ = _paths(domain, kind)
     cols = MEDIA_COLS if kind == "media" else COLS
-    with _KNOWN_LOCK:
+    with collection_lock(domain, kind):
+        _recover_append(ap, up)
         keys = _known_entity(up)["keys"]
         fresh = []
+        new_keys = set()
         for r in rows:
             url = (r.get("url") or "").strip()
             key = canonical_key(url) if url else ""
-            if not key or key in keys:
+            if not key or key in keys or key in new_keys:
                 continue
-            keys.add(key)
+            new_keys.add(key)
             fresh.append(r)
         if not fresh:
             return 0
-        ap_size = os.path.getsize(ap) if os.path.exists(ap) else 0
-        up_size = os.path.getsize(up) if os.path.exists(up) else 0
+        lines = (
+            [json.dumps({k: r.get(k, "") for k in cols}, ensure_ascii=False) + "\n" for r in fresh],
+            [(r.get("url") or "").strip() + "\n" for r in fresh],
+        )
+        start = [_size(path) for path in (ap, up)]
+        end = [size + sum(len(line.encode("utf-8")) for line in block)
+               for size, block in zip(start, lines, strict=True)]
+        journal = up + ".append"
+        temp = journal + ".tmp"
+        with open(temp, "w", encoding="utf-8") as handle:
+            json.dump({"start": start, "end": end}, handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp, journal)
+        _sync_parent(journal)
         try:
-            _append_lines(ap, [json.dumps({k: r.get(k, "") for k in cols}, ensure_ascii=False) + "\n"
-                               for r in fresh])
-            _append_lines(up, [(r.get("url") or "").strip() + "\n" for r in fresh])
+            _append_lines(ap, lines[0])
+            _append_lines(up, lines[1])
         except Exception:
-            for path, size in ((ap, ap_size), (up, up_size)):
-                try:
-                    os.truncate(path, size)
-                except OSError:
-                    pass
-            _KNOWN.pop(up, None)          # 内存里的 known 缓存已提前加过 key，弃掉重读
+            _recover_append(ap, up, rollback=True)
             raise
+        os.unlink(journal)
         # Our own append changed the stat; record it so the next call does not reload.
+        keys.update(new_keys)
         _KNOWN[up]["sig"] = _stat_sig(up)
         return len(fresh)
 
@@ -149,7 +232,4 @@ def existing_urls(domain):
     return urls, n
 
 def save(domain, rows):
-    d = os.path.join(DATA, domain); os.makedirs(d, exist_ok=True)
-    with open(os.path.join(d, "articles.jsonl"), "a", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps({k: r.get(k, "") for k in COLS}, ensure_ascii=False) + "\n")
+    append_rows(domain, rows)

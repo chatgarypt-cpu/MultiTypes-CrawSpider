@@ -105,6 +105,41 @@ def test_write_state_atomic(tmp_path):
     assert json.loads(path.read_text(encoding="utf-8"))["updated"] == "2026-11-07T01:00:00"
 
 
+def test_group_signal_falls_back_to_worker_when_host_denies_group(monkeypatch):
+    from crawler import processes
+    import signal
+
+    signals = []
+
+    def denied(*_args):
+        raise PermissionError()
+
+    monkeypatch.setattr(processes.os, "killpg", denied)
+    monkeypatch.setattr(processes.os, "kill", lambda pid, sig: signals.append((pid, sig)))
+    processes.signal_group(1234, signal.SIGTERM)
+    assert signals == [(1234, signal.SIGTERM)]
+
+
+def test_resume_snapshot_preserves_queue_and_retry_budget(tmp_path):
+    path = tmp_path / "supervise_state.json"
+    tasks = [(name, "posts") for name in ("done.test", "idle.test", "paused.test", "stalled.test",
+                                         "waiting.test", "running.test", "new.test")]
+    supervisor.write_state(path, updated="2026-11-25T13:00:00",
+                           running=[{"domain": "running.test", "kind": "posts"}],
+                           pending=["waiting.test:posts", "removed.test:posts"],
+                           completed=["done.test:posts"], idle=["idle.test:posts"],
+                           stalled=["stalled.test:posts"], paused_by_user=["paused.test:posts"],
+                           attempts={"waiting.test:posts": 2, "stalled.test:posts": 3})
+
+    queue, done, stalled, idle, paused, tries = supervisor.resume_snapshot(tasks, path)
+    assert queue == [("running.test", "posts"), ("waiting.test", "posts")]
+    assert done == [("done.test", "posts")]
+    assert idle == [("idle.test", "posts")]
+    assert stalled == [("stalled.test", "posts")]
+    assert paused == {("paused.test", "posts")}
+    assert tries == {("waiting.test", "posts"): 2, ("stalled.test", "posts"): 3}
+
+
 def test_health_write_integration(tmp_path):
     """_write_health 应写出 data/health.json（不涉及子进程）。"""
     make_site(tmp_path, "a.test", "posts", rows=3)

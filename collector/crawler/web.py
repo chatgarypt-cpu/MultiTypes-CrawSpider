@@ -1,12 +1,15 @@
 """Shared helpers."""
 import html, json, logging, math, os, re, sqlite3, subprocess, sys, tempfile, time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from itertools import islice
 from datetime import datetime, timezone
 from urllib.parse import urljoin, urlparse, urlsplit
 
 import requests, trafilatura
+from urllib3.exceptions import HTTPError as Urllib3Error
 try:
     from curl_cffi import requests as cffi_requests
+    from curl_cffi.curl import CURL_WRITEFUNC_ERROR
 except Exception:
     cffi_requests = None
 from crawler.config import ROOT, DATA, DB, UA, COLS, MEDIA_COLS, WORKERS
@@ -119,26 +122,42 @@ def _textual(ctype: str | None) -> bool:
     return not ctype or ctype.startswith(TEXTUAL)
 
 
-def read_body_capped(r, max_bytes=None, deadline=None, binary=False):
-    """读响应体，最多 max_bytes / deadline 秒，超了就截断。"""
+class ResponseSizeLimit(ValueError):
+    def __init__(self):
+        super().__init__("response_size_limit")
+
+
+def _body_chunks(response):
+    read = getattr(getattr(response, "raw", None), "read1", None)
+    if read is None:
+        yield from response.iter_content(65536)
+        return
+    # read1 returns available bytes without waiting for a full chunk from a slow sender.
+    try:
+        yield from iter(lambda: read(65536, decode_content=True), b"")
+    except Urllib3Error as exc:
+        raise requests.exceptions.ConnectionError(str(exc)) from exc
+
+
+def read_body_capped(r, max_bytes=None, deadline=None, binary=False, *, strict=False):
+    """Read decoded bytes under the configured limit. Complete documents are never truncated."""
     max_bytes = MAX_BODY_BYTES if max_bytes is None else int(max_bytes)
     deadline = BODY_DEADLINE if deadline is None else float(deadline)
     end = time.monotonic() + deadline
     chunks, size = [], 0
-    try:
-        for ch in r.iter_content(65536):
-            if not ch:
-                continue
-            chunks.append(ch)
-            size += len(ch)
-            if binary and (size > max_bytes or time.monotonic() > end):
-                raise ValueError("PDF exceeds response size/time limit")
-            if not binary and (size >= max_bytes or time.monotonic() > end):
-                break
-    except Exception:
-        if binary:
-            raise
-        pass
+    strict |= binary
+    for ch in _body_chunks(r):
+        if not ch:
+            continue
+        chunks.append(ch)
+        size += len(ch)
+        if size > max_bytes and strict:
+            raise ResponseSizeLimit()
+        expired = time.monotonic() > end
+        if expired and strict:
+            raise TimeoutError("response body deadline exceeded")
+        if not strict and (size >= max_bytes or expired):
+            break
     data = b"".join(chunks)[:max_bytes]
     if binary:
         return data
@@ -212,9 +231,40 @@ def get_text(url, headers, timeout=(10, 25), verify=True, documents=False, publi
                 last = (r.status_code, "")
                 _sleep_backoff(attempt)
                 continue
-            return r.status_code, read_body_capped(r)
+            return r.status_code, read_body_capped(r, strict=True)
+        except (requests.RequestException, TimeoutError) as exc:
+            last = (0, str(exc)[:200])
         finally:
             r.close()
+        if attempt < RETRIES:
+            _sleep_backoff(attempt)
+    return last
+
+
+def _capped_impersonate_get(url, headers, timeout, **options):
+    body = bytearray()
+    exceeded = False
+
+    def on_content(chunk):
+        nonlocal exceeded
+        if len(body) + len(chunk) > MAX_BODY_BYTES:
+            exceeded = True
+            return CURL_WRITEFUNC_ERROR
+        body.extend(chunk)
+        return len(chunk)
+
+    try:
+        response = cffi_requests.get(url, impersonate="chrome", timeout=timeout,
+                                     headers=headers, content_callback=on_content, **options)
+    except Exception as exc:
+        if exceeded:
+            raise ResponseSizeLimit() from exc
+        raise
+    if exceeded or len(response.content) > MAX_BODY_BYTES:
+        raise ResponseSizeLimit()
+    if body:
+        response.content = bytes(body)
+    return response
 
 
 class Fetcher:
@@ -245,42 +295,44 @@ class Fetcher:
             return ego_fetch(urls, json_mode=json_mode,
                              wait_ms=self.site.get("ego_wait_ms"),
                              space="collector-" + self.site["domain"].replace(".", "-"))
-        if self.camoufox:
-            from crawler.browser_camoufox import fetch_many as cf_fetch
-            res = cf_fetch(list(urls),
-                           wait_ms=self.site.get("camoufox_wait_ms") or 8000,
-                           headless=self.site.get("headless", True),
-                           ignore_https_errors=bool(self.site.get("ignore_https_errors")))
-            bad = [u for u, st, body in res if st == 0 or not body]
-            if bad:
-                again = {u: (st, body) for u, st, body in cf_fetch(bad, wait_ms=8000,
-                           headless=self.site.get("headless", True),
-                           ignore_https_errors=bool(self.site.get("ignore_https_errors")))}
-                res = [(u, *(again.get(u) or (st, body))) for u, st, body in res]
-            return res
+        if self.playwright:
+            return list(self._playwright_results(urls, streaming=False))
+        if self.camoufox or self.browser:
+            return list(self.stream_many(urls))
+        if self.cloud:
+            return [(url, *cloud_get(url)) for url in urls]
         if self.brightdata:
             zone = self.site.get("brightdata_zone")
-            with ThreadPoolExecutor(max_workers=4) as ex:
-                return list(ex.map(lambda u: (u, *brightdata_get(u, zone)[:2]), urls))
-        if self.playwright:
-            from crawler.browser_playwright import fetch_many as pw_fetch
-            warm = []
-            if not getattr(self, "_warmed", False):
-                # 先用首页过一次挑战，拿到的 cookie 后面复用；否则首个列表页可能仍是挑战页
-                self._warmed = True
-                warm = [self.site["base"].rstrip("/") + "/"]
-            res = pw_fetch(warm + list(urls),
-                           wait_ms=self.site.get("playwright_wait_ms") or self.site.get("ego_wait_ms"),
-                           headless=self.site.get("headless", True),
-                           block_resources=bool(self.site.get("block_resources")),
-                           ignore_https_errors=bool(self.site.get("ignore_https_errors")),
-                           user_agent=site_ua(self.site))
-            return res[len(warm):]
-        if self.browser:
-            return self._browser(urls)
-        if self.cloud:
-            return [(u, st, body) for u in urls for st, body in [cloud_get(u)]]
+            with ThreadPoolExecutor(max_workers=int(os.environ.get("SITE_WORKERS", "4"))) as workers:
+                return list(workers.map(lambda url: (url, *brightdata_get(url, zone)[:2]), urls))
         return [self._fetch_one(u, timeout) for u in urls]
+
+    def _camoufox_results(self, urls):
+        from crawler.browser_camoufox import iter_fetch
+        options = dict(headless=self.site.get("headless", True),
+                       ignore_https_errors=bool(self.site.get("ignore_https_errors")))
+        for url, status, body in iter_fetch(urls, wait_ms=self.site.get("camoufox_wait_ms") or 8000, **options):
+            if status == 0 or not body:
+                yield from iter_fetch([url], wait_ms=8000, **options)
+            else:
+                yield url, status, body
+
+    def _playwright_results(self, urls, *, streaming):
+        from crawler import browser_playwright
+        fetch = browser_playwright.iter_fetch if streaming else browser_playwright.fetch_many
+        warm = []
+        if not getattr(self, "_warmed", False):
+            warm = [self.site["base"].rstrip("/") + "/"]
+        results = iter(fetch(warm + list(urls),
+                             wait_ms=self.site.get("playwright_wait_ms") or self.site.get("ego_wait_ms"),
+                             headless=self.site.get("headless", True),
+                             block_resources=bool(self.site.get("block_resources")),
+                             ignore_https_errors=bool(self.site.get("ignore_https_errors")),
+                             user_agent=site_ua(self.site)))
+        if warm:
+            next(results, None)
+            self._warmed = True
+        yield from results
 
     def _fetch_one(self, u, timeout=60):
         public_host = self.site.get("_public_host")
@@ -342,16 +394,16 @@ class Fetcher:
                     options["verify"] = False
                 if self.site.get("http_version") == "1.1":
                     options["http_version"] = 2
-                r = cffi_requests.get(url, impersonate="chrome", timeout=45, headers=headers, **options)
+                r = _capped_impersonate_get(url, headers, 45, **options)
                 if self.site.get("documents") and r.status_code == 200 and r.headers.get("content-type", "").lower().startswith("application/pdf"):
-                    if len(r.content) > MAX_BODY_BYTES:
-                        raise ValueError("PDF exceeds response size limit")
                     return r.status_code, r.content
                 if r.status_code >= 500 and attempt < RETRIES:
                     last = (r.status_code, "")
                     _sleep_backoff(attempt)
                     continue
                 return r.status_code, r.text
+            except ResponseSizeLimit as exc:
+                return 0, str(exc)
             except Exception as e:
                 last = (0, str(e)[:200])
                 if attempt < RETRIES:
@@ -360,13 +412,49 @@ class Fetcher:
 
     def stream_many(self, urls, workers=4):
         """Yield (url, status, body) with bounded in-site concurrency (non-WP article fetches)."""
-        if self.ego or self.browser or self.cloud or self.playwright or self.brightdata or self.camoufox or workers <= 1:
-            yield from self.get_many(urls)
+        if not urls:
             return
+        if self.playwright:
+            yield from self._playwright_results(urls, streaming=True)
+            return
+        if self.camoufox:
+            yield from self._camoufox_results(urls)
+            return
+        if self.ego:
+            from crawler.browser_ego import iter_fetch
+            json_mode = all(("wp-json" in u or "rest_route" in u or u.endswith(".json")) for u in urls)
+            yield from iter_fetch(urls, json_mode=json_mode, wait_ms=self.site.get("ego_wait_ms"),
+                                  space="collector-" + self.site["domain"].replace(".", "-"))
+            return
+        if self.browser:
+            yield from self._browser(urls)
+            return
+
+        def fetch(url):
+            if self.cloud:
+                return (url, *cloud_get(url))
+            if self.brightdata:
+                return (url, *brightdata_get(url, self.site.get("brightdata_zone"))[:2])
+            return self._fetch_one(url)
+
+        if workers <= 1:
+            for url in urls:
+                yield fetch(url)
+            return
+        urls = iter(urls)
         with ThreadPoolExecutor(max_workers=workers) as ex:
-            futures = [ex.submit(self._fetch_one, u) for u in urls]
-            for f in as_completed(futures):
-                yield f.result()
+            pending = {ex.submit(fetch, url) for url in islice(urls, workers)}
+            while pending:
+                done, _ = wait(pending, return_when=FIRST_COMPLETED)
+                while done:
+                    future = done.pop()
+                    pending.remove(future)
+                    result = future.result()
+                    del future
+                    url = next(urls, None)
+                    if url is not None:
+                        pending.add(ex.submit(fetch, url))
+                    yield result
 
     def stream_requests(self, requests_, workers=4):
         """Yield (Request, status, body) for a batch of Request objects."""
@@ -375,18 +463,28 @@ class Fetcher:
             yield index.get(u), status, body
 
     def _browser(self, urls, chunk=40):
-        results = []
         for i in range(0, len(urls), chunk):
             part = urls[i:i+chunk]
-            with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
-                f.write("\n".join(part)); inp = f.name
-            outp = inp + ".ndjson"
-            subprocess.run(["node", os.path.join(ROOT, "bb_batch.mjs"), self.site["base"] + "/", inp, outp],
-                           check=True, capture_output=True, text=True)
-            results += [(r["url"], r["status"], r.get("text", "")) for r in
-                        (json.loads(l) for l in open(outp) if l.strip())]
-            os.unlink(inp); os.unlink(outp)
-        return results
+            with tempfile.TemporaryDirectory(prefix="crawl-browser-") as directory:
+                inp = os.path.join(directory, "urls.txt")
+                out = os.path.join(directory, "responses.ndjson")
+                with open(inp, "w", encoding="utf-8") as handle:
+                    handle.write("\n".join(part))
+                received = set()
+                try:
+                    subprocess.run(["node", os.path.join(ROOT, "bb_batch.mjs"), self.site["base"] + "/", inp, out],
+                                   check=True, capture_output=True, text=True,
+                                   timeout=float(os.environ.get("BROWSER_BATCH_TIMEOUT", "600")))
+                    with open(out, encoding="utf-8") as handle:
+                        for line in handle:
+                            if line.strip():
+                                row = json.loads(line)
+                                received.add(row["url"])
+                                yield row["url"], row["status"], row.get("text", "")
+                except (OSError, subprocess.SubprocessError, ValueError) as exc:
+                    for url in part:
+                        if url not in received:
+                            yield url, 0, str(exc)[:150]
 
 # ---------- discovery ----------
 def parse_json_tolerant(body):
@@ -435,7 +533,7 @@ def _get(session, url, timeout=90, attempts=3, impersonate=False, headers=None):
     for i in range(attempts):
         try:
             if impersonate and cffi_requests is not None:
-                r = cffi_requests.get(url, impersonate="chrome", timeout=READ_TIMEOUT, headers=headers)
+                r = _capped_impersonate_get(url, headers, READ_TIMEOUT)
                 return r.status_code, r.text, {k.lower(): v for k, v in r.headers.items()}
             r = SESSION.get(url, headers=headers, timeout=_as_timeout(timeout), stream=True)
             try:
@@ -444,10 +542,12 @@ def _get(session, url, timeout=90, attempts=3, impersonate=False, headers=None):
                     last = (r.status_code, "", hdrs)
                     _sleep_backoff(i)
                     continue
-                body = read_body_capped(r) if _textual(r.headers.get("content-type")) else ""
+                body = read_body_capped(r, strict=True) if _textual(r.headers.get("content-type")) else ""
                 return r.status_code, body, hdrs
             finally:
                 r.close()
+        except ResponseSizeLimit as exc:
+            return 0, str(exc), {}
         except Exception as e:
             last = (0, str(e)[:150], {})
             if i < attempts - 1:

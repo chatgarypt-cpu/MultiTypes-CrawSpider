@@ -119,7 +119,7 @@ def collect_one(url, limit=1):
     """Fetch a single article URL and store it under its host."""
     from crawler.extract import extract_best
     from crawler.pipeline import normalize, validate
-    from crawler.store import append_rows, load_known, save_cursor
+    from crawler.store import append_rows
     from crawler.web import Fetcher
     import export_csv
 
@@ -127,7 +127,6 @@ def collect_one(url, limit=1):
     base, domain = f"{p.scheme}://{p.netloc}", p.netloc
     site = {"domain": domain, "base": base, "channel": "html"}
     fetcher = Fetcher(site)
-    out = []
     for u, status, body in fetcher.stream_many([url], workers=1):
         if status != 200 or not body:
             return {"url": url, "error": f"http {status}"}
@@ -138,13 +137,8 @@ def collect_one(url, limit=1):
         ok, why = validate(row, site, "posts")
         if not ok:
             return {"url": url, "error": why}
-        known = load_known(domain, "posts")
-        duplicate = row["url"] in known
-        if not duplicate:
-            append_rows(domain, [row], "posts")
-            out.append(row)
-        save_cursor(domain, {"next_page": 1, "total_pages": 1, "saved": len(out), "done": True}, "posts")
-        result = {"url": url, "saved": 0 if duplicate else 1, "duplicate": duplicate,
+        written = append_rows(domain, [row], "posts")
+        result = {"url": url, "saved": written, "duplicate": written == 0,
                   "title": row.get("title", ""), "text_len": len(row.get("text") or ""),
                   "created_at": row.get("created_at", "")}
     try:

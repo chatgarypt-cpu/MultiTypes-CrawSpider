@@ -3,30 +3,37 @@
 
 - 每个任务 = 一个 (domain, kind)，调用 collector/collect.py 断点续跑
 - 同站串行、最多 N 个站并发（默认 4）
-- 进程退出后看 cursor.done 判定完成；未完成则退避重试，最多 3 次
+- 结合进程退出码、游标和剩余工作判定完成、空闲或重试
 - 暂停开关：存在 data/CRAWL_PAUSED 就停掉所有子进程，删除后自动恢复
 - 按站跳过：data/CRAWL_SKIP 里 `domain:kind` 的任务保持暂停
-- 看门狗：行数 20 分钟零增长杀进程；stalled 任务 30 分钟重排一次
+- 看门狗：采集日志、游标和写入均无进展时终止进程组
 - 空闲常驻：队列空也不退出
 - 状态每 30s 原子写 data/supervise_state.json，并写 data/health.json
 
 启动：
   "演练场（ignore)/.venv/bin/python" collector/supervisor.py
   collectorctl run
+  CRAWL_RESUME_STATE=1 python collector/supervisor.py  # 延续已有队列和重试次数
 """
 from __future__ import annotations
 
 import json
 import os
 import signal
+import sqlite3
 import subprocess
 import sys
 import time
 from pathlib import Path
+from contextlib import closing
+
+from crawler import config
+from crawler.processes import signal_group, stop_group
+from crawler.request import RequestQueue
 
 HERE = Path(__file__).resolve().parent          # collector/
 PROJECT = HERE.parent
-DATA = HERE / "data"                            # collector/data -> ../data
+DATA = Path(config.DATA)
 COLLECT = HERE / "collect.py"
 PY = os.environ.get("CRAWL_PY") or sys.executable
 LOG = DATA / "supervise.log"
@@ -35,14 +42,12 @@ HEALTH = DATA / "health.json"
 PAUSE = DATA / "CRAWL_PAUSED"
 SKIP = DATA / "CRAWL_SKIP"
 
-PAUSED_BY_USER: set[str] = set()
-
 MAX_CONCURRENT = int(os.environ.get("CRAWL_CONCURRENCY", "4"))
 MAX_ATTEMPTS = int(os.environ.get("CRAWL_ATTEMPTS", "3"))
 SITE_WORKERS = os.environ.get("SITE_WORKERS", "4")
 RETRY_DELAY = int(os.environ.get("CRAWL_RETRY_DELAY", "90"))
 STALL_KILL = int(os.environ.get("CRAWL_STALL_KILL", "1200"))          # 20min 零增长
-STALLED_RETRY = int(os.environ.get("CRAWL_STALLED_RETRY", "1800"))    # stalled 30min 重排
+QUEUE_RETRY_COOLDOWN = int(os.environ.get("RETRY_COOLDOWN", "900"))
 STATE_EVERY = int(os.environ.get("CRAWL_STATE_EVERY", "30"))
 
 SOURCES = HERE / "sources.yaml"
@@ -103,25 +108,32 @@ def rows(data_dir, dom: str, kind: str = "posts") -> int:
 
 
 def is_done(data_dir, dom: str, kind: str = "posts") -> bool:
-    name = "cursor.json" if kind == "posts" else f"{kind}.cursor.json"
     try:
-        with open(Path(data_dir) / dom / name, encoding="utf-8") as f:
-            cur = json.load(f)
-        import yaml
-        sites = (yaml.safe_load(SOURCES.read_text(encoding="utf-8")) or []) if SOURCES.is_file() else []
-        site = next((s for s in sites if s.get("domain") == dom), {})
-        revision = (site.get("backfill_revision") or {}).get(kind, 0)
+        cur = read_cursor(data_dir, dom, kind)
+        revision = (site_settings(dom).get("backfill_revision") or {}).get(kind, 0)
         return bool(cur.get("done")) and cur.get("backfill_revision", 0) >= revision
-    except (OSError, ValueError, AttributeError):
+    except (ValueError, TypeError, AttributeError):
         return False
 
 
-def classify_exit(done: bool, attempts: int, max_attempts=None) -> tuple[str, int]:
+def site_settings(domain):
+    import yaml
+    try:
+        sites = yaml.safe_load(SOURCES.read_text(encoding="utf-8")) or []
+        return next((site for site in sites if isinstance(site, dict) and site.get("domain") == domain), {})
+    except (OSError, ValueError, TypeError, yaml.YAMLError):
+        return {}
+
+
+def classify_exit(done: bool, attempts: int, max_attempts=None, *,
+                  returncode=0, no_work=False, progress=False) -> tuple[str, int]:
     """子进程退出后的处置：completed / retry / stalled，以及累计尝试次数。"""
-    if done:
+    if returncode == 0 and done:
         return "completed", attempts
+    if returncode == 0 and no_work:
+        return "idle", attempts
     limit = MAX_ATTEMPTS if max_attempts is None else max_attempts
-    n = attempts + 1
+    n = 0 if progress else attempts + 1
     return ("stalled" if n >= limit else "retry"), n
 
 
@@ -139,7 +151,7 @@ def watchdog_action(now, last_progress, last_rows, cur_rows, stall_kill=None,
 
 
 def state_payload(data_dir, running: dict, queue, completed, stalled, attempts,
-                  paused_by_user=None, now=None) -> dict:
+                  paused_by_user=None, now=None, idle=()) -> dict:
     """组装 data/supervise_state.json 的内容。"""
     now = time.time() if now is None else now
     return {
@@ -154,7 +166,8 @@ def state_payload(data_dir, running: dict, queue, completed, stalled, attempts,
         "pending": [f"{d}:{k}" for d, k in queue],
         "completed": [f"{d}:{k}" for d, k in completed],
         "stalled": [f"{d}:{k}" for d, k in stalled],
-        "paused_by_user": sorted(paused_by_user or PAUSED_BY_USER),
+        "idle": [f"{d}:{k}" for d, k in idle],
+        "paused_by_user": sorted(paused_by_user or ()),
         "attempts": {f"{d}:{k}": n for (d, k), n in attempts.items()},
     }
 
@@ -207,195 +220,234 @@ def start(key, running, data_dir=None, py=None, env=None) -> None:
     dom, kind = key
     data_dir = Path(data_dir) if data_dir else DATA
     cmd = [str(py or PY), str(COLLECT), "--site", dom, "--kind", kind, "--limit", "0", "--no-csv"]
-    run_env = dict(env or os.environ, SITE_WORKERS=SITE_WORKERS,
-                   QUEUE_BATCH=os.environ.get("QUEUE_BATCH", "100"))
+    run_env = dict(os.environ if env is None else env, SITE_WORKERS=SITE_WORKERS,
+                   CRAWL_DATA_DIR=str(data_dir.resolve()), PYTHONUNBUFFERED="1")
+    run_env.setdefault("QUEUE_BATCH", "100")
     logfile = data_dir / f"crawl-{dom}-{kind}.log"
     logfile.parent.mkdir(parents=True, exist_ok=True)
     fh = open(logfile, "a", encoding="utf-8")
     fh.write(f"\n===== {now_iso()} start {dom} {kind} =====\n")
     fh.flush()
-    proc = subprocess.Popen(cmd, cwd=str(PROJECT), env=run_env, stdout=fh,
-                            stderr=subprocess.STDOUT, start_new_session=True)
     before = rows(data_dir, dom, kind)
+    progress = progress_signature(data_dir, key, logfile)
+    initial_cursor = read_cursor(data_dir, dom, kind)
+    try:
+        proc = subprocess.Popen(cmd, cwd=str(PROJECT), env=run_env, stdout=fh,
+                                stderr=subprocess.STDOUT, start_new_session=True)
+    except BaseException:
+        fh.close()
+        raise
     running[key] = {"proc": proc, "fh": fh, "start": time.time(), "before": before,
-                    "last_rows": before, "last_progress": time.time()}
+                    "logfile": logfile, "progress": progress, "initial_cursor": initial_cursor,
+                    "last_progress": time.monotonic()}
     log(f"start {dom} {kind} (running={len(running)}/{MAX_CONCURRENT}) rows={before}")
 
 
-# ---------------------------------------------------------------- 主循环
+def read_cursor(data_dir, dom, kind):
+    name = "cursor.json" if kind == "posts" else f"{kind}.cursor.json"
+    try:
+        cur = json.loads((Path(data_dir) / dom / name).read_text(encoding="utf-8"))
+        return cur if isinstance(cur, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def progress_signature(data_dir, key, logfile):
+    dom, kind = key
+    directory = Path(data_dir) / dom
+    prefix = "" if kind == "posts" else f"{kind}."
+    paths = (logfile, directory / f"{prefix}cursor.json", directory / f"{prefix}urls.txt")
+    result = []
+    for path in paths:
+        try:
+            stat = path.stat()
+            result.append((stat.st_mtime_ns, stat.st_size))
+        except OSError:
+            result.append(None)
+    return tuple(result)
+
+
+def request_work(data_dir, key, *, include_skipped=False):
+    """Return pending work and whether dead letters can be retried."""
+    path = Path(data_dir) / "state.db"
+    if not path.is_file():
+        return False, False
+    try:
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1)) as conn:
+            states = ("unprocessed", "inflight", "skipped" if include_skipped else "unprocessed")
+            pending = conn.execute(
+                "SELECT 1 FROM requests WHERE domain=? AND kind=? AND state IN (?,?,?) LIMIT 1",
+                (*key, *states)).fetchone()
+            if pending:
+                return True, False
+            errors = conn.execute("SELECT error FROM requests WHERE domain=? AND kind=? AND state='error'", key)
+            statuses = site_settings(key[0]).get("retry_http_statuses") or ()
+            return False, any(RequestQueue.retryable_error(error, statuses) for (error,) in errors)
+    except sqlite3.OperationalError as exc:
+        return ("no such table" not in str(exc)), False
+
+
+def resume_snapshot(tasks, path):
+    state = json.loads(path.read_text(encoding="utf-8"))
+    by_name = {f"{dom}:{kind}": (dom, kind) for dom, kind in tasks}
+
+    def known(names):
+        return list(dict.fromkeys(by_name[name] for name in names if name in by_name))
+
+    completed, stalled, idle, paused = (
+        known(state.get(field, ())) for field in ("completed", "stalled", "idle", "paused_by_user")
+    )
+    parked = set(completed + stalled + idle + paused)
+    running = [f"{job['domain']}:{job['kind']}" for job in state.get("running", ())]
+    queue = [key for key in known(running + state["pending"]) if key not in parked]
+    attempts = {by_name[name]: value for name, value in state.get("attempts", {}).items()
+                if name in by_name}
+    return queue, completed, stalled, idle, set(paused), attempts
+
+
 def main() -> int:
     DATA.mkdir(parents=True, exist_ok=True)
     queue = list(dict.fromkeys(load_tasks()))
-    running: dict = {}
-    completed: list = []
-    stalled: list = []
-    attempts: dict = {}
-    ready_at: dict = {}
+    running = {}
+    completed, stalled, idle = [], [], []
+    paused = set()
+    attempts, ready_at = {}, {}
+    if os.environ.get("CRAWL_RESUME_STATE") == "1":
+        queue, completed, stalled, idle, paused, attempts = resume_snapshot(queue, STATE)
+        log(f"resume snapshot pending={len(queue)} completed={len(completed)} "
+            f"idle={len(idle)} stalled={len(stalled)} paused={len(paused)}")
+    stop = False
     last_state = 0.0
-    last_health = 0.0
-    paused_logged = False
-    last_retry = 0.0
+    prior_pause = False
 
-    def flush_state() -> None:
-        nonlocal last_state
+    def publish():
         write_state(state_payload(DATA, running, queue, completed, stalled, attempts,
-                                  paused_by_user=PAUSED_BY_USER))
-        last_state = time.time()
-
-    def flush_health() -> None:
-        nonlocal last_health
+                                    paused_by_user=[f"{d}:{k}" for d, k in paused], idle=idle))
         _write_health(DATA, running, queue, stalled, completed)
-        last_health = time.time()
 
     def on_term(*_):
-        for info in running.values():
-            try:
-                info["proc"].terminate()
-            except Exception:
-                pass
-        try:
-            flush_state()
-            flush_health()
-        except Exception:
-            pass
-        log("supervisor terminated")
-        sys.exit(0)
+        nonlocal stop
+        stop = True
+
+    def settle(key, rc, info=None):
+        dom, kind = key
+        after = rows(DATA, dom, kind) if info else 0
+        delta = after - info["before"] if info else 0
+        cur = read_cursor(DATA, dom, kind)
+        reason = cur.get("last_reason")
+        pending, transient = request_work(DATA, key) if info else (False, False)
+        fresh = bool(info and cur != info["initial_cursor"])
+        next_page = cur.get("next_page")
+        prior_page = info["initial_cursor"].get("next_page") if info else None
+        more_pages = fresh and isinstance(next_page, int) and next_page > (prior_page if isinstance(prior_page, int) else 1)
+        no_work = (fresh and not pending and not transient and
+                   reason in ("nothing_new", "no_output", "dead_404", "dead_letters", "skipped"))
+        action, n = classify_exit(
+            bool(info and is_done(DATA, dom, kind)), attempts.get(key, 0),
+            returncode=rc, no_work=no_work, progress=delta > 0 or more_pages,
+        )
+        log(f"exit {dom} {kind} rc={rc} delta={delta:+d} rows={after} "
+            f"status={cur.get('status')} reason={reason} -> {action}")
+        attempts[key] = n
+        if action == "completed":
+            completed.append(key)
+        elif action == "idle":
+            idle.append(key)
+        elif action == "stalled":
+            stalled.append(key)
+            log(f"STALLED {dom} {kind} after {n} consecutive attempts")
+        else:
+            delay = max(RETRY_DELAY, QUEUE_RETRY_COOLDOWN if transient else 0)
+            ready_at[key] = time.monotonic() + delay
+            queue.append(key)
+            log(f"retry {dom} {kind} in {delay}s (attempt {n}/{MAX_ATTEMPTS})")
 
     signal.signal(signal.SIGTERM, on_term)
     signal.signal(signal.SIGINT, on_term)
 
-    log(f"supervisor start: {len(queue)} tasks, concurrency={MAX_CONCURRENT}, "
-        f"attempts={MAX_ATTEMPTS}, py={PY}")
-    flush_state()
-    flush_health()
+    while not stop:
+        skip = read_skip()
+        globally_paused = PAUSE.exists()
+        if globally_paused != prior_pause:
+            log("PAUSED by CRAWL_PAUSED" if globally_paused else "RESUMED after CRAWL_PAUSED")
+            prior_pause = globally_paused
 
-    while True:                                  # 常驻服务：空闲也不退出
-        # 0) 暂停开关：存在 data/CRAWL_PAUSED 就停掉所有子进程，删除后自动恢复
-        if PAUSE.exists():
-            for key, info in list(running.items()):
-                try:
-                    info["proc"].terminate()
-                except Exception:
-                    pass
-                try:
-                    info["fh"].close()
-                except Exception:
-                    pass
-                running.pop(key)
-                queue.insert(0, key)
-            if not paused_logged:
-                log("PAUSED by data/CRAWL_PAUSED — 已停止采集，删除该文件后自动恢复")
-                paused_logged = True
-            flush_state()
-            if time.time() - last_health >= STATE_EVERY:
-                flush_health()
-            time.sleep(5)
-            continue
-        elif paused_logged:
-            log("RESUMED — data/CRAWL_PAUSED 已移除")
-            paused_logged = False
-
-        # 1) 回收完成的子进程
         for key, info in list(running.items()):
-            rc = info["proc"].poll()
-            if rc is None:
-                continue
-            try:
+            proc = info["proc"]
+            site_paused = f"{key[0]}:{key[1]}" in skip
+            if globally_paused or site_paused:
+                if stop_group(proc) is None:
+                    continue
                 info["fh"].close()
-            except Exception:
-                pass
-            running.pop(key)
-            dom, kind = key
-            after = rows(DATA, dom, kind)
-            delta = after - info["before"]
-            done = is_done(DATA, dom, kind)
-            action, n = classify_exit(done, attempts.get(key, 0))
-            log(f"exit {dom} {kind} rc={rc} delta={delta:+d} rows={after} "
-                f"done={done} took={round(time.time() - info['start'])}s -> {action}")
-            if action == "completed":
-                completed.append(key)
-            elif action == "stalled":
-                attempts[key] = n
-                stalled.append(key)
-                log(f"STALLED {dom} {kind} after {n} attempts")
-            else:                                 # retry
-                attempts[key] = n
-                ready_at[key] = time.time() + RETRY_DELAY
-                queue.append(key)
-                log(f"retry {dom} {kind} in {RETRY_DELAY}s (attempt {n}/{MAX_ATTEMPTS})")
-
-        # 1.5) 看门狗：行数长时间不涨 = 连接/SSL 卡死，杀掉让重试分支接管
-        now = time.time()
-        for key, info in list(running.items()):
-            if now - info["last_progress"] < 120:      # 每 2 分钟检查一次，避免频繁扫大文件
+                running.pop(key)
+                if site_paused:
+                    paused.add(key)
+                else:
+                    queue.insert(0, key)
                 continue
-            dom, kind = key
-            cur = rows(DATA, dom, kind)
-            action = watchdog_action(now, info["last_progress"], info["last_rows"],
-                                     cur, STALL_KILL)
+
+            rc = proc.poll()
+            if rc is not None:
+                signal_group(proc.pid, signal.SIGKILL)
+                info["fh"].close()
+                running.pop(key)
+                settle(key, rc, info)
+                continue
+
+            now = time.monotonic()
+            signature = progress_signature(DATA, key, info["logfile"])
+            action = watchdog_action(now, info["last_progress"], 0, int(signature != info["progress"]),
+                                     STALL_KILL, check_interval=0)
             if action == "progress":
-                info["last_rows"] = cur
+                info["progress"] = signature
                 info["last_progress"] = now
             elif action == "kill":
-                log(f"watchdog: kill {dom} {kind} (no new rows for {STALL_KILL}s)")
+                log(f"watchdog: stop {key[0]} {key[1]} (no task progress for {STALL_KILL}s)")
+                stop_group(proc)
+
+        for parked in (queue, idle, stalled):
+            for key in list(parked):
+                if f"{key[0]}:{key[1]}" in skip:
+                    parked.remove(key)
+                    paused.add(key)
+        for key in sorted(paused):
+            if f"{key[0]}:{key[1]}" not in skip:
+                paused.remove(key)
+                attempts.pop(key, None)
+                ready_at.pop(key, None)
+                queue.append(key)
+                log(f"resume {key[0]} {key[1]} after CRAWL_SKIP")
+
+        if not globally_paused:
+            for key in list(queue):
+                if len(running) >= MAX_CONCURRENT:
+                    break
+                if ready_at.get(key, 0) > time.monotonic() or any(k[0] == key[0] for k in running):
+                    continue
+                queue.remove(key)
+                if is_done(DATA, *key) and not any(request_work(DATA, key, include_skipped=True)):
+                    completed.append(key)
+                    log(f"skip {key[0]} {key[1]} (cursor done)")
+                    continue
                 try:
-                    info["proc"].kill()
-                except Exception:
-                    pass
-                info["last_progress"] = now
+                    start(key, running)
+                except OSError as exc:
+                    log(f"start failed {key[0]} {key[1]}: {exc}")
+                    settle(key, 1)
 
-        # 2) 启动新任务（同站串行；data/CRAWL_SKIP 里列出的任务保持暂停）
-        skip = read_skip(SKIP)
-        for key in list(queue):
-            if len(running) >= MAX_CONCURRENT:
-                break
-            if ready_at.get(key, 0) > time.time():
-                continue
-            dom, kind = key
-            if any(rk[0] == dom for rk in running):
-                continue
-            queue.remove(key)
-            if f"{dom}:{kind}" in skip:
-                PAUSED_BY_USER.add(f"{dom}:{kind}")
-                log(f"skip {dom} {kind} (user paused via data/CRAWL_SKIP)")
-                continue
-            if is_done(DATA, dom, kind):
-                completed.append(key)
-                log(f"skip {dom} {kind} (cursor done)")
-                continue
-            start(key, running)
-
-        # 2.5) 有空闲槽位就独立重排一个 stalled 任务（不再等"队列和进程都空闲"）
-        if stalled and len(running) < MAX_CONCURRENT and time.time() - last_retry >= STALLED_RETRY:
-            key = stalled.pop(0)
-            attempts.pop(key, None)
-            queue.append(key)
-            last_retry = time.time()
-            log(f"requeue stalled {key[0]} {key[1]} (slot free)")
-
-        # 3) 落盘进度 + 健康快照
-        if time.time() - last_state >= STATE_EVERY:
-            flush_state()
-            flush_health()
-
-        # 4) 空闲：队列空且无子进程时保持存活，定期把 stalled 任务重新排队
-        if not queue and not running:
-            if time.time() - last_retry >= STALLED_RETRY:
-                if stalled:
-                    log("retry stalled tasks: "
-                        + ", ".join(f"{d}:{k}" for d, k in stalled))
-                    for key in list(stalled):
-                        attempts.pop(key, None)
-                        queue.append(key)
-                    stalled.clear()
-                last_retry = time.time()
-            flush_state()
-            if time.time() - last_health >= STATE_EVERY:
-                flush_health()
-            time.sleep(30)
-            continue
-
+        now = time.monotonic()
+        if now - last_state >= STATE_EVERY:
+            publish()
+            last_state = now
         time.sleep(5)
+
+    for key, info in list(running.items()):
+        if stop_group(info["proc"]) is not None:
+            info["fh"].close()
+            running.pop(key)
+            queue.insert(0, key)
+    publish()
+    return 0
 
 
 if __name__ == "__main__":

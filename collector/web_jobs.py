@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import subprocess
 import sys
 import threading
@@ -12,12 +13,15 @@ import uuid
 from urllib.parse import urlsplit
 
 from crawler.config import DATA, ROOT
+from crawler.processes import signal_group
 from crawler.public_urls import normalize_url
 
 JOBS = Path(DATA) / 'web-jobs'
 LOCK = threading.RLock()
 PROCS = {}
+STOPPING = {}
 ACTIVE = {'queued', 'running'}
+STALL_KILL = int(os.environ.get("CRAWL_STALL_KILL", "1200"))
 
 
 def read(path, default=None):
@@ -51,6 +55,23 @@ def held(path):
             return True
 
 
+def worker_pid(directory):
+    proc = PROCS.get(directory.name)
+    if proc is not None:
+        return proc.pid if proc.poll() is None else None
+    try:
+        pid = int((directory / "worker.pid").read_text())
+        if pid <= 1 or os.getpgid(pid) != pid:
+            return None
+        args = subprocess.run(["ps", "-p", str(pid), "-o", "command="],
+                              capture_output=True, text=True, timeout=2, check=True).stdout.strip()
+        if args.endswith(f"{Path(ROOT) / 'web_worker.py'} {directory}"):
+            return pid
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    return None
+
+
 def jobs():
     result = []
     for path in JOBS.glob('*/job.json'):
@@ -58,14 +79,19 @@ def jobs():
         if not j.get('id'):
             continue
         proc = PROCS.get(j['id'])
-        if proc is not None:
-            proc.poll()  # reap exited workers
+        if proc is not None and proc.poll() is not None:
+            signal_group(proc.pid, signal.SIGKILL)
+            PROCS.pop(j['id'], None)
         if j.get('status') == 'running' and not held(path.parent / 'worker.lock'):
             # Worker writes a durable terminal receipt before unlocking. Read it again.
             j = read(path)
             if j.get('status') == 'running' and time.time() - j.get('started_epoch', 0) > 10:
-                j.update(status='interrupted', error='任务进程已中断，可点击继续采集')
+                stalled = j['id'] in STOPPING
+                message = '任务长时间无进展，已中断，可点击继续采集' if stalled else '任务进程已中断，可点击继续采集'
+                j.update(status='interrupted', error=message)
                 write(path, j)
+        if j.get('status') != 'running':
+            STOPPING.pop(j['id'], None)
         files = []
         for f in (path.parent / 'data' / 'csv').glob('*.csv'):
             files.append({'name': f.name, 'url': f'/api/jobs/{j["id"]}/files/{f.name}'})
@@ -126,6 +152,9 @@ def resume(job_id):
 def tick():
     with LOCK:
         entries = jobs()
+        for job in entries:
+            if job["status"] == "running":
+                _watch_job(job)
         n = int(read(Path(DATA) / 'queue_config.json', {'concurrency': 4}).get('concurrency', 4))
         available = max(0, n - sum(j['status'] == 'running' for j in entries))
         for j in sorted(entries, key=lambda x: x['created']):
@@ -149,6 +178,26 @@ def tick():
                 j.update(status='failed', error=str(exc))
                 write(directory / 'job.json', j)
             available -= 1
+
+
+def _watch_job(job):
+    directory = job_dir(job["id"])
+    if job["id"] in STOPPING:
+        pid, deadline = STOPPING[job["id"]]
+        if time.monotonic() >= deadline and worker_pid(directory) == pid:
+            signal_group(pid, signal.SIGKILL)
+        return
+    last = max(float(job.get("progress_epoch") or 0), float(job.get("started_epoch") or 0))
+    try:
+        last = max(last, (directory / "run.log").stat().st_mtime)
+    except FileNotFoundError:
+        pass
+    if time.time() - last < STALL_KILL:
+        return
+    pid = worker_pid(directory)
+    if pid is not None:
+        STOPPING[job["id"]] = pid, time.monotonic() + 5
+        signal_group(pid, signal.SIGTERM)
 
 
 def scheduler(stop):

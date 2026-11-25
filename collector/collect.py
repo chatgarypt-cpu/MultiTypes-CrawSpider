@@ -179,8 +179,9 @@ def main():
 
     if a.url:
         from crawler.adhoc import collect_one
-        print(json.dumps(collect_one(a.url), ensure_ascii=False))
-        return
+        result = collect_one(a.url)
+        print(json.dumps(result, ensure_ascii=False))
+        return int(bool(result.get("error")))
 
     if a.site_url:
         from crawler.adhoc import detect, remember
@@ -189,14 +190,10 @@ def main():
         if a.detect:
             print(json.dumps(site, ensure_ascii=False, indent=1))
             return
-        if a.reset:
-            from crawler.store import _paths
-            cp = _paths(site["domain"], a.kind)[2]
-            if os.path.exists(cp):
-                os.remove(cp)
         print(json.dumps({"detected": site}, ensure_ascii=False), flush=True)
-        print(json.dumps(collect_site(site, a.limit, a.kind, export_csv=not a.no_csv), ensure_ascii=False), flush=True)
-        return
+        result = collect_site(site, a.limit, a.kind, export_csv=not a.no_csv, reset=a.reset)
+        print(json.dumps(result, ensure_ascii=False), flush=True)
+        return int(bool(result.get("error") or result.get("export_error")))
 
     catalog = sources_path(ROOT)
     if a.validate:
@@ -246,6 +243,8 @@ def main():
 
     if a.site:
         sites = [s for s in sites if s["domain"] == a.site]
+        if not sites:
+            ap.error(f"{a.site}: site not found in sources.yaml")
     elif a.direct_wp:
         sites = [s for s in sites if s["channel"] == "wp-api" and s.get("via", "direct") != "browser"]
         sites.sort(key=lambda s: (load_cursor(s["domain"]).get("total_posts") or 0))
@@ -262,22 +261,22 @@ def main():
             print(f"skip {len(skipped_disabled)} disabled site(s): "
                   + ", ".join(skipped_disabled), flush=True)
 
+    failed = False
     for s in sites:
         from crawler.config import site_kinds
         if a.kind not in site_kinds(s):
             if a.site:
                 ap.error(f"{s['domain']}: collection {a.kind!r} is not configured")
             continue
-        if a.reset:
-            cp = os.path.join(DATA, s["domain"], "cursor.json" if a.kind == "posts" else f"{a.kind}.cursor.json")
-            if os.path.exists(cp):
-                os.remove(cp)
         try:
-            r = collect_site(s, a.limit, a.kind, export_csv=not a.no_csv)
+            r = collect_site(s, a.limit, a.kind, export_csv=not a.no_csv, reset=a.reset)
             print(json.dumps(r, ensure_ascii=False), flush=True)
+            failed |= bool(r.get("error") or r.get("export_error"))
         except Exception as e:
+            failed = True
             print(json.dumps({"domain": s["domain"], "error": repr(e)[:160]}, ensure_ascii=False), flush=True)
+    return int(failed)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

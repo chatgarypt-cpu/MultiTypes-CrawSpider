@@ -130,7 +130,11 @@ def _read_html(page, timeout):
     return html
 
 
-def fetch_many(urls, wait_ms=None, headless=True, block_resources=False,
+def fetch_many(urls, *args, **kwargs):
+    return list(iter_fetch(urls, *args, **kwargs))
+
+
+def iter_fetch(urls, wait_ms=None, headless=True, block_resources=False,
                timeout=None, user_agent=None, ignore_https_errors=False, public_host=None):
     """抓取一批 URL，返回 [(url, status, html)]；浏览器复用同一个实例。
 
@@ -146,7 +150,6 @@ def fetch_many(urls, wait_ms=None, headless=True, block_resources=False,
 
     wait_ms = int(wait_ms or os.environ.get("PW_WAIT_MS", "1500"))
     timeout = int(timeout or os.environ.get("PW_TIMEOUT_MS", "30000"))
-    out = []
     from crawler.htmlpage import page_error
     context = _context(headless=headless, user_agent=user_agent, block_resources=block_resources,
                        ignore_https_errors=ignore_https_errors, **({"public_host": public_host} if public_host else {}))
@@ -183,13 +186,12 @@ def fetch_many(urls, wait_ms=None, headless=True, block_resources=False,
                     inner = page.evaluate("() => document.body ? document.body.innerText : ''")
                     if inner.strip().startswith(("{", "[")):
                         html = inner
-                out.append((u, status, html))
+                result = (u, status, html)
             except Exception as e:
-                status = resp.status if resp is not None else 0
-                out.append((u, status or 0, str(e)[:150]))
+                result = (u, 0, str(e)[:150])
+            yield result
     finally:
         try:
             page.close()
         except Exception:
             pass
-    return out

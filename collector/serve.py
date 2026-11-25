@@ -17,6 +17,7 @@ from urllib.parse import unquote, urlsplit
 from crawler.config import DATA, ROOT
 import status as status_mod
 import web_jobs
+from crawler.processes import signal_group
 
 UI = Path(ROOT) / 'ui' / 'dist'
 CFG = Path(DATA) / 'queue_config.json'
@@ -106,7 +107,8 @@ class H(BaseHTTPRequestHandler):
             return self.json(web_jobs.read(CFG, {'concurrency': 4}))
         if path == '/api/jobs':
             with web_jobs.LOCK:
-                return self.json({'jobs': web_jobs.jobs()})
+                jobs = web_jobs.jobs()
+            return self.json({'jobs': jobs})
         if path == '/api/stream':
             return self.stream()
         if path.startswith('/api/jobs/'):
@@ -192,7 +194,10 @@ class H(BaseHTTPRequestHandler):
                             job.update(status='interrupted', stage='已停止')
                             web_jobs.write(directory / 'job.json', job)
                         elif web_jobs.held(directory / 'worker.lock'):
-                            os.kill(int((directory / 'worker.pid').read_text()), signal.SIGTERM)
+                            pid = web_jobs.worker_pid(directory)
+                            if pid is None:
+                                raise ValueError('任务进程已退出或正在启动，请稍后刷新')
+                            signal_group(pid, signal.SIGTERM)
                         else:
                             raise ValueError('任务不在运行，请稍后刷新')
                     return self.json({'ok': True})

@@ -145,6 +145,8 @@ def collect_json_list(site, limit=0, log=None):
         batch_size = int(os.environ.get("QUEUE_BATCH", "200"))
         while q.pending() and (not limit or saved < limit):
             requests_ = q.next_batch(min(batch_size, limit - saved) if limit else batch_size)
+            if not requests_:
+                break
             counts.attempted += len(requests_)
             by_url = {r.url: r for r in requests_}
             responded, rows, keys = set(), [], []

@@ -15,6 +15,12 @@ from crawler.public_urls import public_get
 
 def crawl_links(site, progress, separate=False):
     """Persistent same-host frontier. Save content before acknowledging each URL."""
+    from crawler.store import collection_lock
+    with collection_lock(site["domain"], wait=False):
+        return _crawl_links(site, progress, separate)
+
+
+def _crawl_links(site, progress, separate):
     from lxml import html
     from crawler.discover import ASSET, declared_feed_urls, parse_feed
     from crawler.extract import extract_best, extract_metadata
@@ -106,7 +112,7 @@ def crawl_links(site, progress, separate=False):
                         if not links and not feeds and not restriction and not (row or {}).get('text'):
                             raise ValueError('渲染后未发现链接或正文')
                     except Exception as exc:
-                        render_error = str(exc).splitlines()[0]
+                        render_error = (str(exc).splitlines() or [type(exc).__name__])[0]
                         q.mark_error([req.key], {req.key: f'render_unverified {render_error}'}, max_retries=1)
                         continue
                 if restriction and not recovered:
@@ -200,7 +206,7 @@ def run(directory):
         (directory / 'worker.pid').write_text(str(os.getpid()))
         job = read(path)
         def update(**fields):
-            job.update(fields)
+            job.update(progress_epoch=time.time(), **fields)
             write(path, job)
         def stop(*_):
             raise KeyboardInterrupt()

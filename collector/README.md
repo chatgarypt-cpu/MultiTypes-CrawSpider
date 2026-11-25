@@ -234,7 +234,7 @@ python collector/proxy_check.py --file my.txt -v --json
 |---|---|
 | `cli.py` | 统一入口 `collectorctl`：status / deliverables / verify / dedupe / reconcile / check-site / pause / resume / paused / run |
 | `deliver.py` | 一条命令产出 `output/csv` + `output/delivery/<yyyymmdd>/` 四件套（manifest / 残差 / 交付说明 / 覆盖率） |
-| `supervisor.py` | 常驻守护：按缺口清单补采、同站串行、看门狗（20 分钟零增长杀进程）、stalled 30 分钟重排、暂停/跳过开关 |
+| `supervisor.py` | 常驻守护。跟踪请求日志、游标和落盘进度。无进展时终止进程组，连续失败达到重试预算后停在 stalled。移除按站暂停条目后恢复。 |
 | `health.py` | 每 30s 写 `data/health.json`（吞吐/队列/错误率/最近错误），供告警与看板读取 |
 | `crawler/cursor.py` | 游标状态机：`complete / partial / blocked / paused / interrupted`，只有真正翻完才算 complete |
 | `crawler/reconcile.py` | 队列与磁盘对账（urls.txt 已有但队列仍 unprocessed → 标 done） |
