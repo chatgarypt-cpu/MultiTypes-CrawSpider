@@ -13,7 +13,7 @@ import os, re, time
 from collections import Counter
 
 from crawler import cursor, paywall
-from crawler.htmlpage import page_error, paywall_signal
+from crawler.htmlpage import page_error, paywall_signal, structured_body
 from crawler.extract import extract_best, extract_metadata
 from crawler.quality import DetailCounts
 from crawler.pipeline import normalize, validate
@@ -205,6 +205,8 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
                         _count(reasons, run_reasons, "paywall_" + source)
                         log.info("paywall recovered domain=%s url=%s source=%s restriction=%s",
                                  domain, req.url, source, hit)
+                if restriction and structured_body(body):
+                    restriction = ""          # 前端墙：__NEXT_DATA__/JSON-LD 里有全文，照常提取
                 if restriction:
                     q.mark_skipped([key], "access_restricted")
                     counts.rejections["access_restricted"] += 1

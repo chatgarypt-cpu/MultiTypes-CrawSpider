@@ -18,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 from crawler.config import DATA, UA
 from crawler import cursor, paywall
 from crawler.extract import extract_best, extract_metadata
-from crawler.htmlpage import boolean_flag, page_error, paywall_signal
+from crawler.htmlpage import boolean_flag, page_error, paywall_signal, structured_body
 from crawler.quality import DetailCounts
 from crawler.pipeline import normalize, validate
 from crawler.request import canonical_key, RequestQueue
@@ -175,6 +175,9 @@ def collect_json_list(site, limit=0, log=None):
                         log.info("%s paywall recovered source=%s restriction=%s url=%s",
                                  site["domain"], recovered, restriction, req.url)
                         restriction = ""
+                if restriction and structured_body(body):
+                    restriction = ""          # 前端墙：JSON 里有全文
+                    it["detail_access"] = "structured_body"
                 if restriction:
                     counts.rejections["access_restricted"] += 1
                     it["detail_access"] = restriction

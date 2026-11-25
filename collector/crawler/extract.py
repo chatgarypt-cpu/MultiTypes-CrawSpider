@@ -132,6 +132,22 @@ def candidates(url, body, site=None):
             row["created_at"] = row.get("created_at") or ld_value(nodes, "datePublished")
             out.append({"extractor": "jsonld", "text": row["text"], "title": row["title"],
                         "date": row["created_at"], "row": row})
+    # 结构化数据里的全文（__NEXT_DATA__ / __NUXT__ / __INITIAL_STATE__）。
+    # 前端付费墙常把整篇塞在 JSON 里，trafilatura 只看渲染后的 DOM 拿不到；
+    # 长度不够或和 jsonld 候选重复时不必参与竞争。
+    structured = htmlpage.structured_body(body)
+    if structured and len(structured) > 200:
+        dup = any(c["extractor"] == "jsonld" and c["text"].startswith(structured[:80]) for c in out)
+        if not dup:
+            row = dict(base)
+            if len(structured) > len(base.get("text") or ""):
+                row["text"] = structured
+            if not row.get("title") and nodes:
+                row["title"] = ld_value(nodes, "headline") or ""
+            if not row.get("created_at") and nodes:
+                row["created_at"] = ld_value(nodes, "datePublished") or ""
+            out.append({"extractor": "structured_json", "text": row.get("text") or "",
+                        "title": row.get("title", ""), "date": row.get("created_at", ""), "row": row})
     # 粗抽（整页可见文字）只做兜底：它一定比剪枝结果长（含导航/页脚），按长度择优会永远赢，
     # 于是 2026-11 之前入库的 html/rss 站正文常带 "Skip to main content / EXPLORE" 这类菜单。
     # 只有剪枝结果明显不合格（不足粗抽的 40%）时才让粗抽参与竞争。

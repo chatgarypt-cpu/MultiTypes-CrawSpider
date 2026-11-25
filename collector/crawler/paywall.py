@@ -167,6 +167,31 @@ def _service(url, base):
         r.close()
 
 
+def _bpc(url):
+    """按 Bypass Paywalls Clean 规则取文：换 UA / 干净会话 / 伪造来源。
+
+    规则来自上游 sites.js，语义见 crawler/bpc.py 的表；这里只执行"HTTP 层能做的"，
+    block_regex（拦截付费墙脚本）留给浏览器路径。
+    """
+    from crawler import bpc as bpc_mod
+    plan = bpc_mod.plan(url)
+    if not plan:
+        return 0, "", ""
+    try:
+        session = requests.Session()          # 无 cookie = 上游 remove_cookies 的效果
+        r = session.get(url, headers=bpc_mod.headers(url), timeout=(10, 25), allow_redirects=True)
+    except Exception:
+        return 0, "", ""
+    if r.status_code != 200:
+        r.close()
+        return r.status_code, "", ""
+    try:
+        r.encoding = r.apparent_encoding or "utf-8"
+        return 200, r.text or "", r.url or url
+    finally:
+        r.close()
+
+
 def _googlebot(url):
     return _get(url, GOOGLEBOT_HEADERS)
 
@@ -240,6 +265,14 @@ def _candidates(url, site):
     if m == "freedium":
         return [("freedium", lambda: _freedium(url))] if medium else []
     chain = []
+    # BPC 规则最便宜（一次请求，不改 UA 之外的行为），有规则就先试
+    try:
+        from crawler import bpc as bpc_mod
+        has_rule = bool(bpc_mod.match(url)[0])
+    except Exception:
+        has_rule = False
+    if has_rule:
+        chain.append(("bpc", lambda: _bpc(url)))
     if not medium:
         chain.append(("googlebot", lambda: _googlebot(url)))
     if medium:

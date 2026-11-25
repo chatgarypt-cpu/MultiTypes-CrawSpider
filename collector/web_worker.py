@@ -18,7 +18,7 @@ def crawl_links(site, progress, separate=False):
     from lxml import html
     from crawler.discover import ASSET, declared_feed_urls, parse_feed
     from crawler.extract import extract_best, extract_metadata
-    from crawler.htmlpage import is_navigation_page, page_error, paywall_signal
+    from crawler.htmlpage import is_navigation_page, page_error, paywall_signal, structured_body
     from crawler.pipeline import normalize, validate
     from crawler.request import RequestQueue, canonical_key
     from crawler.store import append_rows, load_known
@@ -117,6 +117,8 @@ def crawl_links(site, progress, separate=False):
                         links, feeds, row, restriction, navigation, _ = inspect(req.url, body)
                 q.add_many(feeds, channel='rss', label='feed')
                 q.add_many(links, channel='html')
+                if restriction and structured_body(body):
+                    restriction = ''          # 前端墙：JSON 里有全文
                 if restriction:
                     q.mark_skipped([req.key], 'access_restricted')
                 elif navigation:
