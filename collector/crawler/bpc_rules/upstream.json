@@ -1,0 +1,16 @@
+{
+  "name": "Bypass Paywalls Clean — sites.js 规则库",
+  "source": "https://gitlab.com/magnolia1234/bypass-paywalls-clean-filters",
+  "mirror": "https://github.com/altafjava/bypass-paywalls-clean",
+  "commit": "a9c0fc5495b1fb5255327728dd252e1d19a9c009",
+  "commit_date": "2023-04-20",
+  "fetched": "2026-11-25",
+  "license": "MIT",
+  "copyright": "magnolia1234 (2020)",
+  "files": {
+    "sites.js": "sha256:07d18273477b91143c98cecdfeb7ab8f73faae53fc5fd1ad3648f629728a4f88",
+    "LICENSE": "MIT, Copyright (c) 2020, magnolia1234"
+  },
+  "rules": 416,
+  "note": "GitLab 主仓 raw 被 Cloudflare 拦（403 Just a moment），本快照取自 GitHub 镜像；规则一行未改，export.mjs 只做 JS→JSON 序列化（RegExp 保留 source/flags）。更新流程：替换 sites.js + 更新本文件 → node collector/crawler/bpc_rules/export.mjs"
+}
