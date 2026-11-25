@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Build the existing React app and run the Python server from any working directory.
+set -euo pipefail
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO"
+if [ ! -x .venv/bin/python ]; then
+  command -v uv >/dev/null || { echo '请先安装 uv（Python 环境管理器），然后再次运行此脚本。' >&2; exit 1; }
+  uv sync --frozen
+fi
+if [ "${CRAWL_SKIP_BUILD:-0}" != 1 ]; then
+  command -v npm >/dev/null || { echo '请先安装 Node.js 22.12+，用于构建网页。' >&2; exit 1; }
+  npm --prefix collector/ui ci --no-audit --no-fund
+  npm --prefix collector/ui run build
+fi
+exec .venv/bin/python collector/serve.py "$@"
