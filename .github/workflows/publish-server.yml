@@ -25,6 +25,8 @@ jobs:
           node-version: 22
       - run: pipx install --force uv==0.11.7
       - name: Verify server snapshot and upgrade
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           tag="$GITHUB_REF_NAME"
@@ -39,8 +41,8 @@ jobs:
             exit 1
           fi
           test "$(cat collector/sources.yaml)" = '[]'
-          versions=$(git ls-remote --tags --refs origin 'refs/tags/server-v*' | sed 's|.*refs/tags/||' | grep -E '^server-v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V)
-          previous=$(awk -v target="$tag" '$0 == target {print last; exit} {last=$0}' <<< "$versions")
+          versions=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name')
+          previous=$(printf '%s\n%s\n' "$versions" "$tag" | grep -E '^server-v[0-9]+\.[0-9]+\.[0-9]+$' | sort -Vu | awk -v target="$tag" '$0 == target {print last; exit} {last=$0}')
           test -n "$previous"
           git fetch --depth=1 origin "refs/tags/$previous"
           export CRAWL_UPGRADE_FROM="$(mktemp -d)"
