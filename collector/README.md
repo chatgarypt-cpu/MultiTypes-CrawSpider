@@ -5,28 +5,50 @@
 ## 快速开始（从零）
 
 仓库里**不含任何站点配置**：`collector/sources.yaml` 是运营数据，默认被 gitignore
-（模板 `collector/sources.example.yaml` 内容是 `[]`）。第一次运行：
+（模板 `collector/sources.example.yaml` 内容是 `[]`）。两种起步方式，先看第一种。
+
+### 方式一：提交一个地址（自动识别通道，推荐）
 
 ```bash
-uv sync                                              # 装依赖
-cp collector/sources.example.yaml collector/sources.yaml
-$EDITOR collector/sources.yaml                       # 加站点，最小一条：
+./deploy/start-web          # 起看板（首次会 npm ci + 构建前端）
+```
 
+打开 http://127.0.0.1:8787/ ，把站点首页粘进去提交。系统会自己探测：
+
+- 先试 WordPress REST（`/wp-json/wp/v2/posts`、`?rest_route=`）→ `channel: wp-api`
+- 再试 `sitemap.xml` / `sitemap_index.xml` / `wp-sitemap.xml` → `channel: sitemap`
+- 再试 feed（页面声明的 `<link rel=alternate>` 与 `/feed/`、`/rss.xml` 等）→ `channel: rss`
+- 都不行就退回 `channel: html`，用首页当列表页 + 启发式链接规则
+
+命令行等价（探测结果会记到 `data/adhoc_sites.json`）：
+
+```bash
+uv run python collector/collect.py --site-url https://example.com/ --detect   # 只看探测到的规则
+uv run python collector/collect.py --site-url https://example.com/            # 探测并记住
+uv run python collector/collect.py --url https://example.com/a-post           # 直接采一篇文章
+```
+
+### 方式二：手写 sources.yaml（批量 / 长期运营）
+
+需要定时跑几十上百个站时，才需要把它写成配置：
+
+```bash
+cp collector/sources.example.yaml collector/sources.yaml
+$EDITOR collector/sources.yaml
 # - domain: example.com
 #   base: https://example.com
 #   channel: sitemap
 #   sitemap: /sitemap.xml
-
-uv run python collector/collect.py --validate        # 配置自检
-uv run python collector/collect.py --site example.com --limit 10
-./deploy/start-web                                   # 看板（会先构建前端）
+uv run python collector/collect.py --validate
+uv run python collector/collect.py --all --limit 20
 ```
 
-空信源时的行为（都不是故障）：`--validate` 打印 `0 sites`；`--all` 提示"没有可采集的站点"
-并退出 0；`supervisor.py` 空闲常驻；`serve.py` 显示空看板。
+空信源时的行为（都不是故障）：`--validate` 打印 `0 sites`；`--all` 提示"没有可采集的
+站点"并退出 0；`supervisor.py` 空闲常驻；`serve.py` 显示空看板。
 
-只要命令行、不要网页的话，跳过 `./deploy/start-web`，用
-`uv run python collector/cli.py status` 看进度。
+> 已知差异：看板提交的地址是"一次性 job"，自带探测结果、不写 `sources.yaml`；
+> `--site-url` 探测结果存进 `data/adhoc_sites.json`，但 `--all` 不会读它。
+> 要让一个站进入批量采集，仍需要写进 `sources.yaml`。
 
 ## 依赖与环境
 
