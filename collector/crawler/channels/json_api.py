@@ -20,6 +20,19 @@ def page_url(site, page=1, totals=False):
     return site['base'].rstrip('/') + site['api'] + '?' + urlencode(params)
 
 
+def response_items(payload, key=None):
+    if key:
+        for part in key.split("."):
+            payload = payload.get(part) if isinstance(payload, dict) else None
+        return payload if isinstance(payload, list) else None
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict):
+        return next((payload[name] for name in ("data", "items", "stories", "results")
+                     if isinstance(payload.get(name), list)), None)
+    return None
+
+
 def collect_json(site, limit=0, workers=8, progress=True, kind='posts', fetcher=None):
     domain = site['domain']
     fetcher = fetcher or Fetcher(site)
@@ -50,12 +63,13 @@ def collect_json(site, limit=0, workers=8, progress=True, kind='posts', fetcher=
     while True:
         _, status, body = next(iter(fetcher.get_many([page_url(site, page)])))
         data = parse_json_tolerant(body) if status == 200 else None
-        if not isinstance(data, dict) or not isinstance(data.get('data'), list):
+        items = response_items(data, site.get('api_items'))
+        if items is None:
             reason = f'http_{status}' if status != 200 else 'bad_json'
             state = 'blocked' if status in (401, 403, 429) else 'interrupted'
             break
-        items = data['data']
-        meta = data.get('meta') or {}
+        meta = data.get('meta') if isinstance(data, dict) else None
+        meta = meta if isinstance(meta, dict) else {}
         total = meta.get('filter_count', meta.get('total_count', total))
         if not items:
             state = 'complete'
@@ -66,6 +80,9 @@ def collect_json(site, limit=0, workers=8, progress=True, kind='posts', fetcher=
             break
         rows, invalid = [], []
         for item in items:
+            if not isinstance(item, dict):
+                invalid.append('bad_json_item')
+                continue
             if 'status' in item and item['status'] != 'published':
                 continue
             row = normalize(map_json_item(item, site, prefix_map), site)

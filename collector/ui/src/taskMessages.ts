@@ -8,13 +8,16 @@ const collectionStatuses = new Map([
 ])
 
 const reasons = new Map([
-  ['discovery_failed', '找不到可用采集入口'],
+  ['discovery_failed', '采集入口请求失败'],
+  ['discovery_empty', '入口未返回内容'],
   ['dead_letters', '部分链接采集失败'],
+  ['skipped', '部分链接未入库'],
   ['no_output', '没有采到新内容'],
   ['pending', '还有内容待采集'],
   ['limit', '达到本轮采集上限'],
   ['run_limit', '达到本轮采集上限'],
   ['skipped_pages', '部分页面采集失败'],
+  ['http_202', '站点暂未返回内容'],
   ['non_json', '站点返回格式异常'],
   ['bad_json', '站点返回格式异常'],
   ['bad_json_schema', '站点返回格式异常'],

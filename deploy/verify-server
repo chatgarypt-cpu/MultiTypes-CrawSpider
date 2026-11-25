@@ -17,6 +17,7 @@ uv sync --project "$CRAWL_UPGRADE_FROM" --frozen --python 3.12 --no-dev
 uv sync --locked --python 3.12
 npm --prefix collector/ui ci --no-audit --no-fund
 collector/ui/node_modules/.bin/tsc -p collector/ui
+npm --prefix collector/ui test
 npm --prefix collector/ui run build
 bash -n deploy/centos8/install.sh
 scratch=$(mktemp -d)
@@ -33,6 +34,12 @@ PY
 if [[ "${1:-}" == "--release" ]]; then
   uv run --locked pytest collector/tests/test_quality_exports.py \
     collector/tests/test_registration.py \
+    collector/tests/test_acceptance_reverse.py \
+    collector/tests/test_contract.py \
+    collector/tests/test_endpoints.py \
+    collector/tests/test_preview_robots.py \
+    collector/tests/test_settings.py \
+    collector/tests/test_web_service.py::test_public_json_preview_confirm_and_collect \
     collector/tests/test_web_service.py::test_server_supervisor_resumes_registered_site \
     collector/tests/test_web_service.py::test_preview_keeps_samples_out_of_storage_and_confirms_the_tested_rule \
     collector/tests/test_web_service.py::test_monitor_csv_download_refreshes_without_background_export \

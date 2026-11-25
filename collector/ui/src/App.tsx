@@ -6,16 +6,20 @@ import CrawlPanel, { api } from './CrawlPanel'
 import SiteQuality from './SiteQuality'
 import { collectionName, collectionStatus, taskIssue, taskStage } from './taskMessages'
 
-type KindState = { n: number; page: number; pages: number | null; done: boolean; updated: string; status?: string; last_reason?: string }
+type KindState = {
+  n: number; page: number; pages: number | null; done: boolean; updated: string; status?: string; last_reason?: string
+  pending_links?: number; failed_links?: number; skipped_links?: number; skipped_pages?: number
+}
 type ActionType = 'verify' | 'backfill'
 type BackfillMode = 'resume' | 'retry' | 'rescan'
 type SiteAction = { id: string; action: ActionType; status: string; stage: string; created: number; requested_at?: number; saved?: number; error?: string }
 type SiteActions = Partial<Record<ActionType, SiteAction>>
-type ActionTarget = { domain: string; kinds?: string[] }
+type ActionTarget = { domain: string; kinds?: string[]; mode?: BackfillMode }
 type ActionResult = { domain: string; job?: SiteAction; duplicate?: boolean; error?: string }
-type BackfillDraft = { domains: string[]; kinds: string[]; mode: BackfillMode; batch: boolean }
+type BackfillDraft = { domains: string[]; kinds: string[]; mode: BackfillMode | 'auto'; batch: boolean }
 type Site = {
   domain: string
+  base_url?: string
   saved: number
   channel?: string
   page: number
@@ -39,12 +43,15 @@ type Site = {
   coverage_stale?: boolean
   coverage_detail?: string
   coverage_missing?: number | null
+  coverage_missing_by_kind?: Record<string, number>
 }
 type Status = {
   generated: string
   running: boolean
   queue_running: boolean
   tasks_running: number
+  collecting_count?: number
+  registered_running_domains?: string[]
   concurrency: number
   running_domains: string[]
   blocked: string[]
@@ -117,14 +124,28 @@ function useConfig() {
 
 type Health = 'running' | 'blocked' | 'incomplete' | 'done' | 'config' | 'disabled' | 'idle'
 
+function collectionStates(site: Site) {
+  return Object.entries(site.kinds).filter(([kind]) => !site.collections?.length || site.collections.includes(kind))
+}
+
+function collectionIssues(kind: KindState) {
+  return [
+    kind.pending_links ? `${nf.format(kind.pending_links)} 个链接待采` : '',
+    kind.skipped_pages ? `${nf.format(kind.skipped_pages)} 页待重试` : '',
+    kind.failed_links ? `${nf.format(kind.failed_links)} 个失败链接` : '',
+    kind.skipped_links ? `${nf.format(kind.skipped_links)} 个链接未入库` : '',
+  ].filter(Boolean)
+}
+
 function healthOf(site: Site, running: string[], blocked: string[]): Health {
   if (running.includes(site.domain)) return 'running'
   if (blocked.includes(site.domain)) return 'blocked'
   if (site.disabled) return 'disabled'
   if (site.needs_config && site.saved === 0) return 'config'
-  const kinds = Object.values(site.kinds)
-  if (kinds.some((k) => !k.done && (['partial', 'interrupted', 'paused', 'blocked'].includes(k.status || '') || (k.pages && k.page <= k.pages)))) return 'incomplete'
-  if (site.done) return 'done'
+  const kinds = collectionStates(site).map(([, state]) => state)
+  if (kinds.some(k => k.skipped_pages || (!k.done && (['partial', 'interrupted', 'paused', 'blocked'].includes(k.status || '') ||
+    (k.pages && k.page <= k.pages))))) return 'incomplete'
+  if (site.collections?.length ? kinds.every(kind => kind.done) : site.done) return 'done'
   return 'idle'
 }
 
@@ -163,7 +184,18 @@ function canVerify(site: Site) {
 function canBackfill(site: Site, health: Health) {
   return !!site.collections?.length && !site.disabled && !site.needs_config &&
     (health === 'incomplete' || health === 'blocked' ||
-    (!site.coverage_stale && site.coverage_verdict === '覆盖率不足'))
+      (!site.coverage_stale && site.coverage_verdict === '覆盖率不足' && automaticBackfillKinds(site).length > 0))
+}
+
+function automaticBackfillKinds(site: Site) {
+  const kinds = site.collections ?? []
+  const unfinished = kinds.filter(kind => !site.kinds[kind]?.done)
+  if (unfinished.length) return unfinished
+  return kinds.filter(kind => {
+    if (site.kinds[kind]?.skipped_pages) return true
+    if (site.coverage_stale || site.coverage_verdict !== '覆盖率不足') return false
+    return (site.coverage_missing_by_kind?.[kind] ?? (kinds.length === 1 ? site.coverage_missing ?? 0 : 0)) > 0
+  })
 }
 
 function Coverage({ site, action, disabled, onRefresh }: {
@@ -218,10 +250,20 @@ function SiteTable({ rows, running, blocked, showTime, paginate, actionFirst, se
       {site.channel && <small>{site.channel}</small>}
     </div> },
     { title: '采集进度', key: 'progress', width: actionFirst ? 110 : 150, render: (_, site) => {
-      const pct = site.done ? 100 : site.channel === 'wp-api' && site.pages ? Math.min(99, Math.round((site.page / site.pages) * 100)) : null
+      const backfill = actions[site.domain]?.backfill
+      const activeKind = backfill?.status === 'running' ? /^补采 ([\w-]+)$/.exec(backfill.stage)?.[1] : undefined
+      const unfinishedKind = site.done ? collectionStates(site).find(([, kind]) => !kind.done && !!kind.page)?.[0] : undefined
+      const kind = activeKind ?? unfinishedKind ?? site.collections?.[0] ?? 'posts'
+      const state = site.kinds[kind] ?? { page: site.page, pages: site.pages, done: site.done, skipped_pages: 0 }
+      const total = state.pages
+      const current = site.channel === 'wp-api' ? state.page - 1 : state.page
+      const completed = Math.max(0, Math.min(current, total ?? current) - (state.skipped_pages ?? 0))
+      const done = state.done && !state.skipped_pages
+      const displayed = done && total ? total : completed
+      const pct = done ? 100 : site.channel === 'wp-api' && total ? Math.min(99, Math.round(displayed / total * 100)) : null
       return <div className="progress-cell">
-        <span>{nf.format(site.page)}{site.pages ? ` / ${nf.format(site.pages)}` : ''} 页</span>
-        {pct !== null && <Progress percent={pct} size="small" strokeColor={site.done ? undefined : 'var(--teal)'} />}
+        <span>{kind !== 'posts' && `${collectionName(kind)} `}{nf.format(displayed)}{total ? ` / ${nf.format(total)}` : ''} 页</span>
+        {pct !== null && <Progress percent={pct} size="small" strokeColor={done ? undefined : 'var(--teal)'} />}
       </div>
     } },
     { title: '文章', dataIndex: 'saved', align: 'right', width: actionFirst ? 76 : 90, render: n => nf.format(n),
@@ -234,9 +276,16 @@ function SiteTable({ rows, running, blocked, showTime, paginate, actionFirst, se
   const actionColumns: TableColumnsType<Site> = [
     { title: '采集状态', key: 'state', width: actionFirst ? 120 : 132, render: (_, site) => {
       const health = healthOf(site, running, blocked)
-      const reason = site.disabled ? site.disabled_reason : [...new Set(Object.values(site.kinds)
-        .filter(kind => !kind.done && kind.last_reason)
-        .map(kind => taskIssue(kind.last_reason, collectionStatus(kind.status))))].join('、')
+      const issues = collectionStates(site).flatMap(([kind, state]) => {
+        if (state.done && !state.skipped_pages) return []
+        const details = collectionIssues(state)
+        const reason = taskIssue(state.last_reason, collectionStatus(state.status))
+        if (reason && (details.length === 0 || ['discovery_failed', 'discovery_empty'].includes(state.last_reason ?? ''))) {
+          details.unshift(reason)
+        }
+        return details.length ? [{ label: details[0], full: `${collectionName(kind)}：${details.join('、')}` }] : []
+      })
+      const reason = site.disabled ? site.disabled_reason : issues.map(issue => issue.full).join('；')
       const activity = actions[site.domain]
       const backfill = activity?.backfill
       const backfillLabel = backfill?.status === 'failed' ? '补采失败' :
@@ -254,6 +303,9 @@ function SiteTable({ rows, running, blocked, showTime, paginate, actionFirst, se
             disabled={health === 'running' || submitting.has(site.domain) || activeAction(activity?.verify)}
             onClick={() => onBackfill(site)}>补采</Button>}
         </Flex>
+        {health !== 'running' && !site.disabled && issues.length > 0 && <Text className="monitor-cell-meta" type="secondary">
+          {issues[0].label}
+        </Text>}
         {backfill && <Text role="status" className="monitor-cell-meta" type="secondary">
           {backfill.status === 'queued' ? '补采排队中' : backfill.status === 'running' ? taskStage(backfill.stage) :
             backfillIssue || (backfill.status === 'failed' || backfill.status === 'interrupted' ? backfillLabel :
@@ -274,8 +326,7 @@ function SiteTable({ rows, running, blocked, showTime, paginate, actionFirst, se
   return <Table rowKey="domain" size="small" columns={columns} dataSource={rows} rowSelection={selection} title={toolbar}
     scroll={{ x: (actionFirst ? 730 : showTime ? 1095 : 1015) + (selection ? SELECTION_WIDTH : 0) }}
     pagination={paginate ? { pageSize: PAGE_SIZE, hideOnSinglePage: true, showSizeChanger: false } : false}
-    locale={{ emptyText: '当前没有符合条件的站点', selectionMenu: '更多站点选择方式',
-      selectionAll: '选择此列表全部可操作站点' }} />
+    locale={{ emptyText: '当前没有符合条件的站点' }} />
 }
 
 function Overview({ data, error }: { data: Status | null; error: boolean }) {
@@ -289,8 +340,8 @@ function Overview({ data, error }: { data: Status | null; error: boolean }) {
       <Statistic title="已登记文章 URL" prefix={<DatabaseOutlined />} value={data?.total ?? '—'} />
       <Statistic title="监控站点" prefix={<GlobalOutlined />} value={data ? data.sites.length : '—'} />
       <Statistic title="当前采集速率" prefix={<ThunderboltOutlined />} value={data ? Math.round(data.rate || 0) : '—'} suffix="篇/秒" />
-      <Statistic title="运行任务 / 队列并发" prefix={<CloudServerOutlined />}
-        value={data ? `${nf.format(data.tasks_running)} / ${nf.format(data.concurrency)}` : '—'} />
+      <Statistic title="正在采集" prefix={<CloudServerOutlined />}
+        value={data?.collecting_count ?? data?.tasks_running ?? '—'} suffix="项" />
     </div>
   </section>
 }
@@ -299,7 +350,8 @@ export default function App() {
   const { data, error } = useStream()
   const monitorReady = data !== null
   useEffect(() => {
-    if (monitorReady && window.location.hash === '#monitor') document.getElementById('monitor')?.scrollIntoView()
+    const section = window.location.hash.slice(1)
+    if (monitorReady && (section === 'monitor' || section === 'jobs')) document.getElementById(section)?.scrollIntoView()
   }, [monitorReady])
   const { saved, draft, setDraft, apply, pending, configError } = useConfig()
   const [notice, noticeHolder] = message.useMessage()
@@ -308,6 +360,7 @@ export default function App() {
   const [selected, setSelected] = useState<string[]>([])
   const [batchPending, setBatchPending] = useState<ActionType | null>(null)
   const [batchReport, setBatchReport] = useState<{ summary: string; failures: ActionResult[] } | null>(null)
+  const [monitorTab, setMonitorTab] = useState('overview')
   const [backfill, setBackfill] = useState<BackfillDraft | null>(null)
   const sites = data?.sites ?? []
   const running = data?.running_domains ?? []
@@ -326,6 +379,11 @@ export default function App() {
     }
     actions[domain] = current
   }
+  const checkTime = (site: Site) => {
+    const action = actions[site.domain]?.verify
+    return Math.max(Date.parse(site.coverage_checked_at ?? '') || 0, action ? actionTime(action) * 1000 : 0)
+  }
+  const checkedSites = sites.filter(site => checkTime(site) > 0).sort((a, b) => checkTime(b) - checkTime(a))
 
   const allowsBackfill = (site: Site) => canBackfill(site, healthOf(site, running, blocked))
   function hasActiveWork(site: Site) {
@@ -337,21 +395,28 @@ export default function App() {
   const selectedActionable = actionable.filter(site => selectedKeys.has(site.domain) && !submitting.has(site.domain))
   const verifySites = selectedActionable.filter(canVerify)
   const backfillSites = selectedActionable.filter(allowsBackfill)
-  const selectableKeys = new Set(actionable.map(site => site.domain))
+  const selectableKeys = new Set(actionable.filter(site => !submitting.has(site.domain)).map(site => site.domain))
+  const allSelected = selectableKeys.size > 0 && selectedActionable.length === selectableKeys.size
+  const selectAllLabel = `全选 ${nf.format(selectableKeys.size)} 个可操作站点`
   const selection: TableProps<Site>['rowSelection'] = {
     columnWidth: SELECTION_WIDTH,
-    selections: batchPending ? false : [Table.SELECTION_ALL],
+    hideSelectAll: true,
+    columnTitle: <Tooltip title={allSelected ? '取消全选' : selectAllLabel}>
+      <Checkbox aria-label={allSelected ? '取消全选' : selectAllLabel} checked={allSelected}
+        indeterminate={!allSelected && selectedActionable.length > 0}
+        disabled={!!batchPending || selectableKeys.size === 0}
+        onChange={event => setSelected(event.target.checked ? [...selectableKeys] : [])} />
+    </Tooltip>,
     preserveSelectedRowKeys: true,
     selectedRowKeys: selected,
     onChange: keys => setSelected(keys.map(String)),
-    getTitleCheckboxProps: () => ({ 'aria-label': '选择当前页可操作站点' }),
     getCheckboxProps: site => ({
       'aria-label': `选择 ${site.domain}`,
-      disabled: !!batchPending || submitting.has(site.domain) || !selectableKeys.has(site.domain),
+      disabled: !!batchPending || !selectableKeys.has(site.domain),
     }),
   }
 
-  async function submitActions(action: ActionType, targets: ActionTarget[], batch = false, mode?: BackfillMode) {
+  async function submitActions(action: ActionType, targets: ActionTarget[], batch = false) {
     const domains = new Set(targets.map(target => target.domain))
     setSubmitting(current => new Set([...current, ...domains]))
     if (batch) {
@@ -359,7 +424,7 @@ export default function App() {
       setBatchReport(null)
     }
     try {
-      const { results }: { results: ActionResult[] } = await api('/api/site-actions', { action, targets, mode })
+      const { results } = await api<{ results: ActionResult[] }>('/api/site-actions', { action, targets })
       const accepted = results.filter(result => result.job)
       const failures = results.filter(result => !result.job)
       setLocalActions(current => {
@@ -369,6 +434,7 @@ export default function App() {
         }
         return next
       })
+      if (action === 'verify' && accepted.some(result => result.job?.action === 'verify')) setMonitorTab('coverage')
       if (batch) {
         const queued = accepted.filter(result => !result.duplicate)
         const duplicates = accepted.length - queued.length
@@ -402,13 +468,8 @@ export default function App() {
   }
 
   function openBackfill(targets: Site[], batch = false) {
-    const incomplete = (site: Site) => site.collections?.filter(kind => !site.kinds[kind]?.done) ?? []
-    const kinds = new Set(targets.flatMap(site => {
-      const pendingKinds = incomplete(site)
-      return pendingKinds.length ? pendingKinds : site.collections ?? []
-    }))
-    const mode = targets.some(site => incomplete(site).length > 0) ? 'resume' : 'rescan'
-    setBackfill({ domains: targets.map(site => site.domain), kinds: [...kinds], mode, batch })
+    const kinds = new Set(targets.flatMap(automaticBackfillKinds))
+    setBackfill({ domains: targets.map(site => site.domain), kinds: [...kinds], mode: 'auto', batch })
   }
 
   const draftSites = sites.filter(site => backfill?.domains.includes(site.domain))
@@ -420,16 +481,25 @@ export default function App() {
   }
   const backfillPlan = draftSites.map(site => {
     const selectedKinds = site.collections?.filter(kind => backfill?.kinds.includes(kind)) ?? []
-    const kinds = backfill?.batch && backfill.mode === 'resume'
-      ? selectedKinds.filter(kind => !site.kinds[kind]?.done) : selectedKinds
+    const unfinished = selectedKinds.filter(kind => !site.kinds[kind]?.done)
+    const kinds = backfill?.mode === 'auto' ? selectedKinds.filter(kind => automaticBackfillKinds(site).includes(kind))
+      : backfill?.mode === 'resume' ? unfinished : selectedKinds
+    const retryable = site.can_retry_links && kinds.some(kind => {
+      const state = site.kinds[kind]
+      return state?.skipped_links || state?.failed_links ||
+        ['skipped', 'dead_letters', 'no_output'].includes(state?.last_reason ?? '')
+    })
+    const mode = backfill?.mode === 'auto'
+      ? (unfinished.length ? retryable ? 'retry' : 'resume' : 'rescan')
+      : backfill?.mode
     let reason = ''
     if (hasActiveWork(site) || !allowsBackfill(site)) reason = '站点状态已变化'
     else if (backfill?.mode === 'retry' && !site.can_retry_links) reason = '此站点不支持逐链接重试'
     else if (!selectedKinds.length) reason = '此站点没有所选集合'
     else if (!kinds.length) reason = '所选集合已结束，可重新扫描入口'
-    return { domain: site.domain, kinds, reason }
+    return { domain: site.domain, kinds, mode, reason }
   })
-  const backfillTargets = backfillPlan.filter(target => !target.reason).map(({ domain, kinds }) => ({ domain, kinds }))
+  const backfillTargets = backfillPlan.filter(target => !target.reason).map(({ domain, kinds, mode }) => ({ domain, kinds, mode }))
   const backfillPending = !!backfill?.domains.some(domain => submitting.has(domain))
   const tableProps = { running, blocked, actions, submitting,
     onBackfill: (site: Site) => openBackfill([site]),
@@ -476,7 +546,8 @@ export default function App() {
     <Layout.Content className="console-main" id="top">
       <Overview data={data} error={error} />
       {configError && <Alert type="error" showIcon title={configError} />}
-      <CrawlPanel />
+      <CrawlPanel registeredRuns={sites.filter(site => data?.registered_running_domains?.includes(site.domain))}
+        subscriptions={data?.sites.filter(site => site.collections?.length && !site.disabled)} />
       <section id="monitor" aria-labelledby="monitor-title" className="console-section">
         <Card className="panel-card" title={<h2 id="monitor-title"><DashboardOutlined /> 站点监控</h2>}>
           {error && <Alert type="warning" showIcon title="状态流连接中断，浏览器正在重连" />}
@@ -489,12 +560,14 @@ export default function App() {
             description={batchReport.failures.length > 0 && <ul className="monitor-action-details">
               {batchReport.failures.map(({ domain, error }) => <li key={domain}><strong>{domain}</strong><span>{error}</span></li>)}
             </ul>} />}
-          <Tabs items={[
+          <Tabs activeKey={monitorTab} onChange={setMonitorTab} items={[
             { key: 'overview', label: '总览', children: <SiteTable {...tableProps} selection={selection}
               toolbar={batchToolbar}
               rows={[...sites].sort((a, b) => b.saved - a.saved).slice(0, 8)} /> },
             { key: 'actionable', label: `待处理 (${actionable.length})`, children: <SiteTable {...tableProps}
               selection={selection} toolbar={batchToolbar} rows={actionable} actionFirst paginate /> },
+            { key: 'coverage', label: `核对结果 (${checkedSites.length})`, children: <SiteTable {...tableProps}
+              selection={selection} toolbar={batchToolbar} rows={checkedSites} actionFirst paginate /> },
             { key: 'quality', label: '近 7 天质量', children: <SiteQuality /> },
             { key: 'running', label: `正在运行 (${active.length})`, children: <SiteTable {...tableProps} rows={active} showTime /> },
             { key: 'done', label: `已结束 (${finished.length})`, children: <SiteTable {...tableProps}
@@ -512,7 +585,7 @@ export default function App() {
         okButtonProps={{ disabled: backfillPending || !backfillTargets.length }} cancelButtonProps={{ disabled: backfillPending }}
         onCancel={() => { if (!backfillPending) setBackfill(null) }}
         onOk={async () => {
-          if (await submitActions('backfill', backfillTargets, backfill.batch, backfill.mode)) setBackfill(null)
+          if (await submitActions('backfill', backfillTargets, backfill.batch)) setBackfill(null)
         }}>
         <Form component="div" layout="vertical" className="backfill-form">
           <Form.Item label={<Text strong id="backfill-collections-label">采集集合</Text>}>
@@ -527,9 +600,10 @@ export default function App() {
             <Radio.Group aria-labelledby="backfill-method-label" value={backfill.mode} disabled={backfillPending}
               onChange={event => setBackfill(current => current && ({ ...current, mode: event.target.value }))}>
               <Space orientation="vertical" size={12}>
+                <Radio value="auto">按缺口补采</Radio>
                 <Radio value="resume">继续采集
                   <Text type="secondary" className="backfill-method-help">
-                    沿用现有断点和队列。{backfill.batch && '可继续采集未完成的集合。'}
+                    从上次断点继续。
                   </Text>
                 </Radio>
                 {draftSites.some(site => site.can_retry_links) && <Radio value="retry">重试可恢复项

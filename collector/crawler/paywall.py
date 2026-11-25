@@ -137,11 +137,15 @@ def usable(body, previous=""):
     return new_len >= old_len + 400 and new_len >= old_len * 1.2
 
 
-def _get(url, headers, timeout=(10, 25), allow_redirects=True, verify=True):
+def _get(url, headers, timeout=(10, 25), allow_redirects=True, verify=True, public_host=None):
     from crawler.web import read_body_capped
     try:
-        r = SESSION.get(url, headers=headers, timeout=timeout, allow_redirects=allow_redirects,
-                        verify=verify, stream=True)
+        options = dict(headers=headers, timeout=timeout, verify=verify, stream=True)
+        if public_host:
+            from crawler.public_urls import public_get
+            r = public_get(SESSION.get, url, same_host=public_host, **options)
+        else:
+            r = SESSION.get(url, allow_redirects=allow_redirects, **options)
         try:
             body = read_body_capped(r, strict=True) if r.status_code == 200 else ""
             return r.status_code, body, r.url or url
@@ -239,8 +243,9 @@ def _freedium(url):
     return 0, "", ""
 
 
-def _archive_org(url):
-    status, raw, _ = _get(WAYBACK_API + "?url=" + quote(url, safe=""), BROWSER_HEADERS, timeout=15)
+def _archive_org(url, public=False):
+    args = {"public_host": "archive.org"} if public else {}
+    status, raw, _ = _get(WAYBACK_API + "?url=" + quote(url, safe=""), BROWSER_HEADERS, timeout=15, **args)
     if status != 200:
         return 0, "", ""
     import json
@@ -261,6 +266,8 @@ def _archive_org(url):
     if "/web/" in target and "/id_/" not in target:
         stamp, _, rest = target.split("/web/", 1)[1].partition("/")
         target = target.replace("/web/" + stamp + "/", "/web/" + stamp + "id_/", 1)
+    if public:
+        return _get(target, BROWSER_HEADERS, public_host="web.archive.org")
     return _get(target, GOOGLEBOT_HEADERS)
 
 
@@ -336,7 +343,7 @@ def recover(url, site, body="", status=0):
     return status, body, ""
 
 
-def archive_fetch(url):
+def archive_fetch(url, public=False):
     """逆向采集出口（`via: archive`）：只走公开存档，返回 (status, body, source)。
 
     与 `recover()` 的区别：不看站点开关、不伪装 Googlebot、不消耗回退预算 —— 这是
@@ -344,6 +351,9 @@ def archive_fetch(url):
     """
     if is_archived(url):
         return 0, "", ""
+    if public:
+        status, body, _ = _archive_org(url, public=True)
+        return (status, body, "archive_org") if status == 200 and usable(body) else (0, "", "")
     for source, fetch in (("archive_org", lambda: _archive_org(url)),
                           ("archive_today", lambda: _archive_today(url))):
         status, body, _final = fetch()

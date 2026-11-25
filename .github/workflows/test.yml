@@ -23,7 +23,9 @@ jobs:
           test ! -e collector/sources.yaml
           test "$(cat collector/sources.example.yaml)" = '[]'
           test ! -e backfill_tasks.json
-          previous=$(git ls-remote --tags --refs origin 'refs/tags/server-v*' | sed 's|.*refs/tags/||' | grep -E '^server-v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          candidate="server-v$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          versions=$(git ls-remote --tags --refs origin 'refs/tags/server-v*' | sed 's|.*refs/tags/||' | grep -E '^server-v[0-9]+\.[0-9]+\.[0-9]+$')
+          previous=$(printf '%s\n%s\n' "$versions" "$candidate" | sort -Vu | awk -v target="$candidate" '$0 == target {print last; exit} {last=$0}')
           test -n "$previous"
           git fetch --depth=1 origin "refs/tags/$previous"
           export CRAWL_UPGRADE_FROM="$(mktemp -d)"

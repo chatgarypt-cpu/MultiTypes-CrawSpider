@@ -13,6 +13,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import unquote, urlsplit
 
@@ -36,6 +37,12 @@ def cached_status(desktop=False):
             domains = [urlsplit(job['url']).netloc for job in running
                        if job.get('action') in (None, 'backfill')] if desktop else None
             data = status_mod.build_status(domains)
+            registered = {site['domain'] for site in data['sites'] if site['collections']}
+            data['registered_running_domains'] = [] if desktop else [
+                domain for domain in data['running_domains'] if domain in registered
+            ]
+            web_crawls = sum(job.get('action') in (None, 'backfill') for job in running)
+            data['collecting_count'] = len(data['registered_running_domains']) + web_crawls
             if not desktop:
                 backfills = [job['domain'] for job in running if job.get('action') == 'backfill']
                 data['running_domains'] = sorted(set(data['running_domains']) | set(backfills))
@@ -115,6 +122,9 @@ class H(BaseHTTPRequestHandler):
             return self.json(report, 503 if report.get('error') else 200)
         if path == '/api/config':
             return self.json(web_jobs.read(CFG, {'concurrency': 4}))
+        if path == '/api/settings':
+            from crawler import settings
+            return self.json(settings.status())
         if path == '/api/jobs':
             with web_jobs.LOCK:
                 jobs = web_jobs.jobs()
@@ -174,6 +184,18 @@ class H(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict):
                 raise ValueError('请求格式不正确')
+            if self.path == '/api/settings':
+                from crawler import settings
+                for name in ('respect_robots', 'paused'):
+                    if name in body and not isinstance(body[name], bool):
+                        raise ValueError(f'{name} 必须是布尔值')
+                with web_jobs.LOCK:
+                    if 'respect_robots' in body:
+                        settings.write({'respect_robots': body['respect_robots']})
+                    if 'paused' in body:
+                        settings.set_paused(body['paused'])
+                    state = settings.status()
+                return self.json(state)
             if self.path == '/api/concurrency':
                 n = body.get('n')
                 if not isinstance(n, int) or isinstance(n, bool) or n < 1:
@@ -182,9 +204,18 @@ class H(BaseHTTPRequestHandler):
                 return self.json({'ok': True, 'concurrency': n})
             if self.path == '/api/preview':
                 from web_preview import preview
+                # capture_contract：可选，前端勾了才抓包/挖接口（默认关闭，预览成本不变）
                 return self.json(preview(body.get('url'), body.get('rules', {}),
                                          body.get('channel', 'auto'), body.get('item_selector', ''),
-                                         body.get('scope')))
+                                         body.get('scope'),
+                                         capture_contract=body.get('capture_contract') is True,
+                                         api=body.get('api')))
+            if self.path == '/api/contract/entry':
+                from web_preview import contract_entry
+                result = contract_entry(body.get('candidate'), body.get('domain'))
+                if result['errors']:
+                    return self.json(dict(result, error=result['errors'][0]), 400)
+                return self.json(result)
             if self.path == '/api/crawl':
                 if 'preview_id' in body:
                     from web_preview import confirm
@@ -192,7 +223,14 @@ class H(BaseHTTPRequestHandler):
                 values = body.get('urls', [body.get('url', '')])
                 return self.json({'ok': True, 'results': web_jobs.submit(values)}, 202)
             if self.path == '/api/site-actions':
-                return self.json(web_jobs.submit_site_action(body), 202)
+                try:
+                    result = web_jobs.submit_site_action(body)
+                except (ValueError, OSError, TypeError):
+                    raise
+                except Exception:
+                    traceback.print_exc()
+                    return self.json({'error': '站点操作提交异常，请先查看任务队列，再重试'}, 500)
+                return self.json(result, 202)
             if self.path.startswith('/api/jobs/'):
                 parts = self.path.split('/')
                 if len(parts) == 5 and parts[4] == 'register':

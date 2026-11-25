@@ -69,6 +69,15 @@ def stored_kinds(directory):
     return ("posts", "pages", "media", *extra)
 
 
+def read_collection_skips(path):
+    """Read the operator's domain:kind pause list, ignoring comments."""
+    try:
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return set()
+    return {key for line in lines if (key := line.split("#", 1)[0].strip())}
+
+
 # ---------- 全局放开开关 ----------
 # 采集端默认遵守 robots、默认跳过 sources.yaml 里 disabled 的站。运维需要"全站全量、
 # 不按 robots 限流"时，落一个哨兵文件 data/CRAWL_BYPASS（或 CRAWL_BYPASS=1），

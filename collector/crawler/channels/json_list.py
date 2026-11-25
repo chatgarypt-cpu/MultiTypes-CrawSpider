@@ -9,6 +9,7 @@
 - 新增配置：`scan_mode: full|incremental`（增量只看前几页新内容）、`known_pages_stop`
   （增量模式下连续 N 页全是已知文章即停）、`max_pages_per_run`（单轮翻页上限，避免长期占槽）。
 """
+import hashlib
 import json
 import logging
 import os
@@ -17,13 +18,14 @@ from concurrent.futures import ThreadPoolExecutor
 
 from crawler.config import DATA, UA
 from crawler import cursor, paywall
+from crawler.channels.json_api import response_items
 from crawler.extract import extract_best, extract_metadata
 from crawler.htmlpage import boolean_flag, page_error, paywall_signal, structured_body
 from crawler.quality import DetailCounts
 from crawler.pipeline import normalize, validate
 from crawler.request import canonical_key, RequestQueue
 from crawler.store import append_rows, load_known
-from crawler.web import Fetcher, LIMITER, SESSION
+from crawler.web import Fetcher, LIMITER, SESSION, parse_json_tolerant
 
 RETRYABLE = (429, 500, 502, 503, 504)
 
@@ -65,12 +67,17 @@ def _detail_url(site, base, url_tpl, item, cat):
                           slug=item.get("slug") or "")
 
 
-def fetch_page(pat, base, page, cats, items_key="stories", workers=None):
+def fetch_page(pat, base, page, cats, items_key="stories", workers=None, fetcher=None):
     """并发抓取同一页的多个分类，返回 ({cat: [items]}, [error])。"""
     result, errors = {}, []
 
     def one(cat):
-        data, err = _get_json(_cat_url(base, pat, page, cat))
+        url = _cat_url(base, pat, page, cat)
+        if fetcher is not None:
+            _, status, body = fetcher.get_many([url])[0]
+            return cat, parse_json_tolerant(body) if status == 200 else None, (
+                None if status == 200 else f"http_{status}")
+        data, err = _get_json(url)
         return cat, data, err
 
     with ThreadPoolExecutor(max_workers=workers or max(1, len(cats))) as ex:
@@ -78,10 +85,17 @@ def fetch_page(pat, base, page, cats, items_key="stories", workers=None):
             if err:
                 errors.append({"category": cat, "page": page, "error": err})
                 continue
-            if not isinstance(data, dict) or not isinstance(data.get(items_key, data.get("data")), list):
-                errors.append({"category": cat, "page": page, "error": "bad_json_schema"})
+            if fetcher is not None:
+                items = response_items(data, items_key)
+                if items is None and items_key:
+                    items = response_items(data, "data")
+                if items is not None and all(isinstance(item, dict) for item in items):
+                    result[cat] = items
+                    continue
+            elif isinstance(data, dict) and isinstance(data.get(items_key, data.get("data")), list):
+                result[cat] = data.get(items_key) or data.get("data") or []
                 continue
-            result[cat] = (data or {}).get(items_key) or (data or {}).get("data") or []
+            errors.append({"category": cat, "page": page, "error": "bad_json_schema"})
     return result, errors
 
 
@@ -91,7 +105,8 @@ def collect_json_list(site, limit=0, log=None):
     base = site["base"].rstrip("/")
     cats = site.get("api_categories") or [None]
     pat = site.get("api_list") or ""
-    items_key = site.get("api_items") or "stories"
+    public = bool(site.get("_public_host"))
+    items_key = site.get("api_items") or (None if public else "stories")
     url_tpl = site.get("api_url") or "{base}/item/{id}"
     free_key = site.get("free_field")
     include_premium = site.get("include_premium", False)
@@ -133,6 +148,7 @@ def collect_json_list(site, limit=0, log=None):
         os.replace(cur_path + ".tmp", cur_path)
     # 增量模式每次从第 1 页找新内容；全量模式从上次游标继续补历史
     page = 1 if incremental else int(cur.get("page", 1))
+    previous = cur.get("last_page_hash") if not incremental else None
     saved = 0
     processed = 0
     known_streak = 0
@@ -228,7 +244,8 @@ def collect_json_list(site, limit=0, log=None):
     # Retry previously discovered details even when the list cursor is already at EOF.
     drain_details()
     while page <= total_pages and (not limit or saved < limit):
-        page_items, fetch_errors = fetch_page(pat, base, page, cats, items_key)
+        page_items, fetch_errors = fetch_page(pat, base, page, cats, items_key,
+                                             **({"fetcher": fetcher} if public else {}))
         if fetch_errors:
             # 列表页有可重试失败：不推进游标，交给下一轮补齐，并保留失败原因
             last_error = fetch_errors[0]["error"]
@@ -236,6 +253,13 @@ def collect_json_list(site, limit=0, log=None):
                         [e["error"] for e in fetch_errors])
             break
         page_has_items = any(page_items.values())
+        if public and page_has_items:
+            snapshot = json.dumps([page_items.get(cat, []) for cat in cats], sort_keys=True)
+            fingerprint = hashlib.sha256(snapshot.encode()).hexdigest()
+            if fingerprint == previous:
+                last_error = "repeated_page"
+                break
+            previous = fingerprint
         urls = []
         for cat in cats:
             for it in page_items.get(cat, []):
@@ -275,7 +299,10 @@ def collect_json_list(site, limit=0, log=None):
                  site["domain"], page, saved, processed, ",".join(str(c) for c in cats))
         os.makedirs(os.path.dirname(cur_path), exist_ok=True)
         with open(cur_path + ".tmp", "w") as f:
-            json.dump({"page": (1 if incremental else page + 1), "backfill_revision": revision}, f)
+            progress = {"page": (1 if incremental else page + 1), "backfill_revision": revision}
+            if public and not incremental:
+                progress["last_page_hash"] = previous
+            json.dump(progress, f)
         os.replace(cur_path + ".tmp", cur_path)
         if limit and saved >= limit:
             break

@@ -165,7 +165,6 @@ def resolve_site(url, *, check_entry=False, channel="auto"):
     import requests
     import yaml
     from crawler.adhoc import detect
-    from crawler.web import PUBLIC_ROBOTS
 
     sources = yaml.safe_load(sources_path(ROOT).read_text()) or []
     if isinstance(sources, dict):
@@ -175,8 +174,9 @@ def resolve_site(url, *, check_entry=False, channel="auto"):
     if site is not None and channel == 'auto':
         return site
 
+    from crawler import settings as runtime_settings
     with public_get(requests.get, url, timeout=25, stream=True,
-                    allow_target=PUBLIC_ROBOTS.allowed) as response:
+                    allow_target=runtime_settings.allow_target()) as response:
         base_url = normalize_url(response.url)
         status = response.status_code
     if check_entry and status >= 400:
@@ -203,7 +203,7 @@ def run_site_action(job, update):
     from crawler.request import RequestQueue
     from crawler.runner import collect_site, reset_progress
     from crawler.store import CollectionBusy, collection_lock
-    from web_jobs import registered_site, require_backfill_enabled
+    from web_jobs import collection_finished, registered_site, require_backfill_enabled
 
     site = registered_site(job['domain'])
     if job['action'] == 'verify':
@@ -229,6 +229,10 @@ def run_site_action(job, update):
         try:
             require_backfill_enabled(site, [kind])
             with collection_lock(site['domain'], kind, wait=False):
+                if mode == 'resume' and collection_finished(site, kind):
+                    results[kind] = {'status': 'complete', 'saved': 0}
+                    update(results=results)
+                    continue
                 if kind not in prepared:
                     requeued = 0
                     if mode == 'retry':

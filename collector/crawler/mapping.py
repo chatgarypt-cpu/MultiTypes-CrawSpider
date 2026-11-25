@@ -2,7 +2,7 @@
 import html, json, logging, math, os, re, sqlite3, subprocess, sys, tempfile, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse, urlsplit
 
 import requests, trafilatura
 from crawler.text import clean, iframes, first_img, meta, iso, parse_dt
@@ -73,6 +73,8 @@ def map_json_item(it, site, prefix_map=None):
             props = sec.get("props") or {}
             if props.get("content"): parts.append(_flatten_rich(props["content"]))
     text = " ".join(x for p in parts for x in p)
+    if not text and site.get("_public_host"):
+        text = " ".join(_flatten_rich(it.get("text") or it.get("body")))
     if not text and it.get("description"): text = str(it["description"])
     slug = it.get("slug") or str(it.get("id"))
     pre = ""
@@ -80,8 +82,18 @@ def map_json_item(it, site, prefix_map=None):
         try: pre = prefix_map(it["category"])
         except Exception: pre = ""
     url = f"{site['base'].rstrip('/')}/blog/" + (f"{pre}/" if pre else "") + slug
+    if site.get("_public_host"):
+        link = it.get("url") or it.get("link")
+        if isinstance(link, str):
+            try:
+                target = urljoin(site["base"].rstrip("/") + "/", link)
+                parts = urlsplit(target)
+                if parts.scheme in ("http", "https") and parts.netloc == site["_public_host"]:
+                    url = target
+            except ValueError:
+                pass
     return {
-        "title": (it.get("title") or "").strip(),
+        "title": it["title"].strip() if isinstance(it.get("title"), str) else "",
         "url": url,
         "text": text,
         "description": (it.get("description") or "")[:500] if isinstance(it.get("description"), str) else "",

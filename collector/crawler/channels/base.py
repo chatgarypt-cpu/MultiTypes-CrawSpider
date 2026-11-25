@@ -131,24 +131,21 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
         #   发现成功、但所有 URL 都已在盘上（nothing_new）→ complete（老游标缺 done 的站靠这条收尾）
         dead_errs = _dead_letters(domain, kind)
         if discovered_count == 0:
-            status, reason = "interrupted", "discovery_empty"
+            status, reason = "interrupted", ("discovery_failed" if retryable_disc else "discovery_empty")
+        elif retryable_disc:
+            status, reason = "partial", "discovery_failed"
         elif dead_errs and not _gone_404(dead_errs):
-            status, reason = "partial", "dead_letters"     # 429/5xx 等，仍需重试
+            status, reason = "partial", "dead_letters"
         elif current.get("skipped"):
             status, reason = "partial", "skipped"
         else:
             status, reason = "complete", ("dead_404" if dead_errs else "nothing_new")
+        previous_reason = cur.get("last_reason")
+        if (status == "complete" and cur["status"] == "partial" and not dead_errs
+                and (not known_urls or previous_reason not in ("discovery_failed", "dead_letters", "skipped", "no_output"))):
+            # A clean scan can clear an old discovery or queue failure. Keep other unaccounted gaps.
+            status, reason = "partial", (previous_reason or "kept_partial")
         reasons[reason] += 1
-        if cur["status"] in ("blocked", "paused"):
-            status = cur["status"]             # 保留阻断/暂停信息，别降级成"重来"
-        elif cur["status"] == "partial" and not (dead_errs and _gone_404(dead_errs)):
-            # 之前的 partial 是"有缺量"（空页/短正文等），不能因为本次没新工作就洗成 complete；
-            # 唯一例外：剩下的终态错误全是 404/410（页面已删除）。
-            status, reason = "partial", (cur.get("last_reason") or "kept_partial")
-        if retryable_disc and status == "complete":
-            # 发现阶段有可重试失败（子 sitemap 503/超时）→ 任务保持不完整，等下次补
-            status, reason = "partial", "discovery_failed"
-            reasons["discovery_failed"] += 1
         cur = cursor.save(domain, kind, status=status, reasons=dict(reasons),
                           discovered=discovered_count, next_page=1, total_pages=1,
                           last_reason=reason, saved=cur.get("saved", 0),
@@ -159,7 +156,7 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
                  q.stats())
         return {"domain": domain, "channel": channel, "quality": counts.report(), "discovered": 0, "saved": 0,
                 "errors": 0, "total": cur.get("saved", 0), "queue": q.stats(),
-                "reasons": dict(reasons), "status": status,
+                "reasons": dict(reasons), "status": status, "last_reason": reason,
                 "discovery_failed": _failed_sample(retryable_disc), "secs": 0.0}
 
     workers = int(os.environ.get("SITE_WORKERS", "4"))
@@ -279,14 +276,14 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     unprocessed = st.get("unprocessed", 0)
     dead = st.get("error", 0)
     total_saved = int(cur.get("saved") or 0) + saved
+    only_gone = dead and not unprocessed and _gone_404(_dead_letters(domain, kind))
     last_reason = ""
 
     if unprocessed:
         status = "paused" if (limit and saved >= limit) else "interrupted"
         last_reason = "limit" if status == "paused" else "pending"
-    elif saved:
-        dead_errs = _dead_letters(domain, kind)
-        if dead and not _gone_404(dead_errs):
+    elif saved or (total_saved and discovered_count and only_gone):
+        if dead and not only_gone:
             status, last_reason = "partial", "dead_letters"
         else:
             status, last_reason = "complete", ("dead_404" if dead else "")
@@ -312,14 +309,12 @@ def collect_urls(site, urls, limit, log, fetcher, kind="posts", discovered_count
     fields = dict(status=status, reasons=dict(reasons), discovered=max(discovered, discovered_count or 0),
                   saved=total_saved, next_page=1, total_pages=1, queue=st,
                   dead_letters=dead, skipped=st.get("skipped", 0),
-                  discovery_failed=_failed_sample(retryable_disc))
-    if last_reason:
-        fields["last_reason"] = last_reason
+                  discovery_failed=_failed_sample(retryable_disc), last_reason=last_reason)
     cur = cursor.save(domain, kind, **fields)
     log.info("done status=%s saved=%d errors=%d reasons=%s queue=%s", status, saved, errors,
              dict(reasons), st)
     return {"domain": domain, "channel": channel, "quality": counts.report(), "discovered": discovered,
             "saved": saved, "errors": errors, "total": total_saved, "queue": st,
-            "reasons": dict(reasons), "status": status,
+            "reasons": dict(reasons), "status": status, "last_reason": last_reason,
             "discovery_failed": _failed_sample(retryable_disc),
             "secs": round(time.time() - t0, 1)}

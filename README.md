@@ -35,7 +35,7 @@ MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采
 | --- | --- |
 | Apple Silicon Mac 本机使用（macOS 15+） | 下载 [macOS arm64 DMG](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/tag/macos-v0.1.0)，拖入「应用程序」后打开，工作台会在默认浏览器启动。首次打开提示见发布说明。 |
 | 本地运行、开发适配器或维护站点配置 | `main`，包含采集器前后端、测试和开发记录 |
-| CentOS Linux 8.4 x86_64 服务器部署 | [服务器发布包](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/tag/server-v0.3.0)，包含独立源码和 Podman 安装脚本 |
+| CentOS Linux 8.4 x86_64 服务器部署 | [服务器发布包](https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/tag/server-v0.4.0)，包含独立源码和 Podman 安装脚本 |
 
 ### 本地运行
 
@@ -52,12 +52,12 @@ MultiTypes-CrawlSpider 是一套自托管网页采集服务。用浏览器试采
 下载服务器包、核对校验值并解压：
 
 ```bash
-release=https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/download/server-v0.3.0
-curl -fLO "$release/MultiTypes-CrawlSpider-server-v0.3.0.tar.gz"
+release=https://github.com/chatgarypt-cpu/MultiTypes-CrawlSpider/releases/download/server-v0.4.0
+curl -fLO "$release/MultiTypes-CrawlSpider-server-v0.4.0.tar.gz"
 curl -fLO "$release/SHA256SUMS"
 sha256sum -c SHA256SUMS
-tar -xzf MultiTypes-CrawlSpider-server-v0.3.0.tar.gz
-cd MultiTypes-CrawlSpider-server-v0.3.0
+tar -xzf MultiTypes-CrawlSpider-server-v0.4.0.tar.gz
+cd MultiTypes-CrawlSpider-server-v0.4.0
 sudo bash deploy/centos8/install.sh
 curl -fsS http://127.0.0.1:8787/healthz
 ```
@@ -66,10 +66,10 @@ curl -fsS http://127.0.0.1:8787/healthz
 
 ## 在工作台采集
 
-1. **输入网址并试采**。可提交域名、栏目页或文章页。支持自动识别，也可手动选择网页列表、RSS / Atom、站点地图或 WordPress REST。
+1. **输入网址并试采**。可提交域名、栏目页或文章页。支持自动识别，也可手动选择网页列表、RSS / Atom、站点地图、WordPress REST、JSON 接口、JSON 列表或网页存档。
 2. **核对样本和范围**。可按默认范围、通道可发现的全部内容、当前栏目或 URL 路径采集。WordPress REST 支持选择文章、页面、媒体元数据和站点公开的自定义类型。HTML 类通道可调整标题、发布日期和正文的 XPath 后复测。
 3. **确认入队**。正式任务沿用已试采的通道、范围和规则。已知站点可切换到「批量入队」，每行填一个网址。
-4. **查看进度与导出**。可查看日志和集合结果，停止或继续任务，按内容类型下载 CSV。
+4. **查看进度与导出**。可查看日志和集合结果，停止或继续任务，按内容类型下载 CSV。网页任务可加入订阅，已启用的长期采集网址会显示在订阅列表。
 
 试采只返回样本，正式任务按配置处理发现的内容。媒体集合提供元数据和链接。任务「本轮完成」表示已处理本轮发现的范围，历史覆盖率须依据公开 API 总量、站点地图等独立清单核对。
 

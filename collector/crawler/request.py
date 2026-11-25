@@ -7,13 +7,34 @@ streamed instead of being materialised in memory.
 Table lives in data/state.db next to the existing runs table.
 """
 import json, os, re, sqlite3, time
+from contextlib import closing
 from dataclasses import dataclass, field
+from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 from crawler.config import DATA, DB
 
 TRACKING_PARAMS = {"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
                    "fbclid", "gclid", "ref", "referrer"}
+
+
+def queue_work(db_path, domain, kind, retry_statuses=()):
+    """Report pending and retryable work without creating or modifying the queue."""
+    path = Path(db_path)
+    if not path.is_file():
+        return False, False
+    try:
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1)) as conn:
+            key = domain, kind
+            pending = conn.execute(
+                "SELECT 1 FROM requests WHERE domain=? AND kind=? AND state IN ('unprocessed','inflight') LIMIT 1",
+                key).fetchone()
+            if pending:
+                return True, False
+            errors = conn.execute("SELECT error FROM requests WHERE domain=? AND kind=? AND state='error'", key)
+            return False, any(RequestQueue.retryable_error(error, retry_statuses) for (error,) in errors)
+    except sqlite3.OperationalError as exc:
+        return ("no such table" not in str(exc)), False
 
 
 def canonical_key(url: str) -> str:

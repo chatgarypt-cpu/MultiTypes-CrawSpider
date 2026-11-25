@@ -16,6 +16,7 @@ import atexit
 import glob
 import os
 import time
+from contextlib import contextmanager
 from urllib.parse import urlsplit
 
 BLOCK_TYPES = {"image", "media", "font", "stylesheet"}
@@ -59,6 +60,43 @@ _CONTEXT = None
 _OPTIONS = None
 
 
+def _restrict_to_public_host(context, host, allow_target=None):
+    def public_request(route):
+        p = urlsplit(route.request.url)
+        if (p.scheme not in ("http", "https") or p.netloc != host
+                or route.request.method not in ("GET", "HEAD")
+                or (allow_target and not allow_target(route.request.url))):
+            route.abort()
+            return
+        response = route.fetch(max_redirects=0)
+        try:
+            if 300 <= response.status < 400 and response.headers.get("location"):
+                route.abort()
+            else:
+                route.fulfill(response=response)
+        finally:
+            response.dispose()
+
+    context.route("**/*", public_request)
+    context.route_web_socket("**/*", lambda socket: socket.close())
+
+
+@contextmanager
+def public_context(host, headless=True):
+    """Keep each dashboard request on its own thread and in a fresh session."""
+    from crawler.settings import allow_target
+
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as driver:
+        browser = driver.chromium.launch(headless=headless, executable_path=_executable())
+        try:
+            context = browser.new_context(service_workers="block", accept_downloads=False)
+            _restrict_to_public_host(context, host, allow_target=allow_target())
+            yield context
+        finally:
+            browser.close()
+
+
 def _context(headless=True, user_agent=None, block_resources=False, ignore_https_errors=False,
              public_host=None):
     """整个进程复用一个浏览器上下文：挑战通过后的 cookie 能带到后续页面，
@@ -78,22 +116,7 @@ def _context(headless=True, user_agent=None, block_resources=False, ignore_https
                                   **({"user_agent": user_agent} if user_agent else {}))
     _OPTIONS = options
     if public_host:
-        def public_request(route):
-            p = urlsplit(route.request.url)
-            if (p.scheme in ("http", "https") and p.netloc == public_host
-                    and route.request.method in ("GET", "HEAD")):
-                response = route.fetch(max_redirects=0)
-                try:
-                    if 300 <= response.status < 400 and response.headers.get("location"):
-                        route.abort()
-                    else:
-                        route.fulfill(response=response)
-                finally:
-                    response.dispose()
-            else:
-                route.abort()
-        _CONTEXT.route("**/*", public_request)
-        _CONTEXT.route_web_socket("**/*", lambda socket: socket.close())
+        _restrict_to_public_host(_CONTEXT, public_host)
     else:
         _CONTEXT.add_init_script(STEALTH_JS)
     if block_resources and not public_host:
@@ -176,13 +199,8 @@ def iter_fetch(urls, wait_ms=None, headless=True, block_resources=False,
 
     单个 URL 失败只返回 status=0 + 错误文本，不中断整批（与 browser_ego 行为一致）。
     """
-    try:
-        from playwright.sync_api import sync_playwright
-    except Exception as exc:  # pragma: no cover - 依赖缺失时的明确提示
-        raise RuntimeError(
-            "playwright 未安装：`uv sync --extra browser`（或 pip install playwright），"
-            "并执行 `python -m playwright install --with-deps chromium`"
-        ) from exc
+    if not available():
+        raise RuntimeError("浏览器出口需要 Playwright")
 
     wait_ms = int(wait_ms or os.environ.get("PW_WAIT_MS", "1500"))
     timeout = int(timeout or os.environ.get("PW_TIMEOUT_MS", "30000"))

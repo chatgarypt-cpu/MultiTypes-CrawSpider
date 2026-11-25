@@ -12,7 +12,7 @@ import status
 import verify_coverage
 import web_jobs
 import web_worker
-from crawler import runner, store
+from crawler import cursor, runner, store
 from crawler.request import RequestQueue, canonical_key
 
 
@@ -56,6 +56,13 @@ def test_site_action_route_authorizes_validates_and_deduplicates(monitor, tmp_en
         conflict = requests.post(url, auth=auth, json=backfill, timeout=5).json()
         assert conflict["duplicate"] is True and conflict["job"]["id"] == first["job"]["id"]
         assert web_jobs.latest_site_actions(web_jobs.jobs())["news.test"]["verify"] == first["job"]
+        def unexpected_error(_body):
+            raise AttributeError("internal exception details")
+
+        monkeypatch.setattr(web_jobs, "submit_site_action", unexpected_error)
+        failure = requests.post(url, auth=auth, json=backfill, timeout=5)
+        assert failure.status_code == 500
+        assert "查看任务队列" in failure.json()["error"]
     finally:
         server.shutdown()
         server.server_close()
@@ -78,6 +85,30 @@ def test_monitor_worker_targets_canonical_data_and_leaves_normal_queue_isolated(
         str(web_jobs.job_dir(job["id"])): str(tmp_env),
         str(web_jobs.job_dir(plain["id"])): str(web_jobs.job_dir(plain["id"]) / "data"),
     }
+
+
+def test_resume_retires_completed_collection_without_using_worker_slot(monitor, monkeypatch):
+    domain = monitor["domain"]
+    request = {"action": "backfill", "domain": domain, "mode": "resume", "kinds": ["posts"]}
+    receipt = web_jobs.submit_site_action(request)["job"]
+    cursor.save(domain, status="complete", next_page=14, total_pages=13)
+
+    def unexpected_worker(*args, **kwargs):
+        pytest.fail("A completed collection started a worker")
+
+    monkeypatch.setattr(web_jobs.subprocess, "Popen", unexpected_worker)
+    web_jobs.tick()
+    job = web_jobs.read(web_jobs.job_dir(receipt["id"]) / "job.json")
+    assert job["status"] == "finished" and job["stage"] == "所选集合已完成"
+    with pytest.raises(ValueError, match="所选集合已完成"):
+        web_jobs.submit_site_action(request)
+
+    queue = RequestQueue(domain)
+    try:
+        queue.add_many([f"https://{domain}/new"])
+        assert web_jobs.submit_site_action(request)["job"]["status"] == "queued"
+    finally:
+        queue.conn.close()
 
 
 def test_resumed_action_result_stays_visible_after_completion(monitor):
@@ -106,7 +137,7 @@ def test_batch_queues_each_eligible_site_and_reports_duplicates_and_errors(monit
 
     request = {"action": "backfill", "mode": "resume", "targets": [
         {"domain": "news.test", "kinds": ["posts"]},
-        {"domain": "wp.test", "kinds": ["pages", "media"]},
+        {"domain": "wp.test", "kinds": ["pages", "media"], "mode": "rescan"},
         {"domain": "paused.test", "kinds": ["posts"]},
         {"domain": "news.test", "kinds": ["posts"]},
     ]}
@@ -115,8 +146,8 @@ def test_batch_queues_each_eligible_site_and_reports_duplicates_and_errors(monit
     assert first["job"]["status"] == second["job"]["status"] == "queued"
     assert rejected["domain"] == "paused.test" and "暂停" in rejected["error"]
     assert duplicate["duplicate"] and duplicate["job"]["id"] == first["job"]["id"]
-    queue = {job["domain"]: job["kinds"] for job in web_jobs.jobs()}
-    assert queue == {"news.test": ["posts"], "wp.test": ["pages", "media"]}
+    queue = {job["domain"]: (job["kinds"], job["mode"]) for job in web_jobs.jobs()}
+    assert queue == {"news.test": (["posts"], "resume"), "wp.test": (["pages", "media"], "rescan")}
 
 
 def test_refresh_writes_coverage_without_altering_collection_files(monitor, tmp_env, monkeypatch):

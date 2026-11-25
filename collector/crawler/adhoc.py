@@ -23,9 +23,10 @@ def _get(url, timeout=20, impersonate=False, public=False):
         from crawler.public_urls import public_get
         from crawler.web import PUBLIC_ROBOTS, LIMITER, read_body_capped
         LIMITER.acquire(url, min_interval=PUBLIC_ROBOTS.crawl_delay(url))
+        from crawler import settings as runtime_settings
         with public_get(requests.get, url, same_host=urlsplit(url).netloc, stream=True,
                         headers={"User-Agent": UA}, timeout=timeout,
-                        allow_target=PUBLIC_ROBOTS.allowed) as response:
+                        allow_target=runtime_settings.allow_target()) as response:
             return SimpleNamespace(status_code=response.status_code, headers=response.headers,
                                    text=read_body_capped(response))
     if impersonate and cffi_requests is not None:
@@ -97,10 +98,25 @@ def detect(url, *, public=False):
         except Exception:
             pass
 
+    # 2.5 挖接口：wp-json / sitemap / rss 都没命中时，从已取到的首页 HTML 里找 API 候选。
+    #     默认只附加 detected.endpoints / detected.suggested，不改 channel；
+    detected = {"list_url": page_url, "link_pattern": "heuristic"}
+    try:
+        from crawler import endpoints as endpoints_mod
+        scanned = endpoints_mod.scan(body if isinstance(body, str) else "", page_url, fetcher=fetcher)
+        found = endpoints_mod.rank(scanned.get("candidates") or [])
+        if found:
+            detected["endpoints"] = found[:10]
+            suggested = endpoints_mod.suggest(found)
+            if suggested:
+                detected["suggested"] = suggested
+    except Exception as e:
+        notes.append(f"endpoints: {str(e)[:60]}")
+
     # 4. plain HTML listing (the page you gave us becomes the listing page)
     return {"domain": domain, "base": base, "channel": "html", "list_url": page_url,
             "link_pattern": r'/[^"\']*(?:/20\d\d/|-\d{4,}\.html|/news/|/article)', "via": "direct",
-            "detected": {"list_url": page_url, "link_pattern": "heuristic"}, "notes": notes}
+            "detected": detected, "notes": notes}
 
 
 def remember(site):

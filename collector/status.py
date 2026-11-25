@@ -2,6 +2,7 @@
 """Write status.json + a self-refreshing dashboard.html from data/*/cursor.json."""
 import json, os, glob, re, subprocess
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 from crawler.config import DATA, REQUEST_QUEUE_CHANNELS, site_kinds, sources_path
@@ -139,7 +140,9 @@ def coverage_flags(dom):
     return {"coverage": cov, "verified": verdict == "已核对" and not stale,
             "coverage_verdict": verdict, "coverage_checked_at": checked,
             "coverage_stale": stale, "coverage_detail": reason or rec.get("verdict_detail") or rec.get("source") or "",
-            "coverage_missing": (rec.get("missing") or {}).get("count"), "coverage_per_kind": rec.get("per_kind") or {}}
+            "coverage_missing": (rec.get("missing") or {}).get("count"),
+            "coverage_missing_by_kind": (rec.get("missing") or {}).get("per_kind") or {},
+            "coverage_per_kind": rec.get("per_kind") or {}}
 
 
 def count_lines(path):
@@ -165,6 +168,15 @@ def site_row(d, cfg=None):
     dom = os.path.basename(d)
     if cfg is None:
         cfg = source_cfg().get(dom, {})
+    base_url = ""
+    base = cfg.get("base")
+    if isinstance(base, str):
+        try:
+            address = urlsplit(base)
+            if address.scheme in ("http", "https") and address.hostname and "@" not in address.netloc:
+                base_url = address._replace(query="", fragment="").geturl()
+        except ValueError:
+            pass
     os.makedirs(d, exist_ok=True)
     disabled = cfg.get("disabled") is True
     cov = coverage_flags(dom)
@@ -178,6 +190,16 @@ def site_row(d, cfg=None):
     if os.path.exists(up): n = count_lines(up)
     ap = os.path.join(d, "articles.jsonl")
     if os.path.exists(ap): chars = os.path.getsize(ap)
+    def kind_state(n, state):
+        queue = state.get("queue") or {}
+        return {"n": n, "page": state.get("next_page", 0), "pages": state.get("total_pages"),
+                "done": state.get("done", False), "status": state.get("status", ""),
+                "last_reason": state.get("last_reason", ""), "updated": (state.get("updated") or "")[:19],
+                "pending_links": queue.get("unprocessed", 0),
+                "failed_links": queue.get("error", state.get("dead_letters", 0)),
+                "skipped_links": queue.get("skipped", state.get("skipped", 0)),
+                "skipped_pages": state.get("skipped_pages", 0)}
+
     def kind_count(kind):
         f = os.path.join(d, f"{kind}.urls.txt")
         c = os.path.join(d, f"{kind}.cursor.json")
@@ -186,14 +208,11 @@ def site_row(d, cfg=None):
         if os.path.exists(c):
             try: cur2 = json.load(open(c))
             except Exception: pass
-        return {"n": n, "page": cur2.get("next_page", 0), "pages": cur2.get("total_pages"),
-                "done": cur2.get("done", False), "status": cur2.get("status", ""), "last_reason": cur2.get("last_reason", ""), "updated": (cur2.get("updated") or "")[:19]}
+        return kind_state(n, cur2)
     collections = [kind for kind in site_kinds(cfg) if re.fullmatch(r"[a-z][a-z0-9_-]*", kind)] if cfg.get("base") and cfg.get("channel") else []
     kinds = {kind: kind_count(kind) for kind in dict.fromkeys(("pages", "media", *collections)) if kind != "posts"}
-    kinds["posts"] = {"n": n, "page": cur.get("next_page", 0), "pages": cur.get("total_pages"),
-                      "done": cur.get("done", False), "status": cur.get("status", ""),
-                      "last_reason": cur.get("last_reason", ""), "updated": (cur.get("updated") or "")[:19]}
-    return {"domain": dom, "saved": n,
+    kinds["posts"] = kind_state(n, cur)
+    return {"domain": dom, "base_url": base_url, "saved": n,
             "page": cur.get("next_page", 0), "pages": cur.get("total_pages"),
             "posts": cur.get("total_posts"), "done": cur.get("done", False),
             "updated": (cur.get("updated") or "")[:19], "mb": round(chars / 1e6, 2),

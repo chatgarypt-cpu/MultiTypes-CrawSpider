@@ -66,6 +66,32 @@ def test_previous_partial_not_upgraded(tmp_env, monkeypatch):
     assert out["status"] == "partial"
 
 
+def test_recovered_discovery_clears_stale_partial_without_duplicate_rows(tmp_env):
+    from crawler.store import append_rows
+
+    url = "https://s.test/a"
+    append_rows("s.test", [{"url": url, "title": "Saved"}])
+    base_mod.cursor.save("s.test", status="partial", last_reason="discovery_failed")
+    log = type("L", (), {"info": lambda *a, **k: None})()
+    result = base_mod.collect_urls(_site(), [url], 0, log, FakeFetcher())
+    assert result["status"] == "complete" and result["saved"] == 0
+    assert base_mod.cursor.load("s.test")["last_reason"] == "nothing_new"
+
+
+def test_recovered_discovery_keeps_existing_skipped_items_visible(tmp_env):
+    from crawler.request import RequestQueue, canonical_key
+
+    url = "https://s.test/skipped"
+    q = RequestQueue("s.test")
+    q.add_many([url])
+    q.mark_skipped([canonical_key(url)], "no_text")
+    base_mod.cursor.save("s.test", status="partial", last_reason="discovery_failed")
+    log = type("L", (), {"info": lambda *a, **k: None})()
+    result = base_mod.collect_urls(_site(), [url], 0, log, FakeFetcher())
+    assert result["status"] == "partial" and result["last_reason"] == "skipped"
+    q.conn.close()
+
+
 def _queue_with_error(tmp_env, domain="s.test", err="http_404 not found"):
     from crawler.request import RequestQueue
     q = RequestQueue(domain, "posts")

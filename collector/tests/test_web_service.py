@@ -32,6 +32,14 @@ class Source(BaseHTTPRequestHandler):
             body = json.dumps({'post': {'rest_base': 'posts'}, 'page': {'rest_base': 'pages'}, 'attachment': {'rest_base': 'media'}, 'reports': {'rest_base': 'reports'}})
         elif self.mode == 'wp-partial' and path == '/wp-json/wp/v2/pages':
             status, body = 404, '{"code":"rest_no_route"}'
+        elif self.mode in ('json-api', 'json-list') and path == '/api/articles':
+            page = int(query.get('page', query.get('p', ['1']))[0])
+            headers = {'Content-Type': 'application/json'}
+            items = [{
+                'id': page, 'title': f'Report {page}', 'url': f'/story/{page}',
+                'body': 'Residents share detailed information about education and local services. ' * 8,
+            }] if page <= 2 else []
+            body = json.dumps({'items': items})
         elif self.mode in ('wp', 'wp-partial', 'wp-no-body', 'wp-with-media') and path.startswith('/wp-json/wp/v2/'):
             kind = path.rsplit('/', 1)[-1]
             total = {'posts': 63, 'pages': 3, 'media': int(self.mode == 'wp-with-media'), 'reports': 2}.get(kind, 0)
@@ -102,6 +110,41 @@ def source():
     yield start
     for server in servers:
         server.shutdown(); server.server_close()
+
+
+@pytest.mark.parametrize('channel', ['json-api', 'json-list'])
+def test_public_json_preview_confirm_and_collect(service, source, channel):
+    base, session, data, _, _ = service
+    url = source(channel)
+    api = {'path': '/api/articles?token=fixture'}
+    if channel == 'json-list':
+        api.update(detail_path='/story/{id}', page_param='p')
+        invalid = session.post(base+'/api/preview',
+                               json={'url': url, 'channel': channel,
+                                     'api': dict(api, detail_path='/missing/{id}')}).json()
+        assert not invalid['preview_id'] and invalid['issues']
+
+    preview = session.post(base+'/api/preview', json={'url': url, 'channel': channel, 'api': api})
+    preview.raise_for_status()
+    result = preview.json()
+    assert result['channel'] == channel and result['preview_id']
+    assert result['samples'][0]['url'] == url+'/story/1'
+    assert 'token' not in result['source']
+
+    confirmation = session.post(base+'/api/crawl', json={'preview_id': result['preview_id']})
+    confirmation.raise_for_status()
+    job = confirmation.json()['results'][0]
+    assert job['status'] == 'queued'
+    job_dir = data/'web-jobs'/job['id']
+    site = json.loads((job_dir/'site.json').read_text())
+    assert site['channel'] == channel and site['_public_host'] == urlsplit(url).netloc
+    assert 'token' not in str(site)
+    state = wait_for(lambda: next((row for row in session.get(base+'/api/jobs').json()['jobs']
+                                   if row['id'] == job['id'] and row['status'] not in ('queued', 'running')), None))
+    assert state['status'] == 'finished', state
+    assert state['channel'] == channel
+    rows = [json.loads(line) for line in (job_dir/'data'/site['domain']/'articles.jsonl').read_text().splitlines()]
+    assert [row['url'] for row in rows] == [url+'/story/1', url+'/story/2']
 
 
 def wait_for(fn, timeout=45):

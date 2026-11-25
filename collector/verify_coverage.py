@@ -178,59 +178,32 @@ def wp_missing_sample(site, kinds, pages=2, per_page=100):
             "note": f"按最新 {scanned} 条抽样（非全量缺失清单）" if scanned else "缺失样本探测失败"}
 
 
-def sitemap_urls(site, limit_children=None, state=None):
-    """Return the list of URLs advertised by the site sitemap.
+def sitemap_urls(site, state=None):
+    """Fetch a fresh sitemap and apply the same URL scope as the sitemap collector."""
+    from crawler.discover import iter_sitemap_urls
 
-    state: 可选 dict；sitemap 超过 SITEMAP_MAX_LOCS 时置 state["truncated"]=True。
-    """
-    base = site["base"].rstrip("/")
-    path = site.get("sitemap") or "/sitemap.xml"
-    if not path.startswith("http"):
-        path = base + path
-    seen, queue, urls = set(), [path], []
-    from crawler.discover import in_path_scope, sitemap_locs
-    while queue and (not limit_children or len(seen) < limit_children):
-        u = queue.pop(0)
-        if u in seen:
-            continue
-        seen.add(u)
-        try:
-            r = http(u, impersonate=_impersonate(site), **transport_options(site))
-            if r.status_code != 200:
-                if state is not None:
-                    state.setdefault("failed", []).append({"url": u, "status": r.status_code})
-                continue
-            body = r.text
-        except Exception:
-            if state is not None:
-                state.setdefault("failed", []).append({"url": u, "status": 0})
-            continue
-        xml_kind, locs = sitemap_locs(body)
-        if xml_kind is None:
-            if state is not None:
-                state.setdefault("failed", []).append({"url": u, "status": 0})
-            continue
-        if xml_kind == "sitemapindex":
-            queue.extend(locs)
-        else:
-            urls.extend(locs)
-            if len(urls) > SITEMAP_MAX_LOCS:
-                urls = urls[:SITEMAP_MAX_LOCS]
-                if state is not None:
-                    state["truncated"] = True
-                break
-    if queue and state is not None:
-        state["truncated"] = True
-    filt = site.get("url_filter")
-    pat = site.get("link_pattern")
-    if filt:
-        urls = [u for u in urls if re.search(filt, u)]
-    if pat:
-        urls = [u for u in urls if re.search(pat, u)]
-    if not filt and not pat and not site.get("coverage_all"):
-        # 默认只把文章型 URL 计入总量；全站详情页规则下的站（coverage_all）按全部 <loc> 对账
+    class CoverageFetcher:
+        def get_many(self, batch):
+            for url in batch:
+                try:
+                    response = http(url, impersonate=_impersonate(site), **transport_options(site))
+                    yield url, response.status_code, response.text
+                except Exception:
+                    yield url, 0, ""
+
+    failures = []
+    entry = dict(site, sitemap=site.get("sitemap") or "/sitemap.xml")
+    urls = list(iter_sitemap_urls(entry, CoverageFetcher(), cap=SITEMAP_MAX_LOCS + 1, failures=failures))
+    if state is not None:
+        if failures:
+            state["failed"] = failures
+        if len(urls) > SITEMAP_MAX_LOCS:
+            state["truncated"] = True
+    urls = urls[:SITEMAP_MAX_LOCS]
+    if site.get("channel") != "sitemap" and not (site.get("url_filter") or site.get("link_pattern") or site.get("coverage_all")):
+        # A guessed sitemap for a non-sitemap channel can include unrelated pages.
         urls = [u for u in urls if ARTICLE_RE.search(u)]
-    return list(dict.fromkeys(url for url in urls if in_path_scope(url, site)))
+    return list(dict.fromkeys(urls))
 
 
 # ---------------------------------------------------------------- guard / diff (pure)
@@ -285,10 +258,13 @@ def _apply_guard(rec, got, expected):
 
 def _verify_set(rec, domain, kind, expected_items):
     """sitemap / probed-sitemap: len(loc set) as expected + exact missing-URL diff."""
-    rec["expected"] = len(expected_items)
+    by_key = {}
+    for url in expected_items:
+        by_key.setdefault(canonical_key(url), url)
+    rec["expected"] = len(by_key)
     if not _apply_guard(rec, rec["got"].get(kind, 0), rec["expected"]):
         return
-    rec["missing"] = missing_payload(missing_urls(expected_items, local_keys(domain, kind)))
+    rec["missing"] = missing_payload(missing_urls(by_key.values(), local_keys(domain, kind)))
     matched = rec["expected"] - rec["missing"]["count"]
     rec["coverage"] = round(matched / rec["expected"], 3)
     rec["verdict"] = "已核对" if matched / rec["expected"] >= 0.95 else "有缺口"

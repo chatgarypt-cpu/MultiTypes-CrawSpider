@@ -69,12 +69,21 @@ def _sleep_backoff(attempt):
     time.sleep(RETRY_BACKOFF * (2 ** attempt))
 
 
-def _bb_key():
+def _local_key(name):
+    """读 `.env.local` 里的单个键（文件缺失/没这一行都返回空串）。"""
     env = os.path.join(ROOT, "..", ".env.local")
-    for line in open(env):
-        if line.startswith("BROWSERBASE_API_KEY="):
-            return line.split("=", 1)[1].strip()
-    return os.environ.get("BROWSERBASE_API_KEY", "")
+    try:
+        with open(env, encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith(name + "="):
+                    return line.split("=", 1)[1].strip()
+    except OSError:
+        pass
+    return ""
+
+
+def _bb_key():
+    return os.environ.get("BROWSERBASE_API_KEY") or _local_key("BROWSERBASE_API_KEY")
 
 def cloud_get(url, timeout=90):
     """Browserbase /v1/fetch: clean egress IP, ~$1 per 1000 pages. Goes through the shared pool."""
@@ -107,12 +116,15 @@ def headers_for(site):
             pass
     return h
 
+
 LIMITER = DomainLimiter()
 ROBOTS = RobotsCache(session=SESSION)     # robots.txt 走同一条连接池
 
 # 有些响应会慢速滴流式返回（或正文几个 GB），单靠 socket timeout 永远读不完，
 # 会把整个批次卡死；这里给每个响应加总时延 + 体积上限，并跳过非文本类型。
-TEXTUAL = ("text/", "application/xhtml", "application/xml", "application/json", "application/rss")
+TEXTUAL = ("text/", "application/xhtml", "application/xml", "application/json", "application/rss",
+           # 挖接口要读 JS bundle：application/javascript 不在 text/ 前缀里，漏了会拿到空 body
+           "application/javascript", "application/ecmascript", "application/x-javascript")
 MAX_BODY_BYTES = int(os.environ.get("MAX_BODY_BYTES", "8000000"))
 BODY_DEADLINE = float(os.environ.get("BODY_DEADLINE", "20"))
 
@@ -191,7 +203,7 @@ def _rotate_session():
 
 
 def get_text(url, headers, timeout=(10, 25), verify=True, documents=False, public_host=None,
-             proxies=None):
+             proxies=None, ignore_robots=False):
     """流式取页面：先看 content-type，非文本直接放弃；正文有体积/时延上限。
 
     连接错误 / 5xx 最多重试 2 次（指数退避）；400 清 cookie 重试一次；
@@ -206,8 +218,12 @@ def get_text(url, headers, timeout=(10, 25), verify=True, documents=False, publi
             if proxies:
                 kwargs["proxies"] = proxies
             if public_host:
+                # 三重叠加：调用方单次豁免 / 站点 robots:false / 设置页全局开关
+                from crawler import settings as runtime_settings
+                allow_target = (None if (ignore_robots or not runtime_settings.respect_robots())
+                                else PUBLIC_ROBOTS.allowed)
                 r = public_get(SESSION.get, url, same_host=public_host,
-                               allow_target=PUBLIC_ROBOTS.allowed, **kwargs)
+                               allow_target=allow_target, **kwargs)
             else:
                 r = SESSION.get(url, **kwargs)
         except PermissionError:
@@ -287,7 +303,9 @@ class Fetcher:
         # 默认遵守 robots；站点显式写 robots: false 才跳过（用户决定，记在 sources.yaml note 里）
         # 全局放开开关（data/CRAWL_BYPASS 或 CRAWL_BYPASS=1）会覆盖单站配置。
         self.robots = site.get("robots", True) is not False
-        if bypass():
+        from crawler import settings as runtime_settings
+        # 旧符号 bypass() 保留（测试与调用方按模块属性 patch），设置页开关一并生效
+        if bypass() or not runtime_settings.respect_robots():
             self.robots = False
 
     def get_many(self, urls, timeout=60):
@@ -350,7 +368,7 @@ class Fetcher:
         if self.archive:
             # 逆向采集：正文改从公开存档取（源站已下线/按 IP 拦时唯一的取文路径）
             from crawler import paywall as paywall_mod
-            st, body, source = paywall_mod.archive_fetch(u)
+            st, body, source = paywall_mod.archive_fetch(u, **({"public": True} if public_host else {}))
             LIMITER.acquire(u)
             (LIMITER.penalize if st in (403, 429) else LIMITER.reward)(u)
             return (u, st, body) if source else (u, 0, f"archive_miss {source}")
@@ -374,6 +392,7 @@ class Fetcher:
                     options["documents"] = True
                 if public_host:
                     options["public_host"] = public_host
+                    options["ignore_robots"] = self.robots is False
                 extra = {"proxies": proxy_map} if proxy_map else {}
                 st, body = get_text(u, headers=headers_for(self.site), timeout=_as_timeout(timeout),
                                     **extra, **options)

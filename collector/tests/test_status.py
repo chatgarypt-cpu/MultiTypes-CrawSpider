@@ -47,6 +47,7 @@ def fake_status(tmp_path, monkeypatch):
 def test_kinds_posts_carries_done_flag(fake_status):
     st = fake_status.build_status()
     alpha = next(r for r in st["sites"] if r["domain"] == "alpha.test")
+    assert alpha["base_url"] == "https://alpha.test"
     assert alpha["kinds"]["posts"]["done"] is True
     assert alpha["kinds"]["posts"]["status"] == "complete"
 

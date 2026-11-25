@@ -28,6 +28,8 @@ uv run python collector/collect.py --site-url https://example.com/            # 
 uv run python collector/collect.py --url https://example.com/a-post           # 直接采一篇文章
 ```
 
+试采可通过「顺带找接口」查看站内公开 JSON 线索。选择候选后可试采正文、确认入队，或者复制通过校验的信源配置。已有接口地址也可以直接选择 JSON 通道。网页存档通道从公开历史快照取样。
+
 ### 方式二：手写 sources.yaml（批量 / 长期运营）
 
 需要定时跑几十上百个站时，才需要把它写成配置：

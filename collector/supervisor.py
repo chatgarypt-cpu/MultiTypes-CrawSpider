@@ -20,16 +20,14 @@ from __future__ import annotations
 import json
 import os
 import signal
-import sqlite3
 import subprocess
 import sys
 import time
 from pathlib import Path
-from contextlib import closing
 
 from crawler import config
 from crawler.processes import signal_group, stop_group
-from crawler.request import RequestQueue
+from crawler.request import queue_work
 
 HERE = Path(__file__).resolve().parent          # collector/
 PROJECT = HERE.parent
@@ -81,17 +79,10 @@ def now_iso() -> str:
 
 def read_skip(path=None) -> set[str]:
     """解析 data/CRAWL_SKIP（`domain:kind` 或 `# 注释`；支持行尾注释）。"""
-    p = Path(path) if path else SKIP
     try:
-        lines = p.read_text(encoding="utf-8").splitlines()
+        return config.read_collection_skips(path or SKIP)
     except OSError:
         return set()
-    out = set()
-    for ln in lines:
-        ln = ln.split("#", 1)[0].strip()      # 行尾注释：www.x:posts  # 原因
-        if ln:
-            out.add(ln)
-    return out
 
 
 def _count(path: Path) -> int:
@@ -270,24 +261,10 @@ def progress_signature(data_dir, key, logfile):
     return tuple(result)
 
 
-def request_work(data_dir, key, *, include_skipped=False):
+def request_work(data_dir, key):
     """Return pending work and whether dead letters can be retried."""
-    path = Path(data_dir) / "state.db"
-    if not path.is_file():
-        return False, False
-    try:
-        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1)) as conn:
-            states = ("unprocessed", "inflight", "skipped" if include_skipped else "unprocessed")
-            pending = conn.execute(
-                "SELECT 1 FROM requests WHERE domain=? AND kind=? AND state IN (?,?,?) LIMIT 1",
-                (*key, *states)).fetchone()
-            if pending:
-                return True, False
-            errors = conn.execute("SELECT error FROM requests WHERE domain=? AND kind=? AND state='error'", key)
-            statuses = site_settings(key[0]).get("retry_http_statuses") or ()
-            return False, any(RequestQueue.retryable_error(error, statuses) for (error,) in errors)
-    except sqlite3.OperationalError as exc:
-        return ("no such table" not in str(exc)), False
+    statuses = site_settings(key[0]).get("retry_http_statuses") or ()
+    return queue_work(Path(data_dir) / "state.db", *key, statuses)
 
 
 def resume_snapshot(tasks, path):
@@ -478,7 +455,7 @@ def main() -> int:
                 if ready_at.get(key, 0) > time.monotonic() or any(k[0] == key[0] for k in running):
                     continue
                 queue.remove(key)
-                if is_done(DATA, *key) and not any(request_work(DATA, key, include_skipped=True)):
+                if is_done(DATA, *key) and not any(request_work(DATA, key)):
                     completed.append(key)
                     log(f"skip {key[0]} {key[1]} (cursor done)")
                     continue

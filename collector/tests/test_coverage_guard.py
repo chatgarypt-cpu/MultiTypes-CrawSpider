@@ -3,6 +3,8 @@
 审查项 3 的核心回归：本地远大于上游（如 5,043 ÷ 24）不能再算"采全"，
 必须 coverage=None + verdict="口径异常"，且不计入 verified/complete。
 """
+from types import SimpleNamespace
+
 import pytest
 
 import verify_coverage as vc
@@ -78,6 +80,26 @@ def test_sitemap_normal_case_reports_missing_urls(monkeypatch, local_urls):
     assert rec["missing"]["count"] == 2
     assert rec["missing"]["urls"] == upstream[8:]
     assert rec["expected"] == 10
+
+
+def test_sitemap_coverage_uses_collection_scope_and_unique_urls(monkeypatch, local_urls):
+    base = "https://site.test"
+    urls = {
+        f"{base}/sitemap.xml": "<sitemapindex><sitemap><loc>edition.xml</loc></sitemap></sitemapindex>",
+        f"{base}/edition.xml": (
+            "<urlset><url><loc>/edition-one</loc></url><url><loc>/edition-two</loc></url>"
+            "<url><loc>/edition-two/?utm_source=feed</loc></url><url><loc>/brochure.pdf</loc></url></urlset>"
+        ),
+    }
+    local_urls([f"{base}/edition-one"])
+    monkeypatch.setattr(vc, "http", lambda url, **opts: SimpleNamespace(status_code=200, text=urls[url]))
+    site = {"domain": "site.test", "channel": "sitemap", "base": base}
+
+    rec = vc.verify_site(site, {"posts": 1})
+
+    assert rec["expected"] == 2
+    assert rec["coverage"] == .5
+    assert rec["missing"]["urls"] == [f"{base}/edition-two"]
 
 
 def test_sitemap_scope_anomaly_is_not_verified(monkeypatch, local_urls):

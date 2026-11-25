@@ -38,7 +38,9 @@ SHARED = {"domain", "aliases", "name", "country", "lang", "type", "channel", "ba
           # 付费墙/反爬回退（crawler.paywall）：13ft 取文链路开关
           "paywall_fallback", "paywall_service", "paywall_budget",
           # 出口代理池（crawler.proxies）：换 IP / 虚拟出口
-          "proxy", "proxy_pool", "proxy_sticky"}
+          "proxy", "proxy_pool", "proxy_sticky",
+          # 接口挖掘（crawler.endpoints）：自动发现的候选接口与建议配置
+          "endpoints", "suggested"}
 OPTIONAL = {
     "wp-api": {"api", "wp_types", "wp_fields_media", "wp_empty_page_limit", "wp_empty_retries", "_scope_kinds"},
     "sitemap": set(),

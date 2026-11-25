@@ -27,21 +27,23 @@ from crawler.channels.base import collect_urls
 from crawler.request import RequestQueue
 
 
-def discover(site, log=None):
+def discover(site, log=None, sample_limit=None):
     """CDX 发现：返回 (urls, failures)。队列里已有待办时直接返回空列表。"""
     domain = site["domain"]
     kind = site.get("kind") or "posts"
-    if RequestQueue(domain, kind).stats().get("unprocessed"):
+    if sample_limit is None and RequestQueue(domain, kind).stats().get("unprocessed"):
         if log:
             log.info("archive channel: queue already has pending URLs, skip CDX")
         return [], []
     import cdx_seed
     cfg = site.get("cdx") or {}
+    options = {"retries": 1, "timeout": 12} if sample_limit is not None else {}
     try:
+        limit = int(cfg.get("limit") or 5000)
         urls = cdx_seed.cdx_urls(domain,
-                                 limit=int(cfg.get("limit") or 5000),
+                                 limit=min(limit, sample_limit) if sample_limit is not None else limit,
                                  since=cfg.get("since"),
-                                 pages_only=cfg.get("pages_only", True))
+                                 pages_only=cfg.get("pages_only", True), **options)
     except Exception as exc:
         return [], [{"url": f"cdx:{domain}", "status": 0, "error": str(exc)[:160]}]
     pattern = cfg.get("match")

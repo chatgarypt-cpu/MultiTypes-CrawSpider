@@ -12,9 +12,11 @@ import time
 import uuid
 from urllib.parse import urlsplit
 
-from crawler.config import DATA, ROOT, REQUEST_QUEUE_CHANNELS, site_kinds
+from crawler import cursor, settings
+from crawler.config import DATA, ROOT, REQUEST_QUEUE_CHANNELS, read_collection_skips, site_kinds
 from crawler.processes import signal_group
 from crawler.public_urls import normalize_url
+from crawler.request import queue_work
 
 JOBS = Path(DATA) / 'web-jobs'
 LOCK = threading.RLock()
@@ -153,10 +155,9 @@ def registered_site(domain, catalog=None):
 
 
 def require_backfill_enabled(site, kinds):
-    from supervisor import read_skip
     if (Path(DATA) / 'CRAWL_PAUSED').exists():
         raise ValueError('采集已全局暂停，请先恢复采集')
-    skipped = read_skip(Path(DATA) / 'CRAWL_SKIP')
+    skipped = read_collection_skips(Path(DATA) / 'CRAWL_SKIP')
     if any(f"{site['domain']}:{kind}" in skipped for kind in kinds):
         raise ValueError('所选集合已暂停，请先解除对应暂停')
     if site.get('channel') == 'html' and not (site.get('list_url') or site.get('list_urls')):
@@ -166,6 +167,16 @@ def require_backfill_enabled(site, kinds):
 def action_receipt(job):
     keys = ('id', 'action', 'status', 'stage', 'created', 'requested_at', 'saved', 'error')
     return {key: job[key] for key in keys if key in job}
+
+
+def collection_finished(site, kind):
+    state = cursor.load(site['domain'], kind)
+    revision = (site.get('backfill_revision') or {}).get(kind, 0)
+    if not state['done'] or state.get('backfill_revision', 0) < revision:
+        return False
+    if site.get('channel') not in REQUEST_QUEUE_CHANNELS:
+        return True
+    return not any(queue_work(Path(DATA) / 'state.db', site['domain'], kind, site.get('retry_http_statuses') or ()))
 
 
 def prepare_site_action(action, site, kinds, mode):
@@ -183,6 +194,10 @@ def prepare_site_action(action, site, kinds, mode):
         if mode == 'retry' and site.get('channel') not in REQUEST_QUEUE_CHANNELS:
             raise ValueError('该采集通道没有逐链接队列，请选择继续采集或重新扫描')
         kinds = [kind for kind in allowed if kind in kinds]
+        if mode == 'resume':
+            kinds = [kind for kind in kinds if not collection_finished(site, kind)]
+            if not kinds:
+                raise ValueError('所选集合已完成')
         require_backfill_enabled(site, kinds)
         job.update(kinds=kinds, mode=mode)
     return job
@@ -207,7 +222,7 @@ def submit_site_action(request):
             result = {'domain': domain if isinstance(domain, str) else ''}
             try:
                 site = registered_site(domain, catalog)
-                job = prepare_site_action(action, site, target.get('kinds'), request.get('mode'))
+                job = prepare_site_action(action, site, target.get('kinds'), target.get('mode', request.get('mode')))
                 existing = active.get(domain)
                 if existing is None:
                     write(job_dir(job['id']) / 'job.json', job)
@@ -311,6 +326,8 @@ def tick():
         for job in entries:
             if job["status"] == "running":
                 _watch_job(job)
+        if settings.paused():
+            return
         n = int(read(Path(DATA) / 'queue_config.json', {'concurrency': 4}).get('concurrency', 4))
         available = max(0, n - sum(j['status'] == 'running' for j in entries))
         for j in sorted(entries, key=lambda x: x['created']):
@@ -319,6 +336,15 @@ def tick():
             if j['status'] != 'queued' or j['id'] in waiting:
                 continue
             directory = job_dir(j['id'])
+            if j.get('action') == 'backfill' and j.get('mode') == 'resume':
+                try:
+                    site = registered_site(j['domain'])
+                except ValueError:
+                    site = None
+                if site and all(collection_finished(site, kind) for kind in j['kinds']):
+                    j.update(status='finished', stage='所选集合已完成', finished=time.time())
+                    write(directory / 'job.json', j)
+                    continue
             stage = {'verify': '正在核对', 'backfill': '正在准备补采',
                      'register': '正在合并已采数据'}.get(j.get('action'), '识别站点')
             j.update(status='running', stage=stage, started_epoch=time.time())
@@ -330,7 +356,7 @@ def tick():
             try:
                 with open(directory / 'run.log', 'a') as log:
                     target = DATA if j.get('action') else directory / 'data'
-                    env = dict(os.environ, CRAWL_DATA_DIR=str(target), PYTHONUNBUFFERED='1')
+                    env = dict(os.environ, CRAWL_DATA_DIR=str(target), CRAWL_SETTINGS_DIR=str(DATA), PYTHONUNBUFFERED='1')
                     proc = subprocess.Popen([sys.executable, str(Path(ROOT) / 'web_worker.py'), str(directory)],
                                             cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT,
                                             start_new_session=True)
